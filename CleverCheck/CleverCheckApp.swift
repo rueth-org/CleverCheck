@@ -12,7 +12,10 @@ import SwiftData
 struct CleverCheckApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Car.self,
+            ChargingLocation.self,
+            ChargingSession.self,
+            UserSettings.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

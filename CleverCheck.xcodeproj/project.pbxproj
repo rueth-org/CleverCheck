@@ -11,7 +11,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		1BBC69C82ED25D99007EDA05 /* Exceptions for "CleverCheck" folder in "CleverCheck" target */ = {
+		1BDF146F2ED35BD20052C4D9 /* Exceptions for "CleverCheck" folder in "CleverCheck" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -21,10 +21,10 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		1BBC69BD2ED25D98007EDA05 /* CleverCheck */ = {
+		1BDF14632ED35BD20052C4D9 /* CleverCheck */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				1BBC69C82ED25D99007EDA05 /* Exceptions for "CleverCheck" folder in "CleverCheck" target */,
+				1BDF146F2ED35BD20052C4D9 /* Exceptions for "CleverCheck" folder in "CleverCheck" target */,
 			);
 			path = CleverCheck;
 			sourceTree = "<group>";
@@ -45,8 +45,8 @@
 		1BBC69B22ED25D98007EDA05 = {
 			isa = PBXGroup;
 			children = (
-				1BBC69BD2ED25D98007EDA05 /* CleverCheck */,
 				1BBC69BC2ED25D98007EDA05 /* Products */,
+				1BDF14632ED35BD20052C4D9 /* CleverCheck */,
 			);
 			sourceTree = "<group>";
 		};
@@ -74,7 +74,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				1BBC69BD2ED25D98007EDA05 /* CleverCheck */,
+				1BDF14632ED35BD20052C4D9 /* CleverCheck */,
 			);
 			name = CleverCheck;
 			packageProductDependencies = (
@@ -104,6 +104,8 @@
 			knownRegions = (
 				en,
 				Base,
+				da,
+				de,
 			);
 			mainGroup = 1BBC69B22ED25D98007EDA05;
 			minimizedProjectReferenceProxies = 1;
@@ -258,6 +260,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -315,6 +318,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;

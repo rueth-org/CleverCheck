@@ -1,0 +1,104 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "- none -" : {
+      "extractionState" : "manual"
+    },
+    "%@" : {
+
+    },
+    "%@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "%lld %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@"
+          }
+        }
+      }
+    },
+    "Amount" : {
+      "extractionState" : "manual"
+    },
+    "Cancel" : {
+
+    },
+    "Car" : {
+      "extractionState" : "manual"
+    },
+    "Charging Session" : {
+
+    },
+    "Charging Sessions" : {
+
+    },
+    "End" : {
+      "extractionState" : "manual"
+    },
+    "Error" : {
+      "extractionState" : "manual"
+    },
+    "Fatal Error" : {
+      "extractionState" : "manual"
+    },
+    "Final SOC" : {
+
+    },
+    "Initial SOC" : {
+
+    },
+    "Item at %@" : {
+
+    },
+    "kWh" : {
+
+    },
+    "Location" : {
+      "extractionState" : "manual"
+    },
+    "Mileage" : {
+      "extractionState" : "manual"
+    },
+    "New Session" : {
+
+    },
+    "Notice" : {
+      "extractionState" : "manual"
+    },
+    "OK" : {
+
+    },
+    "Save" : {
+
+    },
+    "Start" : {
+      "extractionState" : "manual"
+    },
+    "Start time must be before end time." : {
+      "extractionState" : "manual"
+    },
+    "Success" : {
+      "extractionState" : "manual"
+    },
+    "This should not have happened, please inform the developer team." : {
+
+    },
+    "Warning" : {
+      "extractionState" : "manual"
+    }
+  },
+  "version" : "1.0"
+}
