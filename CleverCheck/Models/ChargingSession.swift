@@ -43,14 +43,4 @@ final class ChargingSession {
             self.finalSOC = finalSOC
         }
     }
-    
-    static func new() -> ChargingSession {
-        let session = ChargingSession(
-            endTime: Date.now,
-            amount: 0.0,
-            car: Car.new()
-        )
-        
-        return session
-    }
 }

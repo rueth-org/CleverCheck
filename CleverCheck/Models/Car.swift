@@ -25,9 +25,4 @@ final class Car: Equatable {
     static func ==(lhs: Car, rhs: Car) -> Bool {
         return lhs.id == rhs.id
     }
-    
-    static func new() -> Car {
-        let car = Car(make: "Make", model: "Model")
-        return car
-    }
 }

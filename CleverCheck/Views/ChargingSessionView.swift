@@ -301,7 +301,7 @@ struct ChargingSessionView: View {
                             
                             // The save button
                             Button {
-                                saveSession()
+                                saveAndExit()
                             } label: {
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill").imageScale(.large).foregroundStyle(.green)
@@ -394,12 +394,11 @@ struct ChargingSessionView: View {
         finalSOC = 0.8
     }
     
-    private func saveSession() {
-        
-    }
-    
     private func saveAndExit() {
+        modelContext.insert(chargingSession)
         
+        // Leave edit mode
+        navigationPath.removeLast()
     }
     
     private func cancelAndExit() {
@@ -410,8 +409,14 @@ struct ChargingSessionView: View {
 
 #Preview {
     @Previewable @State var navigationPath = NavigationPath()
+    let car = Car(make: "Toyota", model: "Rav4")
+    let chargingSession = ChargingSession(
+        endTime: Date.now,
+        amount: 0.0,
+        car: car
+    )
     ChargingSessionView(
-        chargingSession: ChargingSession.new(),
+        chargingSession: chargingSession,
         navigationPath: $navigationPath
     )
 }

@@ -4,6 +4,9 @@
     "" : {
 
     },
+    "- all -" : {
+
+    },
     "- none -" : {
       "extractionState" : "manual"
     },
@@ -45,6 +48,12 @@
     "Charging Sessions" : {
 
     },
+    "Delete" : {
+
+    },
+    "Edit" : {
+
+    },
     "End" : {
       "extractionState" : "manual"
     },
@@ -60,17 +69,20 @@
     "Initial SOC" : {
 
     },
-    "Item at %@" : {
-
-    },
     "kWh" : {
 
     },
     "Location" : {
       "extractionState" : "manual"
     },
+    "Make" : {
+
+    },
     "Mileage" : {
       "extractionState" : "manual"
+    },
+    "Model" : {
+
     },
     "New Session" : {
 
