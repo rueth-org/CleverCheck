@@ -81,6 +81,4 @@ struct ChargingSessionsList: View {
             modelContext.delete(chargingSession)
         }
     }
-    
-    
 }

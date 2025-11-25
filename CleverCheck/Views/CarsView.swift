@@ -55,9 +55,3 @@ struct CarsView: View {
         }
     }
 }
-
-#Preview {
-    @Previewable @State var navigationPath = NavigationPath()
-    CarsView(navigationPath: $navigationPath)
-        .modelContainer(for: Car.self, inMemory: true)
-}
