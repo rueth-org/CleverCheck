@@ -10,11 +10,12 @@ import SwiftData
 
 @Model
 final class ChargingLocation {
-    var name: String
-    var car: Car
+    @Attribute(.unique) var name: String
     
-    init(name: String, car: Car) {
+    @Relationship(deleteRule: .nullify, inverse: \ChargingSession.chargingLocation)
+    var chargingSessions = [ChargingSession]()
+    
+    init(name: String) {
         self.name = name
-        self.car = car
     }
 }

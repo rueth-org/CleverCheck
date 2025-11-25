@@ -9,20 +9,17 @@ import Foundation
 import SwiftData
 
 @Model
-final class Car: Equatable {
-    var id: UUID
+final class Car {
     var make: String
     var model: String
     var defaultSOC: Double
     
+    @Relationship(deleteRule: .deny, inverse: \ChargingSession.car)
+    var chargingSessions = [ChargingSession]()
+    
     init(make: String, model: String, defaultSOC: Double = 0.8) {
-        self.id = UUID()
         self.make = make
         self.model = model
         self.defaultSOC = defaultSOC
-    }
-    
-    static func ==(lhs: Car, rhs: Car) -> Bool {
-        return lhs.id == rhs.id
     }
 }

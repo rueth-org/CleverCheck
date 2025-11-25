@@ -10,55 +10,69 @@ import SwiftUI
 struct CarView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    var car: Car?
-    @State var make: String = ""
-    @State var model: String = ""
+    let car: Car?
+    @State private var make: String = ""
+    @State private var model: String = ""
+    @State private var defaultSOC: Double = 80
     
+    @State private var isEditingSOC: Bool = false
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
     
+    private var editorTitle: String {
+        car == nil ? "New Car" : "Edit Car"
+    }
+    
     var body: some View {
-        VStack {
-            ZStack {
-                // The form
-                Form {
-                    TextField("Make", text: $make)
-                    TextField("Model", text: $model)
-                }
-                .safeAreaPadding(EdgeInsets(top: 0, leading: 0, bottom: ActionButton.safeButtonSpace, trailing: 0)) // Required to avoid the content to be hidden by the Edit and Save buttons
-                
-                // The overlaying buttons
-                VStack {
+        Form {
+            TextField("Make", text: $make)
+            TextField("Model", text: $model)
+            VStack {
+                HStack {
+                    Text("Default SOC")
                     Spacer()
-                    HStack {
-                        // The cancel button
-                        Button(role: .cancel) {
-                            // Cancel and exit
-                            cancelAndExit()
-                        } label: {
-                            HStack {
-                                Image(systemName: "xmark.circle.fill").imageScale(.large)
-                                Text("Cancel")
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        }
-                        .buttonStyle(CancelButton())
-                        
-                        // The save button
-                        Button {
-                            saveAndExit()
-                        } label: {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill").imageScale(.large).foregroundStyle(.green)
-                                Text("Save")
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        }
-                        .buttonStyle(ActionButton())
-                    }
-                    .padding()
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text("\(defaultSOC.formatted(.number))%")
+                        .foregroundColor(isEditingSOC ? .red : .primary)
                 }
+                Slider(
+                    value: $defaultSOC,
+                    in: 50...100,
+                    step: 5
+                ) {
+                    Text("Speed")
+                } minimumValueLabel: {
+                    Text("50%")
+                } maximumValueLabel: {
+                    Text("100%")
+                } onEditingChanged: { editing in
+                    isEditingSOC = editing
+                }
+            }
+        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(editorTitle)
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    withAnimation {
+                        saveAndExit()
+                    }
+                }
+            }
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel", role: .cancel) {
+                    cancelAndExit()
+                }
+            }
+        }
+        .onAppear {
+            if let car {
+                // Edit the incoming car.
+                make = car.make
+                model = car.model
+                defaultSOC = car.defaultSOC * 100
             }
         }
         .alert(
@@ -69,15 +83,6 @@ struct CarView: View {
             activeAlert.button()
         } message: { activeAlert in
             activeAlert.message()
-        }
-    }
-    
-    init(navigationPath: Binding<NavigationPath>, car: Car? = nil) {
-        self._navigationPath = navigationPath
-        if let car {
-            self.car = car
-            self.make = car.make
-            self.model = car.model
         }
     }
     
@@ -92,8 +97,17 @@ struct CarView: View {
             activeAlert = .error(message: "Make and model are required.")
             showingAlert = true
         } else {
-            let car = Car(make: make, model: model)
-            modelContext.insert(car)
+            if let car {
+                // Edit the car
+                car.make = make
+                car.model = model
+                car.defaultSOC = defaultSOC/100
+            } else {
+                let newCar = Car(make: make, model: model, defaultSOC: defaultSOC/100)
+                modelContext.insert(newCar)
+            }
+            
+            // Leave editor
             navigationPath.removeLast()
         }
     }
@@ -101,5 +115,5 @@ struct CarView: View {
 
 #Preview {
     @Previewable @State var navigationPath = NavigationPath()
-    CarView(navigationPath: $navigationPath)
+    CarView(navigationPath: $navigationPath, car: nil)
 }

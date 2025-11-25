@@ -57,8 +57,11 @@ enum SimpleAlertType: Error {
 struct ContentView: View {
     enum NavigationDestination: Hashable {
         case ChargingSessions
+        case Cars
+        case ChargingLocations
     }
     
+    @Environment(\.modelContext) private var modelContext
     @State private var navigationPath = NavigationPath()
         
     var body: some View {
@@ -66,10 +69,39 @@ struct ContentView: View {
             Button("Charging Sessions") {
                 navigationPath.append(NavigationDestination.ChargingSessions)
             }
+            Button("Cars") {
+                navigationPath.append(NavigationDestination.Cars)
+            }
+            Button("Charging Locations") {
+                navigationPath.append(NavigationDestination.ChargingLocations)
+            }
+            Button("Delete all data") {
+                modelContext.container.deleteAllData()
+            }
             .navigationDestination(for: NavigationDestination.self) { screen in
                 switch screen {
                 case .ChargingSessions:
                     ChargingSessionsView(navigationPath: $navigationPath)
+                case .Cars:
+                    CarsView(navigationPath: $navigationPath)
+                case .ChargingLocations:
+                    ChargingLocationsView(navigationPath: $navigationPath)
+                }
+            }
+            .navigationDestination(for: CarsView.NavigationDestination.self) { screen in
+                switch screen {
+                case .NewCar:
+                    CarView(navigationPath: $navigationPath, car: nil)
+                case .EditCar(car: let car):
+                    CarView(navigationPath: $navigationPath, car: car)
+                }
+            }
+            .navigationDestination(for: ChargingLocationsView.NavigationDestination.self) { screen in
+                switch screen {
+                case .NewLocation:
+                    ChargingLocationView(navigationPath: $navigationPath, chargingLocation: nil)
+                case .EditLocation(chargingLocation: let chargingLocation):
+                    ChargingLocationView(navigationPath: $navigationPath, chargingLocation: chargingLocation)
                 }
             }
         }

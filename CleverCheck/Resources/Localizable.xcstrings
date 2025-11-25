@@ -23,6 +23,9 @@
         }
       }
     },
+    "%@%%" : {
+
+    },
     "%lld %@" : {
       "localizations" : {
         "en" : {
@@ -33,6 +36,12 @@
         }
       }
     },
+    "50%" : {
+
+    },
+    "100%" : {
+
+    },
     "Amount" : {
       "extractionState" : "manual"
     },
@@ -42,13 +51,25 @@
     "Car" : {
       "extractionState" : "manual"
     },
+    "Cars" : {
+
+    },
+    "Charging Locations" : {
+
+    },
     "Charging Session" : {
 
     },
     "Charging Sessions" : {
 
     },
+    "Default SOC" : {
+
+    },
     "Delete" : {
+
+    },
+    "Delete all data" : {
 
     },
     "Edit" : {
@@ -84,7 +105,10 @@
     "Model" : {
 
     },
-    "New Session" : {
+    "Name" : {
+
+    },
+    "No charging sessions found." : {
 
     },
     "Notice" : {
@@ -94,6 +118,9 @@
 
     },
     "Save" : {
+
+    },
+    "Speed" : {
 
     },
     "Start" : {
