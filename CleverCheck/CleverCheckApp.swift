@@ -13,6 +13,7 @@ struct CleverCheckApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Car.self,
+            Charger.self,
             ChargingLocation.self,
             ChargingSession.self,
             UserSettings.self

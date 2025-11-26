@@ -9,6 +9,11 @@ import SwiftUI
 import SwiftData
 
 struct ChargingSessionsView: View {
+    enum NavigationDestination: Hashable {
+        case NewSession
+        case EditSession(chargingSession: ChargingSession)
+    }
+    
     @Binding var navigationPath: NavigationPath
     @State private var selectedCar: Car?
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
@@ -38,19 +43,14 @@ struct ChargingSessionsView: View {
             
             ChargingSessionsList(navigationPath: $navigationPath, selectedCar: selectedCar)
         }
-        .navigationTitle(Text("Charging Sessions"))
-        .navigationDestination(for: ChargingSession.self) { chargingSession in
-            ChargingSessionView(
-                chargingSession: chargingSession,
-                navigationPath: $navigationPath
-            )
-        }
         .toolbar {
-            ToolbarItem {
+            ToolbarItem(placement: .principal) {
+                Text("Charging Sessions")
+            }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                EditButton()
                 Button(action: addSession) {
-                    Image(systemName: "plus.circle.fill")
-                        .imageScale(.large)
-                        .foregroundStyle(.green)
+                    Image(systemName: "plus")
                 }
             }
         }

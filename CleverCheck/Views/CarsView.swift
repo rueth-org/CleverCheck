@@ -46,12 +46,15 @@ struct CarsView: View {
     }
     
     private func deleteCar(at offsets: IndexSet) {
+        // TODO check if can be deleted
         for offset in offsets {
             // Find car in our query
             let car = cars[offset]
 
             // Delete it from the context
-            modelContext.delete(car)
+            withAnimation {
+                modelContext.delete(car)
+            }
         }
     }
 }

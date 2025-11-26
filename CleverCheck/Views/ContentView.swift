@@ -104,6 +104,14 @@ struct ContentView: View {
                     ChargingLocationView(navigationPath: $navigationPath, chargingLocation: chargingLocation)
                 }
             }
+            .navigationDestination(for: ChargingSessionsView.NavigationDestination.self) { screen in
+                switch screen {
+                case .NewSession:
+                    ChargingSessionView(navigationPath: $navigationPath, chargingSession: nil)
+                case .EditSession(chargingSession: let chargingSession):
+                    ChargingSessionView(navigationPath: $navigationPath, chargingSession: chargingSession)
+                }
+            }
         }
     }
 }

@@ -46,12 +46,15 @@ struct ChargingLocationsView: View {
     }
     
     private func deleteLocation(at offsets: IndexSet) {
+        // TODO check if can be deleted
         for offset in offsets {
             // Find location in our query
             let location = charingLocations[offset]
 
             // Delete it from the context
-            modelContext.delete(location)
+            withAnimation {
+                modelContext.delete(location)
+            }
         }
     }
 }

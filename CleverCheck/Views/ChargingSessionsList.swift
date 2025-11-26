@@ -27,35 +27,25 @@ struct ChargingSessionsList: View {
         } else {
             List {
                 ForEach(chargingSessions) { chargingSession in
-                    VStack {
-                        HStack {
-                            Text(chargingSession.endTime, format: Date.FormatStyle(date: .abbreviated, time: .none))
-                            Spacer()
-                            Text(chargingSession.amount.formatted())
-                            Text("kWh")
-                        }
-                        HStack {
-                            Text("\(chargingSession.car.make) \(chargingSession.car.model)")
-                            Spacer()
-                            if chargingSession.finalSOC != nil {
-                                Text(chargingSession.finalSOC!.formatted(.percent))
+                    NavigationLink(value: ChargingSessionsView.NavigationDestination.EditSession(chargingSession: chargingSession)) {
+                        VStack {
+                            HStack {
+                                Text(chargingSession.endTime, format: Date.FormatStyle(date: .abbreviated, time: .none))
+                                Spacer()
+                                Text(chargingSession.amount.formatted())
+                                Text("kWh")
+                            }
+                            HStack {
+                                Text("\(chargingSession.car.make) \(chargingSession.car.model)")
+                                Spacer()
+                                if chargingSession.finalSOC != nil {
+                                    Text(chargingSession.finalSOC!.formatted(.percent))
+                                }
                             }
                         }
                     }
-                    .swipeActions(edge: .trailing) {
-                        // Edit
-                        Button("Edit", systemImage: "pencil") {
-                            navigationPath.append(chargingSession)
-                        }
-                        .tint(.blue)
-                        
-                        // Delete
-                        Button("Delete", systemImage: "trash") {
-                            deleteSession(chargingSession: chargingSession)
-                        }
-                        .tint(.red)
-                    }
                 }
+                .onDelete(perform: deleteSession)
             }
         }
     }
@@ -75,10 +65,16 @@ struct ChargingSessionsList: View {
         _chargingSessions = Query(filter: predicate, sort: \ChargingSession.endTime)
     }
     
-    private func deleteSession(chargingSession: ChargingSession) {
+    private func deleteSession(at offsets: IndexSet) {
         // TODO check if can be deleted
-        withAnimation {
-            modelContext.delete(chargingSession)
+        for offset in offsets {
+            // Find location in our query
+            let session = chargingSessions[offset]
+
+            // Delete it from the context
+            withAnimation {
+                modelContext.delete(session)
+            }
         }
     }
 }

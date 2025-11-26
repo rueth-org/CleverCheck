@@ -6,23 +6,37 @@
 //
 
 import SwiftUI
+import SwiftData
 
-struct ChargingLocationView: View {
+struct ChargerEditor: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    let chargingLocation: ChargingLocation?
+    let charger: Charger?
+    
+    @Query private var chargingLocations: [ChargingLocation]
+    
     @State private var name: String = ""
+    @State private var chargingLocation: ChargingLocation? = nil
+    @State private var hasChargingLocation: Bool = false
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
     
     private var editorTitle: String {
-        chargingLocation == nil ? "New Location" : "Edit Location"
+        charger == nil ? "New Charger" : "Edit Charger"
     }
     
     var body: some View {
         Form {
             TextField("Name", text: $name)
+            
+            // Charging location
+            Picker("Location", selection: $chargingLocation) {
+                Text("- none -").tag(nil as ChargingLocation?)
+                ForEach(chargingLocations, id: \.id) { location in
+                    Text(location.name).tag(location)
+                }
+            }
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -43,9 +57,10 @@ struct ChargingLocationView: View {
             }
         }
         .onAppear {
-            if let chargingLocation {
-                // Edit the incoming chargingLocation.
-                name = chargingLocation.name
+            if let charger {
+                // Edit the incoming charger.
+                name = charger.name
+                chargingLocation = charger.chargingLocation
             }
         }
         .alert(
@@ -69,12 +84,13 @@ struct ChargingLocationView: View {
             activeAlert = .error(message: "Name is required.")
             showingAlert = true
         } else {
-            if let chargingLocation {
+            if let charger {
                 // Edit the location
-                chargingLocation.name = name
+                charger.name = name
+                charger.chargingLocation = chargingLocation
             } else {
-                let newLocation = ChargingLocation(name: name)
-                modelContext.insert(newLocation)
+                let newCharger = Charger(name: name, chargingLocation: chargingLocation)
+                modelContext.insert(newCharger)
             }
             
             // Leave editor

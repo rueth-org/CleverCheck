@@ -9,13 +9,12 @@ import Foundation
 import SwiftData
 
 @Model
-final class ChargingLocation {
+final class Charger {
     @Attribute(.unique) var name: String
+    var chargingLocation: ChargingLocation?
     
-    @Relationship(deleteRule: .nullify, inverse: \ChargingSession.chargingLocation)
-    var chargingSessions = [ChargingSession]()
-    
-    init(name: String) {
+    init(name: String, chargingLocation: ChargingLocation? = nil) {
         self.name = name
+        self.chargingLocation = chargingLocation
     }
 }

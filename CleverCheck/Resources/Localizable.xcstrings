@@ -54,10 +54,10 @@
     "Cars" : {
 
     },
-    "Charging Locations" : {
+    "Charger" : {
 
     },
-    "Charging Session" : {
+    "Charging Locations" : {
 
     },
     "Charging Sessions" : {
@@ -66,13 +66,7 @@
     "Default SOC" : {
 
     },
-    "Delete" : {
-
-    },
     "Delete all data" : {
-
-    },
-    "Edit" : {
 
     },
     "End" : {
@@ -106,6 +100,12 @@
 
     },
     "Name" : {
+
+    },
+    "New car: make" : {
+
+    },
+    "New car: model" : {
 
     },
     "No charging sessions found." : {

@@ -22,4 +22,8 @@ final class Car {
         self.model = model
         self.defaultSOC = defaultSOC
     }
+    
+    static func new() -> Car {
+        return Car(make: NSLocalizedString("New car: make", comment: ""), model: NSLocalizedString("New car: model", comment: ""))
+    }
 }

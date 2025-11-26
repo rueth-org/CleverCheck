@@ -21,24 +21,36 @@ struct ChargingSessionView: View {
     }()
     
     @Environment(\.modelContext) private var modelContext
-    @Bindable var chargingSession: ChargingSession
     @Binding var navigationPath: NavigationPath
+    var chargingSession: ChargingSession?
     
-    @Query private var cars: [Car]
-    @Query private var chargingLocations: [ChargingLocation]
+    @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
+    @Query(sort: \Charger.name) private var chargers: [Charger]
     
     @State private var enterStartTime: Bool = false
-    @State private var startTime: Date
+    @State private var startTimeEntered: Bool = false
+    @State private var startTime: Date = Date.now.addingTimeInterval(-10800) // -3h
+    @State private var endTime: Date = Date.now
+    @State private var charger: Charger? = nil
+    @State private var amount: Double = 0.0
+    @State private var car: Car = Car.new()
     @State private var enterMileage: Bool = false
+    @State private var mileageEntered: Bool = false
     @State private var mileage: Int = 0
     @State private var enterInitialSOC: Bool = false
-    @State private var initialSOC: Double = 0.1
+    @State private var initialSOCEntered: Bool = false
+    @State private var initialSOC: Double = 0.2
     @State private var enterFinalSOC: Bool = false
+    @State private var finalSOCEntered: Bool = false
     @State private var finalSOC: Double = 0.8
     
     @FocusState private var focusedField: Field?
     @State private var showingAlert = false
     @State private var activeAlert: SimpleAlertType?
+    
+    private var editorTitle: String {
+        chargingSession == nil ? "New Session" : "Edit Session"
+    }
     
     var body: some View {
         VStack {
@@ -56,12 +68,12 @@ struct ChargingSessionView: View {
                         }
                     }
                 } else {
-                    if chargingSession.startTime != nil {
+                    if startTimeEntered {
                         // Start has been entered
                         HStack {
                             Text("Start")
                             Spacer()
-                            Text(ChargingSessionView.dateFormatter.string(from: chargingSession.startTime!))
+                            Text(ChargingSessionView.dateFormatter.string(from: startTime))
                                 .multilineTextAlignment(.trailing)
                             Button {
                                 deleteStartTime()
@@ -88,27 +100,27 @@ struct ChargingSessionView: View {
                 }
                 
                 // End time
-                DatePicker("End", selection: $chargingSession.endTime)
+                DatePicker("End", selection: $endTime)
                 
                 // Car
-                Picker("Car", selection: $chargingSession.car) {
+                Picker("Car", selection: $car) {
                     ForEach(cars) { car in
                         Text("\(car.make) \(car.model)").tag(car)
                     }
                 }
                 
-                // Location
-                Picker("Location", selection: $chargingSession.chargingLocation) {
-                    Text("- none -").tag(nil as ChargingLocation?)
-                    ForEach(chargingLocations) { location in
-                        Text("\(location.name)").tag(location)
+                // Charger
+                Picker("Charger", selection: $charger) {
+                    Text("- none -").tag(nil as Charger?)
+                    ForEach(chargers) { charger in
+                        Text("\(charger.name)").tag(charger)
                     }
                 }
                 
                 // Amount
                 HStack {
                     Text("Amount")
-                    TextField("Amount", value: $chargingSession.amount, format: .number)
+                    TextField("Amount", value: $amount, format: .number)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                     Text("kWh")
@@ -137,12 +149,12 @@ struct ChargingSessionView: View {
                         }
                     }
                 } else {
-                    if chargingSession.mileage != nil {
+                    if mileageEntered {
                         // Mileage has been entered
                         HStack {
                             Text("Mileage")
                             Spacer()
-                            Text("\(chargingSession.mileage ?? 0) \(UserSettings.userSettings.unitDistance.rawValue)")
+                            Text("\(mileage ?? 0) \(UserSettings.userSettings.unitDistance.rawValue)")
                                 .multilineTextAlignment(.trailing)
                             Button {
                                 deleteMileage()
@@ -191,12 +203,12 @@ struct ChargingSessionView: View {
                         }
                     }
                 } else {
-                    if chargingSession.initialSOC != nil {
+                    if initialSOCEntered {
                         // Initial SOC has been entered
                         HStack {
                             Text("Initial SOC")
                             Spacer()
-                            Text(chargingSession.initialSOC!.formatted(.percent))
+                            Text(initialSOC.formatted(.percent))
                                 .multilineTextAlignment(.trailing)
                             Button {
                                 deleteInitialSOC()
@@ -245,12 +257,12 @@ struct ChargingSessionView: View {
                         }
                     }
                 } else {
-                    if chargingSession.finalSOC != nil {
+                    if finalSOCEntered {
                         // Final SOC has been entered
                         HStack {
                             Text("Final SOC")
                             Spacer()
-                            Text(chargingSession.finalSOC!.formatted(.percent))
+                            Text(finalSOC.formatted(.percent))
                                 .multilineTextAlignment(.trailing)
                             Button {
                                 deleteFinalSOC()
@@ -281,7 +293,7 @@ struct ChargingSessionView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                Text("Charging Session") // TODO replace with editorTitle
+                Text(editorTitle)
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
@@ -296,6 +308,43 @@ struct ChargingSessionView: View {
                 }
             }
         }
+        .onAppear {
+            if let chargingSession {
+                // Edit the incoming charging session
+                if let startTime = chargingSession.startTime {
+                    self.startTime = startTime
+                    self.startTimeEntered = true
+                } else {
+                    self.startTime = chargingSession.endTime.addingTimeInterval(-10800) // 3h
+                    self.startTimeEntered = false
+                }
+                self.endTime = chargingSession.endTime
+                self.charger = chargingSession.charger
+                self.amount = chargingSession.amount
+                self.car = chargingSession.car
+                if let mileage = chargingSession.mileage {
+                    self.mileage = mileage
+                    self.mileageEntered = true
+                } else {
+                    self.mileage = 0
+                    self.mileageEntered = false
+                }
+                if let initialSOC = chargingSession.initialSOC {
+                    self.initialSOC = initialSOC
+                    self.initialSOCEntered = true
+                } else {
+                    self.initialSOC = 0.2
+                    self.initialSOCEntered = false
+                }
+                if let finalSOC = chargingSession.finalSOC {
+                    self.finalSOC = finalSOC
+                    self.finalSOCEntered = true
+                } else {
+                    self.finalSOC = 0.8
+                    self.finalSOCEntered = false
+                }
+            }
+        }
         .alert(
             activeAlert?.title() ?? "Notice",
             isPresented: $showingAlert,
@@ -307,72 +356,79 @@ struct ChargingSessionView: View {
         }
     }
     
-    init(chargingSession: ChargingSession, navigationPath: Binding<NavigationPath>) {
-        self.chargingSession = chargingSession
-        self._navigationPath = navigationPath
-        self.startTime = chargingSession.startTime ?? chargingSession.endTime.addingTimeInterval(-10800)
-        
-        // TODO: Filter charging locations
-        /*
-        _chargingLocations = Query(filter: #Predicate {
-            $0.car == chargingSession.car
-        }, sort: [SortDescriptor(\ChargingLocation.name)])*/
-    }
-    
     private func addStartTime() {
-        if startTime >= chargingSession.endTime {
+        if startTime >= endTime {
             activeAlert = .error(message: "Start time must be before end time.")
         } else {
-            chargingSession.startTime = startTime
+            startTimeEntered = true
             enterStartTime = false
         }
     }
     
     private func deleteStartTime() {
-        chargingSession.startTime = nil
+        startTimeEntered = false
     }
     
     private func addMileage() {
         // TODO check if mileage less than max
         
-        chargingSession.mileage = mileage
         focusedField = nil
+        mileageEntered = true
         enterMileage = false
     }
     
     private func deleteMileage() {
-        chargingSession.mileage = nil
+        mileageEntered = false
         mileage = 0
     }
     
     private func addInitialSOC() {
         // TODO data checks
         
-        chargingSession.initialSOC = initialSOC
         focusedField = nil
+        initialSOCEntered = true
         enterInitialSOC = false
     }
     
     private func deleteInitialSOC() {
-        chargingSession.initialSOC = nil
+        initialSOCEntered = false
         initialSOC = 0.2
     }
     
     private func addFinalSOC() {
         // TODO data checks
         
-        chargingSession.finalSOC = finalSOC
         focusedField = nil
+        finalSOCEntered = true
         enterFinalSOC = false
     }
     
     private func deleteFinalSOC() {
-        chargingSession.finalSOC = nil
+        finalSOCEntered = false
         finalSOC = 0.8
     }
     
     private func saveAndExit() {
-        modelContext.insert(chargingSession)
+        if let chargingSession {
+            // Updating an existing charging session
+            chargingSession.startTime = startTimeEntered ? self.startTime : nil
+            self.endTime = chargingSession.endTime
+            self.charger = chargingSession.charger
+            self.amount = chargingSession.amount
+            self.car = chargingSession.car
+            chargingSession.mileage = mileageEntered ? self.mileage : nil
+            chargingSession.initialSOC = initialSOCEntered ? self.initialSOC : nil
+            chargingSession.finalSOC = finalSOCEntered ? self.finalSOC : nil
+        } else {
+            // Create new charging session
+            let newSession = ChargingSession(endTime: self.endTime, amount: self.amount, car: self.car)
+            newSession.startTime = startTimeEntered ? self.startTime : nil
+            newSession.charger = self.charger
+            newSession.mileage = mileageEntered ? self.mileage : nil
+            newSession.initialSOC = initialSOCEntered ? self.initialSOC : nil
+            newSession.finalSOC = finalSOCEntered ? self.finalSOC : nil
+            modelContext.insert(newSession)
+        }
         
         // Leave edit mode
         navigationPath.removeLast()
@@ -382,18 +438,4 @@ struct ChargingSessionView: View {
         // Leave edit mode
         navigationPath.removeLast()
     }
-}
-
-#Preview {
-    @Previewable @State var navigationPath = NavigationPath()
-    let car = Car(make: "Toyota", model: "Rav4")
-    let chargingSession = ChargingSession(
-        endTime: Date.now,
-        amount: 0.0,
-        car: car
-    )
-    ChargingSessionView(
-        chargingSession: chargingSession,
-        navigationPath: $navigationPath
-    )
 }

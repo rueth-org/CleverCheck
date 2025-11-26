@@ -12,8 +12,8 @@ import SwiftData
 final class ChargingLocation {
     @Attribute(.unique) var name: String
     
-    @Relationship(deleteRule: .nullify, inverse: \ChargingSession.chargingLocation)
-    var chargingSessions = [ChargingSession]()
+    @Relationship(deleteRule: .nullify, inverse: \ChargingSession.charger)
+    var chargers = [Charger]()
     
     init(name: String) {
         self.name = name
