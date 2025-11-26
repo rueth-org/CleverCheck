@@ -42,283 +42,260 @@ struct ChargingSessionView: View {
     
     var body: some View {
         VStack {
-            ZStack {
-                // The form to enter data
-                Form {
-                    // Start time
-                    if enterStartTime {
-                        HStack {
-                            DatePicker("Start", selection: $startTime)
-                            Button {
-                                addStartTime()
-                            } label: {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .imageScale(.large)
-                                    .foregroundStyle(.green)
-                            }
-                        }
-                    } else {
-                        if chargingSession.startTime != nil {
-                            // Start has been entered
-                            HStack {
-                                Text("Start")
-                                Spacer()
-                                Text(ChargingSessionView.dateFormatter.string(from: chargingSession.startTime!))
-                                    .multilineTextAlignment(.trailing)
-                                Button {
-                                    deleteStartTime()
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .imageScale(.large)
-                                        .foregroundStyle(.red)
-                                }
-                            }
-                        } else {
-                            // Offer to enter start
-                            HStack {
-                                Text("Start")
-                                Spacer()
-                                Button {
-                                    enterStartTime = true
-                                } label: {
-                                    Image(systemName: "plus.circle.fill")
-                                        .imageScale(.large)
-                                        .foregroundStyle(.green)
-                                }
-                            }
-                        }
-                    }
-                    
-                    // End time
-                    DatePicker("End", selection: $chargingSession.endTime)
-                    
-                    // Car
-                    Picker("Car", selection: $chargingSession.car) {
-                        ForEach(cars) { car in
-                            Text("\(car.make) \(car.model)").tag(car)
-                        }
-                    }
-                    
-                    // Location
-                    Picker("Location", selection: $chargingSession.chargingLocation) {
-                        Text("- none -").tag(nil as ChargingLocation?)
-                        ForEach(chargingLocations) { location in
-                            Text("\(location.name)").tag(location)
-                        }
-                    }
-                    
-                    // Amount
+            Form {
+                // Start time
+                if enterStartTime {
                     HStack {
-                        Text("Amount")
-                        TextField("Amount", value: $chargingSession.amount, format: .number)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                        Text("kWh")
+                        DatePicker("Start", selection: $startTime)
+                        Button {
+                            addStartTime()
+                        } label: {
+                            Image(systemName: "checkmark.circle.fill")
+                                .imageScale(.large)
+                                .foregroundStyle(.green)
+                        }
                     }
-                    
-                    // Mileage (optional)
-                    if enterMileage {
+                } else {
+                    if chargingSession.startTime != nil {
+                        // Start has been entered
                         HStack {
-                            Text("Mileage")
+                            Text("Start")
                             Spacer()
-                            TextField("", value: $mileage, format: .number)
-                                .keyboardType(.numberPad)
+                            Text(ChargingSessionView.dateFormatter.string(from: chargingSession.startTime!))
                                 .multilineTextAlignment(.trailing)
-                                .focused($focusedField, equals: .mileage)
-                                .onSubmit {
-                                    addMileage()
-                                }
-                                .submitLabel(.done)
-                            Text(UserSettings.userSettings.unitDistance.rawValue)
                             Button {
-                                addMileage()
+                                deleteStartTime()
                             } label: {
-                                Image(systemName: "checkmark.circle.fill")
+                                Image(systemName: "xmark.circle.fill")
                                     .imageScale(.large)
-                                    .foregroundStyle(.green)
+                                    .foregroundStyle(.red)
                             }
                         }
                     } else {
-                        if chargingSession.mileage != nil {
-                            // Mileage has been entered
-                            HStack {
-                                Text("Mileage")
-                                Spacer()
-                                Text("\(chargingSession.mileage ?? 0) \(UserSettings.userSettings.unitDistance.rawValue)")
-                                    .multilineTextAlignment(.trailing)
-                                Button {
-                                    deleteMileage()
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .imageScale(.large)
-                                        .foregroundStyle(.red)
-                                }
-                            }
-                        } else {
-                            // Offer to enter mileage
-                            HStack {
-                                Text("Mileage")
-                                Spacer()
-                                Button {
-                                    focusedField = .mileage
-                                    enterMileage = true
-                                } label: {
-                                    Image(systemName: "plus.circle.fill")
-                                        .imageScale(.large)
-                                        .foregroundStyle(.green)
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Initial SOC (optional)
-                    if enterInitialSOC {
+                        // Offer to enter start
                         HStack {
-                            Text("Initial SOC")
+                            Text("Start")
                             Spacer()
-                            TextField("", value: $initialSOC, format: .percent)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .focused($focusedField, equals: .initialSOC)
-                                .onSubmit {
-                                    addInitialSOC()
-                                }
-                                .submitLabel(.done)
                             Button {
-                                addInitialSOC()
+                                enterStartTime = true
                             } label: {
-                                Image(systemName: "checkmark.circle.fill")
+                                Image(systemName: "plus.circle.fill")
                                     .imageScale(.large)
                                     .foregroundStyle(.green)
-                            }
-                        }
-                    } else {
-                        if chargingSession.initialSOC != nil {
-                            // Initial SOC has been entered
-                            HStack {
-                                Text("Initial SOC")
-                                Spacer()
-                                Text(chargingSession.initialSOC!.formatted(.percent))
-                                    .multilineTextAlignment(.trailing)
-                                Button {
-                                    deleteInitialSOC()
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .imageScale(.large)
-                                        .foregroundStyle(.red)
-                                }
-                            }
-                        } else {
-                            // Offer to enter initial SOC
-                            HStack {
-                                Text("Initial SOC")
-                                Spacer()
-                                Button {
-                                    focusedField = .initialSOC
-                                    enterInitialSOC = true
-                                } label: {
-                                    Image(systemName: "plus.circle.fill")
-                                        .imageScale(.large)
-                                        .foregroundStyle(.green)
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Final SOC (optional)
-                    if enterFinalSOC {
-                        HStack {
-                            Text("Final SOC")
-                            Spacer()
-                            TextField("", value: $finalSOC, format: .percent)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .focused($focusedField, equals: .finalSOC)
-                                .onSubmit {
-                                    addFinalSOC()
-                                }
-                                .submitLabel(.done)
-                            Button {
-                                addFinalSOC()
-                            } label: {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .imageScale(.large)
-                                    .foregroundStyle(.green)
-                            }
-                        }
-                    } else {
-                        if chargingSession.finalSOC != nil {
-                            // Final SOC has been entered
-                            HStack {
-                                Text("Final SOC")
-                                Spacer()
-                                Text(chargingSession.finalSOC!.formatted(.percent))
-                                    .multilineTextAlignment(.trailing)
-                                Button {
-                                    deleteFinalSOC()
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .imageScale(.large)
-                                        .foregroundStyle(.red)
-                                }
-                            }
-                        } else {
-                            // Offer to enter final SOC
-                            HStack {
-                                Text("Final SOC")
-                                Spacer()
-                                Button {
-                                    focusedField = .finalSOC
-                                    enterFinalSOC = true
-                                } label: {
-                                    Image(systemName: "plus.circle.fill")
-                                        .imageScale(.large)
-                                        .foregroundStyle(.green)
-                                }
                             }
                         }
                     }
                 }
-                .safeAreaPadding(EdgeInsets(top: 0, leading: 0, bottom: ActionButton.safeButtonSpace, trailing: 0)) // Required to avoid the content to be hidden by the Edit and Save buttons
                 
-                // The overlaying buttons
-                if !(enterMileage || enterStartTime || enterInitialSOC || enterFinalSOC) { // We hide the buttons when entering data to avoid confusion
-                    VStack {
+                // End time
+                DatePicker("End", selection: $chargingSession.endTime)
+                
+                // Car
+                Picker("Car", selection: $chargingSession.car) {
+                    ForEach(cars) { car in
+                        Text("\(car.make) \(car.model)").tag(car)
+                    }
+                }
+                
+                // Location
+                Picker("Location", selection: $chargingSession.chargingLocation) {
+                    Text("- none -").tag(nil as ChargingLocation?)
+                    ForEach(chargingLocations) { location in
+                        Text("\(location.name)").tag(location)
+                    }
+                }
+                
+                // Amount
+                HStack {
+                    Text("Amount")
+                    TextField("Amount", value: $chargingSession.amount, format: .number)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                    Text("kWh")
+                }
+                
+                // Mileage (optional)
+                if enterMileage {
+                    HStack {
+                        Text("Mileage")
                         Spacer()
-                        HStack {
-                            // The cancel button
-                            Button(role: .cancel) {
-                                // Cancel and exit
-                                cancelAndExit()
-                            } label: {
-                                HStack {
-                                    Image(systemName: "xmark.circle.fill").imageScale(.large)
-                                    Text("Cancel")
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        TextField("", value: $mileage, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .focused($focusedField, equals: .mileage)
+                            .onSubmit {
+                                addMileage()
                             }
-                            .buttonStyle(CancelButton())
-                            
-                            // The save button
-                            Button {
-                                saveAndExit()
-                            } label: {
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill").imageScale(.large).foregroundStyle(.green)
-                                    Text("Save")
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            }
-                            .buttonStyle(ActionButton())
+                            .submitLabel(.done)
+                        Text(UserSettings.userSettings.unitDistance.rawValue)
+                        Button {
+                            addMileage()
+                        } label: {
+                            Image(systemName: "checkmark.circle.fill")
+                                .imageScale(.large)
+                                .foregroundStyle(.green)
                         }
-                        .padding()
-                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                } else {
+                    if chargingSession.mileage != nil {
+                        // Mileage has been entered
+                        HStack {
+                            Text("Mileage")
+                            Spacer()
+                            Text("\(chargingSession.mileage ?? 0) \(UserSettings.userSettings.unitDistance.rawValue)")
+                                .multilineTextAlignment(.trailing)
+                            Button {
+                                deleteMileage()
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .imageScale(.large)
+                                    .foregroundStyle(.red)
+                            }
+                        }
+                    } else {
+                        // Offer to enter mileage
+                        HStack {
+                            Text("Mileage")
+                            Spacer()
+                            Button {
+                                focusedField = .mileage
+                                enterMileage = true
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .imageScale(.large)
+                                    .foregroundStyle(.green)
+                            }
+                        }
+                    }
+                }
+                
+                // Initial SOC (optional)
+                if enterInitialSOC {
+                    HStack {
+                        Text("Initial SOC")
+                        Spacer()
+                        TextField("", value: $initialSOC, format: .percent)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .focused($focusedField, equals: .initialSOC)
+                            .onSubmit {
+                                addInitialSOC()
+                            }
+                            .submitLabel(.done)
+                        Button {
+                            addInitialSOC()
+                        } label: {
+                            Image(systemName: "checkmark.circle.fill")
+                                .imageScale(.large)
+                                .foregroundStyle(.green)
+                        }
+                    }
+                } else {
+                    if chargingSession.initialSOC != nil {
+                        // Initial SOC has been entered
+                        HStack {
+                            Text("Initial SOC")
+                            Spacer()
+                            Text(chargingSession.initialSOC!.formatted(.percent))
+                                .multilineTextAlignment(.trailing)
+                            Button {
+                                deleteInitialSOC()
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .imageScale(.large)
+                                    .foregroundStyle(.red)
+                            }
+                        }
+                    } else {
+                        // Offer to enter initial SOC
+                        HStack {
+                            Text("Initial SOC")
+                            Spacer()
+                            Button {
+                                focusedField = .initialSOC
+                                enterInitialSOC = true
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .imageScale(.large)
+                                    .foregroundStyle(.green)
+                            }
+                        }
+                    }
+                }
+                
+                // Final SOC (optional)
+                if enterFinalSOC {
+                    HStack {
+                        Text("Final SOC")
+                        Spacer()
+                        TextField("", value: $finalSOC, format: .percent)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .focused($focusedField, equals: .finalSOC)
+                            .onSubmit {
+                                addFinalSOC()
+                            }
+                            .submitLabel(.done)
+                        Button {
+                            addFinalSOC()
+                        } label: {
+                            Image(systemName: "checkmark.circle.fill")
+                                .imageScale(.large)
+                                .foregroundStyle(.green)
+                        }
+                    }
+                } else {
+                    if chargingSession.finalSOC != nil {
+                        // Final SOC has been entered
+                        HStack {
+                            Text("Final SOC")
+                            Spacer()
+                            Text(chargingSession.finalSOC!.formatted(.percent))
+                                .multilineTextAlignment(.trailing)
+                            Button {
+                                deleteFinalSOC()
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .imageScale(.large)
+                                    .foregroundStyle(.red)
+                            }
+                        }
+                    } else {
+                        // Offer to enter final SOC
+                        HStack {
+                            Text("Final SOC")
+                            Spacer()
+                            Button {
+                                focusedField = .finalSOC
+                                enterFinalSOC = true
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .imageScale(.large)
+                                    .foregroundStyle(.green)
+                            }
+                        }
                     }
                 }
             }
         }
-        .navigationTitle(Text("Charging Session"))
         .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Charging Session") // TODO replace with editorTitle
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    withAnimation {
+                        saveAndExit()
+                    }
+                }
+            }
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel", role: .cancel) {
+                    cancelAndExit()
+                }
+            }
+        }
         .alert(
             activeAlert?.title() ?? "Notice",
             isPresented: $showingAlert,
