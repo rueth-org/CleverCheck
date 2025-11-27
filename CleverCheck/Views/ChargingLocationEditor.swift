@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ChargingLocationView: View {
+struct ChargingLocationEditor: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     let chargingLocation: ChargingLocation?

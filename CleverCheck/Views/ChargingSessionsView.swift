@@ -10,8 +10,8 @@ import SwiftData
 
 struct ChargingSessionsView: View {
     enum NavigationDestination: Hashable {
-        case NewSession
-        case EditSession(chargingSession: ChargingSession)
+        case NewSession(car: Car)
+        case EditSession(chargingSession: ChargingSession, car: Car)
     }
     
     @Binding var navigationPath: NavigationPath
@@ -29,8 +29,7 @@ struct ChargingSessionsView: View {
                     addCar()
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .imageScale(.large)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(.gray)
                 }
                 Spacer()
                 Picker("Car", selection: $selectedCar) {
@@ -73,22 +72,11 @@ struct ChargingSessionsView: View {
             activeAlert = .warning(message: "Please select a car first")
             showingAlert = true
         } else {
-            let chargingSession = ChargingSession(
-                endTime: Date.now,
-                amount: 0.0,
-                car: selectedCar!
-            )
-            navigationPath.append(chargingSession)
+            navigationPath.append(NavigationDestination.NewSession(car: selectedCar!))
         }
     }
 
     private func addCar() {
         navigationPath.append(CarsView.NavigationDestination.NewCar)
     }
-}
-
-#Preview {
-    @Previewable @State var navigationPath = NavigationPath()
-    ChargingSessionsView(navigationPath: $navigationPath)
-        .modelContainer(for: ChargingSession.self, inMemory: true)
 }

@@ -26,16 +26,6 @@
     "%@%%" : {
 
     },
-    "%lld %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld %2$@"
-          }
-        }
-      }
-    },
     "50%" : {
 
     },
@@ -55,6 +45,9 @@
 
     },
     "Charger" : {
+
+    },
+    "Chargers" : {
 
     },
     "Charging Locations" : {
@@ -109,6 +102,9 @@
 
     },
     "No charging sessions found." : {
+
+    },
+    "No location" : {
 
     },
     "Notice" : {

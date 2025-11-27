@@ -10,7 +10,7 @@ import SwiftData
 
 @Model
 final class Charger {
-    @Attribute(.unique) var name: String
+    var name: String
     var chargingLocation: ChargingLocation?
     
     init(name: String, chargingLocation: ChargingLocation? = nil) {
