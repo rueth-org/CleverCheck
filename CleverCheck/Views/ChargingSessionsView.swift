@@ -10,13 +10,16 @@ import SwiftData
 
 struct ChargingSessionsView: View {
     enum NavigationDestination: Hashable {
-        case NewSession(car: Car)
-        case EditSession(chargingSession: ChargingSession, car: Car)
+        case NewSession(car: Car, charger: Charger)
+        case EditSession(chargingSession: ChargingSession, car: Car, charger: Charger)
     }
     
     @Binding var navigationPath: NavigationPath
     @State private var selectedCar: Car?
+    @State private var selectedCharger: Charger?
+    
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
+    @Query(sort: \Charger.name) private var chargers: [Charger]
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
@@ -65,14 +68,14 @@ struct ChargingSessionsView: View {
     }
     
     private func addSession() {
-        if cars.isEmpty {
-            activeAlert = .warning(message: "Please add a car first")
+        if cars.isEmpty || chargers.isEmpty {
+            activeAlert = .warning(message: "Please add a car and a charger first")
             showingAlert = true
-        } else if selectedCar == nil {
-            activeAlert = .warning(message: "Please select a car first")
+        } else if selectedCar == nil || selectedCharger == nil {
+            activeAlert = .warning(message: "Please select a car and a charger first")
             showingAlert = true
         } else {
-            navigationPath.append(NavigationDestination.NewSession(car: selectedCar!))
+            navigationPath.append(NavigationDestination.NewSession(car: selectedCar!, charger: selectedCharger!))
         }
     }
 

@@ -13,6 +13,16 @@
     "%@" : {
 
     },
+    "%@ (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@)"
+          }
+        }
+      }
+    },
     "%@ %@" : {
       "localizations" : {
         "en" : {
@@ -50,6 +60,9 @@
     "Chargers" : {
 
     },
+    "Charging Cost Plans" : {
+
+    },
     "Charging Locations" : {
 
     },
@@ -72,6 +85,12 @@
       "extractionState" : "manual"
     },
     "Final SOC" : {
+
+    },
+    "Flatrate" : {
+
+    },
+    "Individual" : {
 
     },
     "Initial SOC" : {
@@ -111,6 +130,9 @@
       "extractionState" : "manual"
     },
     "OK" : {
+
+    },
+    "Refunded" : {
 
     },
     "Save" : {

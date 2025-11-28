@@ -10,6 +10,7 @@ import SwiftData
 
 @Model
 final class ChargingLocation {
+    var id: UUID = UUID()
     var name: String
     
     @Relationship(deleteRule: .nullify, inverse: \ChargingSession.charger)

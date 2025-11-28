@@ -12,7 +12,7 @@ import SwiftData
 final class ChargingSession {
     var startTime: Date?
     var endTime: Date
-    var charger: Charger?
+    var charger: Charger
     var amount: Double
     var car: Car
     var mileage: Int?
@@ -22,7 +22,7 @@ final class ChargingSession {
     init(
         startTime: Date? = nil,
         endTime: Date,
-        charger: Charger? = nil,
+        charger: Charger,
         amount: Double,
         car: Car,
         mileage: Int? = nil,

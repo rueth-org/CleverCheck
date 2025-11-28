@@ -24,6 +24,7 @@ struct ChargingSessionEditor: View {
     @Binding var navigationPath: NavigationPath
     var chargingSession: ChargingSession?
     @State var car: Car
+    @State var charger: Charger
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
     @Query(sort: \Charger.name) private var chargers: [Charger]
@@ -31,7 +32,6 @@ struct ChargingSessionEditor: View {
     @State private var enterStartTime: Bool = false
     @State private var startTime: Date = Date.now.addingTimeInterval(-10800) // -3h
     @State private var endTime: Date = Date.now
-    @State private var charger: Charger? = nil
     @State private var amount: Double = 0.0
     @State private var enterMileage: Bool = false
     @State private var mileage: Int = 0
@@ -88,7 +88,6 @@ struct ChargingSessionEditor: View {
                 
                 // Charger (optional)
                 Picker("Charger", selection: $charger) {
-                    Text("- none -").tag(nil as Charger?)
                     ForEach(chargers) { charger in
                         Text("\(charger.name)").tag(charger)
                     }
@@ -300,7 +299,7 @@ struct ChargingSessionEditor: View {
                 chargingSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
             } else {
                 // Create new charging session
-                let newSession = ChargingSession(endTime: self.endTime, amount: self.amount, car: self.car)
+                let newSession = ChargingSession(endTime: self.endTime, charger: self.charger, amount: self.amount, car: self.car)
                 newSession.startTime = enterStartTime ? self.startTime : nil
                 newSession.charger = self.charger
                 newSession.mileage = enterMileage ? self.mileage : nil

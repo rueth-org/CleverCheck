@@ -98,9 +98,9 @@ struct ContentView: View {
             .navigationDestination(for: CarsView.NavigationDestination.self) { screen in
                 switch screen {
                 case .NewCar:
-                    CarView(navigationPath: $navigationPath, car: nil)
+                    CarEditor(navigationPath: $navigationPath, car: nil)
                 case .EditCar(car: let car):
-                    CarView(navigationPath: $navigationPath, car: car)
+                    CarEditor(navigationPath: $navigationPath, car: car)
                 }
             }
             .navigationDestination(for: ChargingLocationsView.NavigationDestination.self) { screen in
@@ -113,10 +113,10 @@ struct ContentView: View {
             }
             .navigationDestination(for: ChargingSessionsView.NavigationDestination.self) { screen in
                 switch screen {
-                case .NewSession(car: let car):
-                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: nil, car: car)
-                case .EditSession(chargingSession: let chargingSession, car: let car):
-                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: chargingSession, car: car)
+                case .NewSession(car: let car, charger: let charger):
+                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: nil, car: car, charger: charger)
+                case .EditSession(chargingSession: let chargingSession, car: let car, charger: let charger):
+                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: chargingSession, car: car, charger: charger)
                 }
             }
             .navigationDestination(for: ChargersView.NavigationDestination.self) { screen in

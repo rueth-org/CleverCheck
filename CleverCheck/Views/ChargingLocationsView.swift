@@ -16,12 +16,12 @@ struct ChargingLocationsView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    @Query(sort: \ChargingLocation.name) private var charingLocations: [ChargingLocation]
+    @Query(sort: \ChargingLocation.name) private var chargingLocations: [ChargingLocation]
     @State private var selectedLocation: ChargingLocation? = nil
     
     var body: some View {
         List {
-            ForEach(charingLocations, id: \.self) { chargingLocation in
+            ForEach(chargingLocations, id: \.self) { chargingLocation in
                 NavigationLink(value: NavigationDestination.EditLocation(chargingLocation: chargingLocation)) {
                     Text(chargingLocation.name)
                 }
@@ -49,7 +49,7 @@ struct ChargingLocationsView: View {
         // TODO check if can be deleted
         for offset in offsets {
             // Find location in our query
-            let location = charingLocations[offset]
+            let location = chargingLocations[offset]
 
             // Delete it from the context
             withAnimation {

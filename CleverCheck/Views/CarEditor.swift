@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct CarView: View {
+struct CarEditor: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     let car: Car?
@@ -111,9 +111,4 @@ struct CarView: View {
             navigationPath.removeLast()
         }
     }
-}
-
-#Preview {
-    @Previewable @State var navigationPath = NavigationPath()
-    CarView(navigationPath: $navigationPath, car: nil)
 }
