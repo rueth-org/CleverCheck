@@ -11,15 +11,19 @@ import SwiftData
 @Model
 public final class ChargingCostPlan {
     enum PlanType: Codable, CustomStringConvertible {
+        static var descriptionFlatrate: String { NSLocalizedString("Flatrate", comment: "") }
+        static var descriptionRefunded: String { NSLocalizedString("Refunded", comment: "") }
+        static var descriptionIndividual: String { NSLocalizedString("Individual", comment: "") }
+        
         case flatrate(monthlyRate: Double)
         case refunded(atLocationWithId: UUID)
         case individual(defaultKWhPrice: Double?)
         
         var description: String {
             switch self {
-            case .flatrate: return NSLocalizedString("Flatrate", comment: "")
-            case .refunded: return NSLocalizedString("Refunded", comment: "")
-            case .individual: return NSLocalizedString("Individual", comment: "")
+            case .flatrate: return PlanType.descriptionFlatrate
+            case .refunded: return PlanType.descriptionRefunded
+            case .individual: return PlanType.descriptionIndividual
             }
         }
     }

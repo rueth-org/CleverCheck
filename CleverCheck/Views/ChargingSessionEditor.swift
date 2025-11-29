@@ -23,12 +23,12 @@ struct ChargingSessionEditor: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     var chargingSession: ChargingSession?
-    @State var car: Car
-    @State var charger: Charger
+    @State var car: Car?
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
     @Query(sort: \Charger.name) private var chargers: [Charger]
     
+    @State private var charger: Charger?
     @State private var enterStartTime: Bool = false
     @State private var startTime: Date = Date.now.addingTimeInterval(-10800) // -3h
     @State private var endTime: Date = Date.now
@@ -81,15 +81,17 @@ struct ChargingSessionEditor: View {
                 
                 // Car
                 Picker("Car", selection: $car) {
+                    Text("- Select a car -").tag(nil as Car?)
                     ForEach(cars) { car in
                         Text("\(car.make) \(car.model)").tag(car)
                     }
                 }
                 
-                // Charger (optional)
+                // Charger
                 Picker("Charger", selection: $charger) {
+                    Text("- Select a charger -").tag(nil as Charger?)
                     ForEach(chargers) { charger in
-                        Text("\(charger.name)").tag(charger)
+                        Text("\(charger.description)").tag(charger)
                     }
                 }
                 
@@ -283,34 +285,52 @@ struct ChargingSessionEditor: View {
     }
     
     private func saveAndExit() {
+        // Data check: No car selected
+        if car == nil {
+            activeAlert = .error(message: "Please select a car.")
+            showingAlert = true
+            return
+        }
+        
+        // Data check: No charger selected
+        if charger == nil {
+            activeAlert = .error(message: "Please select a charger.")
+            showingAlert = true
+            return
+        }
+        
+        // Data check: start time before end time
         if startTime >= endTime {
             activeAlert = .error(message: "Start time must be before end time.")
-            // TODO check if mileage less than max
-        } else {
-            if let chargingSession {
-                // Updating an existing charging session
-                chargingSession.startTime = enterStartTime ? self.startTime : nil
-                chargingSession.endTime = self.endTime
-                chargingSession.charger = self.charger
-                chargingSession.amount = self.amount
-                chargingSession.car = self.car
-                chargingSession.mileage = enterMileage ? self.mileage : nil
-                chargingSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
-                chargingSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
-            } else {
-                // Create new charging session
-                let newSession = ChargingSession(endTime: self.endTime, charger: self.charger, amount: self.amount, car: self.car)
-                newSession.startTime = enterStartTime ? self.startTime : nil
-                newSession.charger = self.charger
-                newSession.mileage = enterMileage ? self.mileage : nil
-                newSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
-                newSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
-                modelContext.insert(newSession)
-            }
-            
-            // Leave edit mode
-            navigationPath.removeLast()
+            showingAlert = true
+            return
         }
+        
+        // TODO check if mileage less than max
+        
+        // Save data
+        if let chargingSession {
+            // Updating an existing charging session
+            chargingSession.startTime = enterStartTime ? self.startTime : nil
+            chargingSession.endTime = self.endTime
+            chargingSession.charger = self.charger!
+            chargingSession.amount = self.amount
+            chargingSession.car = self.car!
+            chargingSession.mileage = enterMileage ? self.mileage : nil
+            chargingSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
+            chargingSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
+        } else {
+            // Create new charging session
+            let newSession = ChargingSession(endTime: self.endTime, charger: self.charger!, amount: self.amount, car: self.car!)
+            newSession.startTime = enterStartTime ? self.startTime : nil
+            newSession.mileage = enterMileage ? self.mileage : nil
+            newSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
+            newSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
+            modelContext.insert(newSession)
+        }
+        
+        // Leave edit mode
+        navigationPath.removeLast()
     }
     
     private func cancelAndExit() {

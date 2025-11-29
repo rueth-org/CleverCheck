@@ -10,6 +10,12 @@
     "- none -" : {
       "extractionState" : "manual"
     },
+    "- Select a car -" : {
+
+    },
+    "- Select a charger -" : {
+
+    },
     "%@" : {
 
     },
@@ -130,6 +136,9 @@
       "extractionState" : "manual"
     },
     "OK" : {
+
+    },
+    "Plan Type" : {
 
     },
     "Refunded" : {

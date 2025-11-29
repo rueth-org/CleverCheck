@@ -27,7 +27,7 @@ struct ChargingSessionsList: View {
         } else {
             List {
                 ForEach(chargingSessions) { chargingSession in
-                    NavigationLink(value: ChargingSessionsView.NavigationDestination.EditSession(chargingSession: chargingSession, car: chargingSession.car, charger: chargingSession.charger)) {
+                    NavigationLink(value: ChargingSessionsView.NavigationDestination.EditSession(chargingSession: chargingSession)) {
                         VStack {
                             HStack {
                                 Text(chargingSession.endTime, format: Date.FormatStyle(date: .abbreviated, time: .none))

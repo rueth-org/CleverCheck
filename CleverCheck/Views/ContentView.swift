@@ -60,6 +60,7 @@ struct ContentView: View {
         case Cars
         case Chargers
         case ChargingLocations
+        case ChargingCostPlans
     }
     
     @Environment(\.modelContext) private var modelContext
@@ -79,6 +80,9 @@ struct ContentView: View {
             Button("Charging Locations") {
                 navigationPath.append(NavigationDestination.ChargingLocations)
             }
+            Button("Charging Cost Plans") {
+                navigationPath.append(NavigationDestination.ChargingCostPlans)
+            }
             Spacer()
             Button("Delete all data") {
                 modelContext.container.deleteAllData()
@@ -93,6 +97,8 @@ struct ContentView: View {
                     ChargersView(navigationPath: $navigationPath)
                 case .ChargingLocations:
                     ChargingLocationsView(navigationPath: $navigationPath)
+                case .ChargingCostPlans:
+                    ChargingCostPlansView(navigationPath: $navigationPath)
                 }
             }
             .navigationDestination(for: CarsView.NavigationDestination.self) { screen in
@@ -113,10 +119,10 @@ struct ContentView: View {
             }
             .navigationDestination(for: ChargingSessionsView.NavigationDestination.self) { screen in
                 switch screen {
-                case .NewSession(car: let car, charger: let charger):
-                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: nil, car: car, charger: charger)
-                case .EditSession(chargingSession: let chargingSession, car: let car, charger: let charger):
-                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: chargingSession, car: car, charger: charger)
+                case .NewSession(car: let car):
+                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: nil, car: car)
+                case .EditSession(chargingSession: let chargingSession):
+                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: chargingSession)
                 }
             }
             .navigationDestination(for: ChargersView.NavigationDestination.self) { screen in
@@ -125,6 +131,14 @@ struct ContentView: View {
                     ChargerEditor(navigationPath: $navigationPath, charger: nil)
                 case .EditCharger(charger: let charger):
                     ChargerEditor(navigationPath: $navigationPath, charger: charger)
+                }
+            }
+            .navigationDestination(for: ChargingCostPlansView.NavigationDestination.self) { screen in
+                switch screen {
+                case .NewPlan:
+                    ChargingCostPlanEditor(navigationPath: $navigationPath, plan: nil)
+                case .EditPlan(plan: let plan):
+                    ChargingCostPlanEditor(navigationPath: $navigationPath, plan: plan)
                 }
             }
         }

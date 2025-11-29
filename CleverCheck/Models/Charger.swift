@@ -13,6 +13,14 @@ final class Charger {
     var name: String
     var chargingLocation: ChargingLocation?
     
+    var description: String {
+        var description = name
+        if let location = chargingLocation {
+            description += " (\(location.name))"
+        }
+        return description
+    }
+    
     init(name: String, chargingLocation: ChargingLocation? = nil) {
         self.name = name
         self.chargingLocation = chargingLocation
