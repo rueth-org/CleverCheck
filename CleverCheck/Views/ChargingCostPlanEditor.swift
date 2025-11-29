@@ -9,6 +9,10 @@ import SwiftUI
 import SwiftData
 
 struct ChargingCostPlanEditor: View {
+    private enum Field: Int, Hashable {
+        case individualDefaultPrice
+    }
+    
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     
@@ -16,19 +20,28 @@ struct ChargingCostPlanEditor: View {
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
     @Query(sort: \Charger.name) private var chargers: [Charger]
+    @Query(sort: \ChargingLocation.name) private var chargingLocations: [ChargingLocation]
+    @Query(sort: [SortDescriptor(\ChargingCostPlan.car.make), SortDescriptor(\ChargingCostPlan.car.model), SortDescriptor(\ChargingCostPlan.charger.name)]) private var allPlans: [ChargingCostPlan]
     
     @State private var car: Car?
     @State private var charger: Charger?
-    
     @State private var planType: ChargingCostPlan.PlanType?
-    @State private var selectedPlanType: String?
     
+    @State private var selectedPlanType: String?
     private let planTypes = [
         ChargingCostPlan.PlanType.descriptionIndividual,
         ChargingCostPlan.PlanType.descriptionFlatrate,
+        ChargingCostPlan.PlanType.descriptionHomeConsumption,
         ChargingCostPlan.PlanType.descriptionRefunded
     ]
     
+    @State private var individualDefaultPrice: Cost = Cost(amount: 0.0)
+    @State private var enterIndividualDefaultPrice: Bool = false
+    @State private var flatratePrice: Cost = Cost(amount: 0.0)
+    @State private var connectedLocation: ChargingLocation?
+    @State private var refundingPlan: ChargingCostPlan?
+    
+    @FocusState private var focusedField: Field?
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
     
@@ -42,7 +55,7 @@ struct ChargingCostPlanEditor: View {
             Picker("Car", selection: $car) {
                 Text("- Select a car -").tag(nil as Car?)
                 ForEach(cars) { car in
-                    Text("\(car.make) \(car.model)").tag(car)
+                    Text(car.description).tag(car)
                 }
             }
             
@@ -53,14 +66,21 @@ struct ChargingCostPlanEditor: View {
                     Text("\(charger.description)").tag(charger)
                 }
             }
+            .onChange(of: charger) {
+                if let charger, let location = charger.chargingLocation {
+                    self.connectedLocation = location
+                } else {
+                    self.connectedLocation = nil
+                }
+            }
             
             // Charging Cost Plan
             Picker("Plan Type", selection: $selectedPlanType) {
+                Text("- Select a plan type -").tag(nil as String?)
                 ForEach(planTypes, id: \.self) { planType in
                     Text(planType).tag(planType)
                 }
             }
-            .pickerStyle(.segmented)
             
             planDataView()
         }
@@ -88,6 +108,34 @@ struct ChargingCostPlanEditor: View {
                 car = plan.car
                 charger = plan.charger
                 planType = plan.planType
+                selectedPlanType = plan.planType.description
+                
+                switch plan.planType {
+                case .individual(defaultKWhPrice: let price):
+                    if price != nil {
+                        individualDefaultPrice = price!
+                    }
+                    enterIndividualDefaultPrice = true
+                case .flatrate(monthlyRate: let price):
+                    flatratePrice = price
+                case .homeConsumption(atLocationWithId: let locationId):
+                    if let location = getLocationById(locationId) {
+                        connectedLocation = location
+                    } else {
+                        activeAlert = .fatalError(message: "No location found.")
+                    }
+                case .refunded(atLocationWithId: let locationId, byFlatrateWithID: let flatrateId):
+                    if let location = getLocationById(locationId) {
+                        connectedLocation = location
+                    } else {
+                        activeAlert = .fatalError(message: "No location found.")
+                    }
+                    if let flatrate = allPlans.first(where: { $0.id == flatrateId }) {
+                        refundingPlan = flatrate
+                    } else {
+                        activeAlert = .fatalError(message: "No refunding cost plan found.")
+                    }
+                }
             }
         }
         .alert(
@@ -99,6 +147,14 @@ struct ChargingCostPlanEditor: View {
         } message: { activeAlert in
             activeAlert.message()
         }
+    }
+    
+    private func deleteIndividualDefaultPrice() {
+        enterIndividualDefaultPrice = false
+    }
+    
+    private func getLocationById(_ id: UUID) -> ChargingLocation? {
+        chargingLocations.first(where: { $0.id == id })
     }
     
     private func cancelAndExit() {
@@ -121,8 +177,44 @@ struct ChargingCostPlanEditor: View {
         }
         
         // Data check: No plan selected
-        if planType == nil {
+        if selectedPlanType == nil {
             activeAlert = .error(message: "Please select a plan type.")
+            showingAlert = true
+            return
+        }
+        
+        // Update plan type
+        switch selectedPlanType! {
+        case ChargingCostPlan.PlanType.descriptionIndividual:
+            planType = .individual(defaultKWhPrice: individualDefaultPrice)
+        case ChargingCostPlan.PlanType.descriptionFlatrate:
+            planType = .flatrate(monthlyRate: flatratePrice)
+        case ChargingCostPlan.PlanType.descriptionHomeConsumption:
+            if let connectedLocation {
+                planType = .homeConsumption(atLocationWithId: connectedLocation.id)
+            } else {
+                activeAlert = .warning(message: "Please select a location.")
+                showingAlert = true
+            }
+        case ChargingCostPlan.PlanType.descriptionRefunded:
+            if connectedLocation == nil {
+                activeAlert = .warning(message: "Please select a location.")
+                showingAlert = true
+                return
+            }
+            
+            if refundingPlan == nil {
+                activeAlert = .warning(message: "Please select a refunding plan.")
+                showingAlert = true
+                return
+            }
+            
+            planType = .refunded(
+                atLocationWithId: connectedLocation!.id,
+                byFlatrateWithID: refundingPlan!.id
+            )
+        default:
+            activeAlert = .fatalError(message: "Unsupported plan type: \(selectedPlanType!)")
             showingAlert = true
             return
         }
@@ -145,11 +237,67 @@ struct ChargingCostPlanEditor: View {
     private func planDataView() -> some View {
         switch selectedPlanType {
         case ChargingCostPlan.PlanType.descriptionIndividual:
-            Text("Individual")
+            // Default cost
+            if enterIndividualDefaultPrice {
+                HStack {
+                    Text("Default price")
+                    Spacer()
+                    TextField("", value: $individualDefaultPrice.amount, format: .number)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .focused($focusedField, equals: .individualDefaultPrice)
+                    Text("\(individualDefaultPrice.currency.identifier)/kWh")
+                    Button {
+                        deleteIndividualDefaultPrice()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
+                }
+            } else {
+                // Offer to enter price
+                HStack {
+                    Text("Default price")
+                    Spacer()
+                    Button {
+                        focusedField = .individualDefaultPrice
+                        enterIndividualDefaultPrice = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
+                }
+            }
         case ChargingCostPlan.PlanType.descriptionFlatrate:
-            Text("Flatrate")
+            HStack {
+                Text("Monthly price")
+                Spacer()
+                TextField("", value: $flatratePrice.amount, format: .number)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                Text(individualDefaultPrice.currency.identifier)
+            }
+        case ChargingCostPlan.PlanType.descriptionHomeConsumption:
+            Picker("Location", selection: $connectedLocation) {
+                Text("- Select a location -").tag(nil as ChargingLocation?)
+                ForEach(chargingLocations, id: \.id) { location in
+                    Text(location.name).tag(location)
+                }
+            }
         case ChargingCostPlan.PlanType.descriptionRefunded:
-            Text("Refunded")
+            Picker("Location", selection: $connectedLocation) {
+                Text("- Select a location -").tag(nil as ChargingLocation?)
+                ForEach(chargingLocations, id: \.id) { location in
+                    Text(location.name).tag(location)
+                }
+            }
+            
+            Picker("Refunding Plan", selection: $refundingPlan) {
+                Text("- Select a plan -").tag(nil as ChargingCostPlan?)
+                ForEach(allPlans, id: \.id) { plan in
+                    Text(plan.description).tag(plan)
+                }
+            }
         case .none:
             EmptyView()
         case .some(_):

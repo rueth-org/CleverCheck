@@ -37,7 +37,7 @@ struct ChargingSessionsView: View {
                 Picker("Car", selection: $selectedCar) {
                     Text("- all -").tag(nil as Car?)
                     ForEach(cars, id: \.self) { car in
-                        Text("\(car.make) \(car.model)").tag(car)
+                        Text(car.description).tag(car)
                     }
                 }
             }.padding(.horizontal)

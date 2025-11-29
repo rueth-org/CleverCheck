@@ -16,11 +16,11 @@ struct ChargingCostPlansView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    @Query(sort: [SortDescriptor(\ChargingCostPlan.car.make), SortDescriptor(\ChargingCostPlan.car.model), SortDescriptor(\ChargingCostPlan.charger.name)]) private var plans: [ChargingCostPlan]
+    @Query(sort: [SortDescriptor(\ChargingCostPlan.car.make), SortDescriptor(\ChargingCostPlan.car.model), SortDescriptor(\ChargingCostPlan.charger.name)]) private var allPlans: [ChargingCostPlan]
     @State private var selectedPlan: ChargingCostPlan? = nil
     
     private var groupedPlans: [String: [ChargingCostPlan]] {
-        Dictionary(grouping: plans) { $0.car.make + " " + $0.car.model }
+        Dictionary(grouping: allPlans) { $0.car.make + " " + $0.car.model }
     }
     
     var body: some View {
@@ -57,7 +57,7 @@ struct ChargingCostPlansView: View {
         // TODO check if can be deleted
         for offset in offsets {
             // Find plan in our query
-            let plan = plans[offset]
+            let plan = allPlans[offset]
 
             // Delete it from the context
             withAnimation {

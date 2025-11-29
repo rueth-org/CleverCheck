@@ -17,6 +17,10 @@ final class Car {
     @Relationship(deleteRule: .deny, inverse: \ChargingSession.car)
     var chargingSessions = [ChargingSession]()
     
+    var description: String {
+        return "\(make) \(model)"
+    }
+    
     init(make: String, model: String, defaultSOC: Double = 0.8) {
         self.make = make
         self.model = model

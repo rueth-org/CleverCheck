@@ -83,7 +83,7 @@ struct ChargingSessionEditor: View {
                 Picker("Car", selection: $car) {
                     Text("- Select a car -").tag(nil as Car?)
                     ForEach(cars) { car in
-                        Text("\(car.make) \(car.model)").tag(car)
+                        Text(car.description).tag(car)
                     }
                 }
                 

@@ -11,26 +11,34 @@ import SwiftData
 @Model
 public final class ChargingCostPlan {
     enum PlanType: Codable, CustomStringConvertible {
-        static var descriptionFlatrate: String { NSLocalizedString("Flatrate", comment: "") }
-        static var descriptionRefunded: String { NSLocalizedString("Refunded", comment: "") }
         static var descriptionIndividual: String { NSLocalizedString("Individual", comment: "") }
+        static var descriptionFlatrate: String { NSLocalizedString("Flatrate", comment: "") }
+        static var descriptionHomeConsumption: String { NSLocalizedString("Home Consumption", comment: "") }
+        static var descriptionRefunded: String { NSLocalizedString("Refunded", comment: "") }
         
-        case flatrate(monthlyRate: Double)
-        case refunded(atLocationWithId: UUID)
-        case individual(defaultKWhPrice: Double?)
+        case individual(defaultKWhPrice: Cost?)
+        case flatrate(monthlyRate: Cost)
+        case homeConsumption(atLocationWithId: UUID)
+        case refunded(atLocationWithId: UUID, byFlatrateWithID: UUID)
         
         var description: String {
             switch self {
-            case .flatrate: return PlanType.descriptionFlatrate
-            case .refunded: return PlanType.descriptionRefunded
             case .individual: return PlanType.descriptionIndividual
+            case .flatrate: return PlanType.descriptionFlatrate
+            case .homeConsumption: return PlanType.descriptionHomeConsumption
+            case .refunded: return PlanType.descriptionRefunded
             }
         }
     }
     
+    public var id = UUID()
     var car: Car
     var charger: Charger
     var planType: PlanType
+    
+    var description: String {
+        "\(planType.description): \(car.description) / (\(charger.name))"
+    }
     
     init(car: Car, charger: Charger, planType: PlanType) {
         self.car = car

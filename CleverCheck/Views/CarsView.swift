@@ -23,7 +23,7 @@ struct CarsView: View {
         List {
             ForEach(cars, id: \.self) { car in
                 NavigationLink(value: NavigationDestination.EditCar(car: car)) {
-                    Text("\(car.make) \(car.model)")
+                    Text(car.description)
                 }
             }
             .onDelete(perform: deleteCar)

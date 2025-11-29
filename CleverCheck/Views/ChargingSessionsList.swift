@@ -36,7 +36,7 @@ struct ChargingSessionsList: View {
                                 Text("kWh")
                             }
                             HStack {
-                                Text("\(chargingSession.car.make) \(chargingSession.car.model)")
+                                Text(chargingSession.car.description)
                                 Spacer()
                                 if chargingSession.finalSOC != nil {
                                     Text(chargingSession.finalSOC!.formatted(.percent))
