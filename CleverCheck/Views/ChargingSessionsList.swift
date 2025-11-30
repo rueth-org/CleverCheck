@@ -32,7 +32,7 @@ struct ChargingSessionsList: View {
                             HStack {
                                 Text(chargingSession.endTime, format: Date.FormatStyle(date: .abbreviated, time: .none))
                                 Spacer()
-                                Text(chargingSession.amount.formatted())
+                                Text(chargingSession.chargedEnergyKWh.formatted())
                                 Text("kWh")
                             }
                             HStack {

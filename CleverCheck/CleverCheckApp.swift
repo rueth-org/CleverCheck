@@ -17,6 +17,7 @@ struct CleverCheckApp: App {
             ChargingLocation.self,
             ChargingSession.self,
             ChargingCostPlan.self,
+            HomeConsumption.self,
             UserSettings.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)

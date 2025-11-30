@@ -42,8 +42,10 @@ struct CarEditor: View {
                     Text("Speed")
                 } minimumValueLabel: {
                     Text("50%")
+                        .font(.caption)
                 } maximumValueLabel: {
                     Text("100%")
+                        .font(.caption)
                 } onEditingChanged: { editing in
                     isEditingSOC = editing
                 }

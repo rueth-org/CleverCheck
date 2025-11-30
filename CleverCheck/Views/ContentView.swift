@@ -61,6 +61,7 @@ struct ContentView: View {
         case Chargers
         case ChargingLocations
         case ChargingCostPlans
+        case HomeConsumptions
     }
     
     @Environment(\.modelContext) private var modelContext
@@ -83,6 +84,9 @@ struct ContentView: View {
             Button("Charging Cost Plans") {
                 navigationPath.append(NavigationDestination.ChargingCostPlans)
             }
+            Button("Home Consumptions") {
+                navigationPath.append(NavigationDestination.HomeConsumptions)
+            }
             Spacer()
             Button("Delete all data") {
                 modelContext.container.deleteAllData()
@@ -99,6 +103,8 @@ struct ContentView: View {
                     ChargingLocationsView(navigationPath: $navigationPath)
                 case .ChargingCostPlans:
                     ChargingCostPlansView(navigationPath: $navigationPath)
+                case .HomeConsumptions:
+                    HomeConsumptionsView(navigationPath: $navigationPath)
                 }
             }
             .navigationDestination(for: CarsView.NavigationDestination.self) { screen in
@@ -139,6 +145,14 @@ struct ContentView: View {
                     ChargingCostPlanEditor(navigationPath: $navigationPath, plan: nil)
                 case .EditPlan(plan: let plan):
                     ChargingCostPlanEditor(navigationPath: $navigationPath, plan: plan)
+                }
+            }
+            .navigationDestination(for: HomeConsumptionsView.NavigationDestination.self) { screen in
+                switch screen {
+                case .NewConsumption:
+                    HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: nil)
+                case .EditConsumption(homeConsumption: let HomeConsumption):
+                    HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: HomeConsumption)
                 }
             }
         }

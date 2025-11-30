@@ -24,15 +24,26 @@ struct ChargingCostPlansView: View {
     }
     
     var body: some View {
-        List {
-            ForEach(groupedPlans.keys.sorted(), id: \.self) { carDescription in
-                Section(header: Text(carDescription)) {
-                    ForEach(groupedPlans[carDescription]!, id: \.self) { chargingCostPlan in
-                        NavigationLink(value: NavigationDestination.EditPlan(plan: chargingCostPlan)) {
-                            Text("\(chargingCostPlan.charger.name) (\(NSLocalizedString(chargingCostPlan.planType.description, comment: "")))")
+        VStack {
+            if allPlans.isEmpty {
+                Spacer()
+                Image(systemName: "banknote")
+                    .font(.largeTitle)
+                    .foregroundColor(.secondary)
+                Text("No plans found.")
+                Spacer()
+            } else {
+                List {
+                    ForEach(groupedPlans.keys.sorted(), id: \.self) { carDescription in
+                        Section(header: Text(carDescription)) {
+                            ForEach(groupedPlans[carDescription]!, id: \.self) { chargingCostPlan in
+                                NavigationLink(value: NavigationDestination.EditPlan(plan: chargingCostPlan)) {
+                                    Text("\(NSLocalizedString(chargingCostPlan.planType.description, comment: "")): \(chargingCostPlan.charger.description)")
+                                }
+                            }
+                            .onDelete(perform: deletePlan)
                         }
                     }
-                    .onDelete(perform: deletePlan)
                 }
             }
         }

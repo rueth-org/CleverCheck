@@ -120,12 +120,12 @@
     "%@" : {
 
     },
-    "%@ (%@)" : {
+    "%@: %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@ (%2$@)"
+            "value" : "%1$@: %2$@"
           }
         }
       }
@@ -413,6 +413,9 @@
         }
       }
     },
+    "Hello, World!" : {
+
+    },
     "Home Consumption" : {
       "localizations" : {
         "da" : {
@@ -428,6 +431,9 @@
           }
         }
       }
+    },
+    "Home Consumptions" : {
+
     },
     "Individual" : {
       "localizations" : {
@@ -594,6 +600,12 @@
         }
       }
     },
+    "No cars found." : {
+
+    },
+    "No chargers found." : {
+
+    },
     "No charging sessions found." : {
       "localizations" : {
         "da" : {
@@ -610,6 +622,9 @@
         }
       }
     },
+    "No home consumptions found." : {
+
+    },
     "No location" : {
       "localizations" : {
         "da" : {
@@ -625,6 +640,12 @@
           }
         }
       }
+    },
+    "No locations found." : {
+
+    },
+    "No plans found." : {
+
     },
     "Notice" : {
       "extractionState" : "manual",

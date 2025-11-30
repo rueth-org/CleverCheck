@@ -24,15 +24,26 @@ struct ChargersView: View {
     }
     
     var body: some View {
-        List {
-            ForEach(groupedChargers.keys.sorted(), id: \.self) { location in
-                Section(header: Text(location)) {
-                    ForEach(groupedChargers[location]!, id: \.self) { charger in
-                        NavigationLink(value: NavigationDestination.EditCharger(charger: charger)) {
-                            Text(charger.name)
+        VStack {
+            if chargers.isEmpty {
+                Spacer()
+                Image(systemName: "ev.charger")
+                    .font(.largeTitle)
+                    .foregroundColor(.secondary)
+                Text("No chargers found.")
+                Spacer()
+            } else {
+                List {
+                    ForEach(groupedChargers.keys.sorted(), id: \.self) { location in
+                        Section(header: Text(location)) {
+                            ForEach(groupedChargers[location]!, id: \.self) { charger in
+                                NavigationLink(value: NavigationDestination.EditCharger(charger: charger)) {
+                                    Text(charger.name)
+                                }
+                            }
+                            .onDelete(perform: deleteCharger)
                         }
                     }
-                    .onDelete(perform: deleteCharger)
                 }
             }
         }

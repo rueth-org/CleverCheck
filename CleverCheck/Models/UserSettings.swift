@@ -10,34 +10,27 @@ import SwiftData
 
 @Model
 final class UserSettings {
-    enum UnitDistance: String, Codable, CaseIterable {
-        static let conversionFactor = 1.609
-        
-        case kilometer = "km"
-        case mile = "mi"
-        
-        func toKilometers(miles: Double) -> Double {
-            return miles * Self.conversionFactor
-        }
-        
-        func toMiles(kilometers: Double) -> Double {
-            return kilometers / Self.conversionFactor
-        }
-        
-        func convert(distance: Double) -> Double {
-            if self == .kilometer {
-                return toMiles(kilometers: distance)
-            } else {
-                return toKilometers(miles: distance)
-            }
+    static let settings = UserSettings()
+    
+    var measurementSystem: Locale.MeasurementSystem = Locale.current.measurementSystem
+    var currency: Locale.Currency = Locale.current.currency ?? .init("EUR")
+    
+    var distanceUnit: UnitLength {
+        switch measurementSystem {
+        case .metric:
+            return .kilometers
+        case .us, .uk:
+            return .miles
+        default:
+            fatalError()
         }
     }
     
-    static let userSettings = UserSettings(unitDistance: .kilometer)
+    var currencyCode: String {
+        currency.identifier
+    }
     
-    var unitDistance: UnitDistance
-    
-    private init(unitDistance: UnitDistance) {
-        self.unitDistance = unitDistance
+    private init() {
+        // Empty on purpose
     }
 }

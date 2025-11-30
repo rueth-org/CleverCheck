@@ -20,13 +20,24 @@ struct ChargingLocationsView: View {
     @State private var selectedLocation: ChargingLocation? = nil
     
     var body: some View {
-        List {
-            ForEach(chargingLocations, id: \.self) { chargingLocation in
-                NavigationLink(value: NavigationDestination.EditLocation(chargingLocation: chargingLocation)) {
-                    Text(chargingLocation.name)
+        VStack {
+            if chargingLocations.isEmpty {
+                Spacer()
+                Image(systemName: "mappin.and.ellipse")
+                    .font(.largeTitle)
+                    .foregroundColor(.secondary)
+                Text("No locations found.")
+                Spacer()
+            } else {
+                List {
+                    ForEach(chargingLocations, id: \.self) { chargingLocation in
+                        NavigationLink(value: NavigationDestination.EditLocation(chargingLocation: chargingLocation)) {
+                            Text(chargingLocation.name)
+                        }
+                    }
+                    .onDelete(perform: deleteLocation)
                 }
             }
-            .onDelete(perform: deleteLocation)
         }
         .toolbar {
             ToolbarItem(placement: .principal) {

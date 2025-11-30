@@ -13,19 +13,41 @@ final class ChargingSession {
     var startTime: Date?
     var endTime: Date
     var charger: Charger
-    var amount: Double
+    var chargedEnergyKWh: Double
     var car: Car
-    var mileage: Int?
+    var mileageKilometer: Double?
     var initialSOC: Double?
     var finalSOC: Double?
+    
+    @Transient var chargedEnergy: Measurement<UnitEnergy> {
+        get {
+            return Measurement<UnitEnergy>(value: chargedEnergyKWh, unit: .kilowattHours)
+        }
+        set {
+            chargedEnergyKWh = newValue.converted(to: .kilowattHours).value
+        }
+    }
+    
+    @Transient var mileage: Measurement<UnitLength>? {
+        get {
+            if let mileageKilometer {
+                return Measurement<UnitLength>(value: mileageKilometer, unit: .kilometers)
+            } else {
+                return nil
+            }
+        }
+        set {
+            mileageKilometer = newValue?.converted(to: .kilometers).value
+        }
+    }
     
     init(
         startTime: Date? = nil,
         endTime: Date,
         charger: Charger,
-        amount: Double,
+        chargedEnergy: Measurement<UnitEnergy>,
         car: Car,
-        mileage: Int? = nil,
+        mileage: Measurement<UnitLength>? = nil,
         initialSOC: Double? = nil,
         finalSOC: Double? = nil,
         useDefaultFinalSOC: Bool = true
@@ -33,9 +55,9 @@ final class ChargingSession {
         self.startTime = startTime
         self.endTime = endTime
         self.charger = charger
-        self.amount = amount
+        self.chargedEnergyKWh = chargedEnergy.converted(to: .kilowattHours).value
         self.car = car
-        self.mileage = mileage
+        self.mileageKilometer = mileage?.converted(to: .kilometers).value
         self.initialSOC = initialSOC
         if useDefaultFinalSOC {
             self.finalSOC = car.defaultSOC

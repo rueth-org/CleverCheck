@@ -20,13 +20,24 @@ struct CarsView: View {
     @State private var selectedCar: Car? = nil
     
     var body: some View {
-        List {
-            ForEach(cars, id: \.self) { car in
-                NavigationLink(value: NavigationDestination.EditCar(car: car)) {
-                    Text(car.description)
+        VStack {
+            if cars.isEmpty {
+                Spacer()
+                Image(systemName: "bolt.car")
+                    .font(.largeTitle)
+                    .foregroundColor(.secondary)
+                Text("No cars found.")
+                Spacer()
+            } else {
+                List {
+                    ForEach(cars, id: \.self) { car in
+                        NavigationLink(value: NavigationDestination.EditCar(car: car)) {
+                            Text(car.description)
+                        }
+                    }
+                    .onDelete(perform: deleteCar)
                 }
             }
-            .onDelete(perform: deleteCar)
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
