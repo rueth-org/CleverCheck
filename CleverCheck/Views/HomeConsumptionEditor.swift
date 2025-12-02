@@ -28,13 +28,13 @@ struct HomeConsumptionEditor: View {
     @State private var validUntil: Date = Date.now.endDateOfMonth
     @State private var consumption: Measurement<UnitEnergy> = .init(value: 0, unit: .kilowattHours)
     @State private var associatedChargingLocation: ChargingLocation?
-    @State private var priceElements: [HomeConsumption.PriceElement] = []
+    @State private var priceElements: [PriceElement] = []
     
     @State private var editedPriceElementID: UUID?
     @State private var enteringNewPriceElement: Bool = false
     @State private var priceElementLabel: String = ""
     @State private var priceElementAmount: Cost = .init(amount: 0, currency: UserSettings.settings.currency)
-    @State private var priceElementType: HomeConsumption.PriceElementType = .byConsumption
+    @State private var priceElementType: PriceElement.PriceElementType = .byConsumption
     
     private var isNewPriceElement: Bool {
         editedPriceElementID == nil
@@ -49,8 +49,8 @@ struct HomeConsumptionEditor: View {
         homeConsumption == nil ? "New Home Consumption" : "Edit Home Consumption"
     }
     
-    private var priceElementTypes: [HomeConsumption.PriceElementType] {
-        HomeConsumption.PriceElementType.allCases.map { $0 }
+    private var priceElementTypes: [PriceElement.PriceElementType] {
+        PriceElement.PriceElementType.allCases.map { $0 }
     }
     
     var body: some View {
@@ -170,7 +170,7 @@ struct HomeConsumptionEditor: View {
         }
     }
     
-    private func selectPriceElement(_ priceElement: HomeConsumption.PriceElement) {
+    private func selectPriceElement(_ priceElement: PriceElement) {
         self.priceElementLabel = priceElement.label
         self.priceElementAmount = priceElement.amount
         self.priceElementType = priceElement.type
@@ -205,7 +205,7 @@ struct HomeConsumptionEditor: View {
             return
         }
         
-        let newPriceElement = HomeConsumption.PriceElement(
+        let newPriceElement = PriceElement(
             label: priceElementLabel,
             amount: priceElementAmount,
             type: priceElementType
@@ -227,7 +227,7 @@ struct HomeConsumptionEditor: View {
         deselectPriceElement()
     }
     
-    private func deletePriceElement(element: HomeConsumption.PriceElement) {
+    private func deletePriceElement(element: PriceElement) {
         if let index = priceElements.firstIndex(of: element) {
             priceElements.remove(at: index)
         }
