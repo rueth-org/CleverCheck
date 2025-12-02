@@ -13,6 +13,9 @@ final class ChargingLocation {
     var id: UUID = UUID()
     var name: String
     
+    @Relationship(deleteRule: .nullify, inverse: \HomeConsumption.associatedChargingLocation)
+    var associatedHomeConsumptions = [HomeConsumption]()
+    
     @Relationship(deleteRule: .nullify, inverse: \ChargingSession.charger)
     var chargers = [Charger]()
     

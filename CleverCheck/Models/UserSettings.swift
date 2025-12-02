@@ -14,6 +14,7 @@ final class UserSettings {
     
     var measurementSystem: Locale.MeasurementSystem = Locale.current.measurementSystem
     var currency: Locale.Currency = Locale.current.currency ?? .init("EUR")
+    var vat: Double = 0.25
     
     var distanceUnit: UnitLength {
         switch measurementSystem {
@@ -24,6 +25,10 @@ final class UserSettings {
         default:
             fatalError()
         }
+    }
+    
+    var energyUnit: UnitEnergy {
+        .kilowattHours
     }
     
     var currencyCode: String {

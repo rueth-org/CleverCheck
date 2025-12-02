@@ -10,8 +10,19 @@ import SwiftData
 
 @Model
 final class HomeConsumption {
-    enum PriceElementType: String, Codable {
-        case daily, oneTime = "one time", byConsumption = "by consumption"
+    enum PriceElementType: String, Codable, CaseIterable {
+        case daily, once, byConsumption = "by consumption"
+        
+        func unitExtension(energyUnit: String) -> String {
+            switch self {
+            case .daily:
+                return NSLocalizedString("/day", comment: "")
+            case .once:
+                return ""
+            case .byConsumption:
+                return "/\(energyUnit)"
+            }
+        }
     }
     
     struct PriceElement: Identifiable, Equatable, Codable {
@@ -19,6 +30,15 @@ final class HomeConsumption {
         var label: String
         var amount: Cost
         var type: PriceElementType
+        var vatRate: Double = UserSettings.settings.vat
+        
+        func description(homeConsumption: HomeConsumption?) -> String {
+            "\(amount.amount.formatted()) \(unitDescription(homeConsumption: homeConsumption))"
+        }
+        
+        func unitDescription(homeConsumption: HomeConsumption?) -> String {
+            "\(amount.currency.identifier)\(type.unitExtension(energyUnit: homeConsumption?.consumption.unit.symbol ?? UserSettings.settings.energyUnit.symbol))"
+        }
         
         static func == (lhs: HomeConsumption.PriceElement, rhs: HomeConsumption.PriceElement) -> Bool {
             lhs.id == rhs.id
@@ -30,7 +50,8 @@ final class HomeConsumption {
     var validFrom: Date
     var validUntil: Date
     var consumptionKWh: Double
-    private var priceElements: [PriceElement] = []
+    var associatedChargingLocation: ChargingLocation?
+    var priceElements: [PriceElement] = []
     
     @Transient var consumption: Measurement<UnitEnergy> {
         get {
@@ -41,38 +62,18 @@ final class HomeConsumption {
         }
     }
     
+    var description: String {
+        if associatedChargingLocation != nil {
+            return "\(name) (\(associatedChargingLocation!.name))"
+        } else {
+            return "\(name)"
+        }
+    }
+    
     init(name: String, validFrom: Date, validUntil: Date, consumption: Measurement<UnitEnergy>) {
         self.name = name
         self.validFrom = validFrom
         self.validUntil = validUntil
         self.consumptionKWh = consumption.converted(to: .kilowattHours).value
-    }
-    
-    func getPriceElements() -> [PriceElement] {
-        return priceElements
-    }
-    
-    /// Adds a new price element.
-    /// - Parameters:
-    ///   - label: The label of the price element, which must be unique.
-    ///   - amount: The amount. A positive value is considered a cost, a negative value a deduction or refund.
-    ///   - type: The type of the price element: If "daily", the amount is multiplied with the amount of days, if "one time", it is considered once, if "by consumption", it's multiplied with the consumption.
-    /// - Returns: False if the label is not unique, true otherwise.
-    func addPriceElement(label: String, amount: Cost, type: PriceElementType) -> Bool {
-        if priceElements.contains(where: { $0.label == label }) {
-            return false // Label must be unique
-        }
-        
-        priceElements.append(.init(label: label, amount: amount, type: type))
-        return true
-    }
-    
-    func removePriceElement(_ priceElement: PriceElement) -> Bool {
-        guard let index = priceElements.firstIndex(of: priceElement) else {
-            return false
-        }
-        
-        priceElements.remove(at: index)
-        return true
     }
 }

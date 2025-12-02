@@ -117,6 +117,9 @@
         }
       }
     },
+    "/day" : {
+
+    },
     "%@" : {
 
     },
@@ -133,6 +136,16 @@
     "%@/kWh" : {
 
     },
+    "%@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$@"
+          }
+        }
+      }
+    },
     "%@%%" : {
 
     },
@@ -140,6 +153,9 @@
 
     },
     "100%" : {
+
+    },
+    "Add" : {
 
     },
     "Amount" : {
@@ -288,6 +304,9 @@
         }
       }
     },
+    "Consumption" : {
+
+    },
     "Default price" : {
       "localizations" : {
         "da" : {
@@ -320,6 +339,9 @@
         }
       }
     },
+    "Delete" : {
+
+    },
     "Delete all data" : {
       "localizations" : {
         "da" : {
@@ -335,6 +357,9 @@
           }
         }
       }
+    },
+    "Edit" : {
+
     },
     "End" : {
       "extractionState" : "manual",
@@ -413,9 +438,6 @@
         }
       }
     },
-    "Hello, World!" : {
-
-    },
     "Home Consumption" : {
       "localizations" : {
         "da" : {
@@ -468,6 +490,9 @@
       }
     },
     "kWh" : {
+
+    },
+    "Label" : {
 
     },
     "Location" : {
@@ -690,6 +715,9 @@
         }
       }
     },
+    "Price Elements" : {
+
+    },
     "Refunded" : {
       "localizations" : {
         "da" : {
@@ -820,6 +848,15 @@
           }
         }
       }
+    },
+    "Type" : {
+
+    },
+    "Valid from" : {
+
+    },
+    "Valid until" : {
+
     },
     "Warning" : {
       "extractionState" : "manual",
