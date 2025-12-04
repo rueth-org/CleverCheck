@@ -113,7 +113,7 @@ struct ChargingSessionEditor: View {
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .focused($focusedField, equals: .mileage)
-                        Text(UserSettings.settings.distanceUnit.symbol)
+                        Text(UserSettings.shared.distanceUnit.symbol)
                         Button {
                             deleteMileage()
                         } label: {
@@ -235,7 +235,7 @@ struct ChargingSessionEditor: View {
                     self.mileage = mileage
                     self.enterMileage = true
                 } else {
-                    self.mileage = .init(value: 0, unit: UserSettings.settings.distanceUnit)
+                    self.mileage = .init(value: 0, unit: UserSettings.shared.distanceUnit)
                     self.enterMileage = false
                 }
                 if let initialSOC = chargingSession.initialSOC {
@@ -271,7 +271,7 @@ struct ChargingSessionEditor: View {
     
     private func deleteMileage() {
         enterMileage = false
-        mileage = .init(value: 0, unit: UserSettings.settings.distanceUnit)
+        mileage = .init(value: 0, unit: UserSettings.shared.distanceUnit)
     }
     
     private func deleteInitialSOC() {

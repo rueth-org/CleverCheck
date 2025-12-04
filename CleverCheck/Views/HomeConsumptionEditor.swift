@@ -33,7 +33,8 @@ struct HomeConsumptionEditor: View {
     @State private var editedPriceElementID: UUID?
     @State private var enteringNewPriceElement: Bool = false
     @State private var priceElementLabel: String = ""
-    @State private var priceElementAmount: Cost = .init(amount: 0, currency: UserSettings.settings.currency)
+    @State private var priceElementAmount: Cost = .init(amount: 0, currency: UserSettings.shared.currency)
+    @State private var priceElementVatRate: Double = UserSettings.shared.vatRate
     @State private var priceElementType: PriceElement.PriceElementType = .byConsumption
     
     private var isNewPriceElement: Bool {
@@ -86,6 +87,7 @@ struct HomeConsumptionEditor: View {
                     }
                 }
                 
+                // The existing price elements
                 ForEach(priceElements, id: \.id) { priceElement in
                     if editedPriceElementID != nil && editedPriceElementID! == priceElement.id {
                         // Editing an existing price element
@@ -182,7 +184,7 @@ struct HomeConsumptionEditor: View {
     
     private func deselectPriceElement() {
         self.priceElementLabel = ""
-        self.priceElementAmount = .init(amount: 0, currency: UserSettings.settings.currency)
+        self.priceElementAmount = .init(amount: 0, currency: UserSettings.shared.currency)
         self.priceElementType = .byConsumption
         withAnimation {
             self.editedPriceElementID = nil
@@ -205,17 +207,26 @@ struct HomeConsumptionEditor: View {
             return
         }
         
-        let newPriceElement = PriceElement(
-            label: priceElementLabel,
-            amount: priceElementAmount,
-            type: priceElementType
-        )
-        
         if isNewPriceElement {
+            let newPriceElement = PriceElement(
+                label: priceElementLabel,
+                amount: priceElementAmount,
+                type: priceElementType,
+                vatRate: priceElementVatRate
+            )
+            
+            // Assign to homeConsumption
+            if let homeConsumption {
+                newPriceElement.homeConsumption = homeConsumption
+            }
+            
             priceElements.append(newPriceElement)
         } else {
             if let index = priceElements.firstIndex(where: { $0.id == editedPriceElementID! }) {
-                priceElements[index] = newPriceElement  
+                priceElements[index].label = priceElementLabel
+                priceElements[index].amount = priceElementAmount
+                priceElements[index].type = priceElementType
+                priceElements[index].vatRate = priceElementVatRate
             } else {
                 activeAlert = .fatalError(message: "Cannot find price element to edit.")
                 showingAlert = true
@@ -260,14 +271,16 @@ struct HomeConsumptionEditor: View {
         
         // Update or create homeConsumption
         if let homeConsumption {
-            // Edit the location
+            // Edit the home consumption
             homeConsumption.name = name
             homeConsumption.validFrom = validFrom
             homeConsumption.validUntil = validUntil
             homeConsumption.consumption = consumption
-            homeConsumption.priceElements = priceElements
         } else {
             let newHomeConsumption = HomeConsumption(name: name, validFrom: validFrom, validUntil: validUntil, consumption: consumption)
+            for priceElement in priceElements {
+                newHomeConsumption.priceElements.append(priceElement)
+            }
             modelContext.insert(newHomeConsumption)
         }
         
@@ -292,7 +305,7 @@ struct HomeConsumptionEditor: View {
                         self.addPriceElement()
                     }
                     .submitLabel(.done)
-                Text("\(priceElementAmount.currency.identifier)\(priceElementType.unitExtension(energyUnit: homeConsumption?.consumption.unit.symbol ?? UserSettings.settings.energyUnit.symbol))")
+                Text("\(priceElementAmount.currency.identifier)\(priceElementType.unitExtension(energyUnit: homeConsumption?.consumption.unit.symbol ?? UserSettings.shared.energyUnit.symbol))")
                 Button {
                     self.addPriceElement()
                 } label: {

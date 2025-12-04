@@ -30,12 +30,13 @@ final class PriceElement: Identifiable, Equatable {
     var label: String
     var amount: Cost
     var type: PriceElementType
-    var vatRate: Double = UserSettings.settings.vat
+    var vatRate: Double
     
-    init(id: UUID = UUID(), label: String, amount: Cost, type: PriceElementType) {
+    init(id: UUID = UUID(), label: String, amount: Cost, type: PriceElementType, vatRate: Double? = nil) {
         self.label = label
         self.amount = amount
         self.type = type
+        self.vatRate = vatRate ?? UserSettings.shared.vatRate
     }
     
     func description(homeConsumption: HomeConsumption?) -> String {
@@ -43,7 +44,7 @@ final class PriceElement: Identifiable, Equatable {
     }
     
     func unitDescription(homeConsumption: HomeConsumption?) -> String {
-        "\(amount.currency.identifier)\(type.unitExtension(energyUnit: homeConsumption?.consumption.unit.symbol ?? UserSettings.settings.energyUnit.symbol))"
+        "\(amount.currency.identifier)\(type.unitExtension(energyUnit: homeConsumption?.consumption.unit.symbol ?? UserSettings.shared.energyUnit.symbol))"
     }
     
     static func == (lhs: PriceElement, rhs: PriceElement) -> Bool {

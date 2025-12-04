@@ -10,11 +10,11 @@ import SwiftData
 
 @Model
 final class UserSettings {
-    static let settings = UserSettings()
+    static let shared = UserSettings()
     
     var measurementSystem: Locale.MeasurementSystem = Locale.current.measurementSystem
     var currency: Locale.Currency = Locale.current.currency ?? .init("EUR")
-    var vat: Double = 0.25
+    var vatRate: Double = 0.25
     
     var distanceUnit: UnitLength {
         switch measurementSystem {
