@@ -23,16 +23,32 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "1EBCA539-1B0E-4143-ABFB-2A1F87669EC7"
-            shouldBeEnabled = "No"
+            uuid = "AD4FAA46-8758-42BA-BB1B-BBC1C5628848"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "CleverCheck/Views/PriceElementEditor.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "108"
+            endingLineNumber = "108"
+            landmarkName = "saveAndExit()"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "33D2B885-9E74-43DE-9593-8B0170C21F47"
+            shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "CleverCheck/Views/HomeConsumptionEditor.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "206"
-            endingLineNumber = "206"
-            landmarkName = "addPriceElement()"
+            startingLineNumber = "164"
+            endingLineNumber = "164"
+            landmarkName = "saveAndExit()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

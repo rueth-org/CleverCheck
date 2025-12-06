@@ -17,7 +17,6 @@ struct ChargerEditor: View {
     
     @State private var name: String = ""
     @State private var chargingLocation: ChargingLocation? = nil
-    @State private var hasChargingLocation: Bool = false
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?

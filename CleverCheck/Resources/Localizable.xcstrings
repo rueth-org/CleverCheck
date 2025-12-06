@@ -175,6 +175,9 @@
         }
       }
     },
+    "Amount is gross" : {
+
+    },
     "Cancel" : {
       "localizations" : {
         "da" : {
@@ -339,9 +342,6 @@
         }
       }
     },
-    "Delete" : {
-
-    },
     "Delete all data" : {
       "localizations" : {
         "da" : {
@@ -357,9 +357,6 @@
           }
         }
       }
-    },
-    "Edit" : {
-
     },
     "End" : {
       "extractionState" : "manual",
@@ -858,6 +855,9 @@
 
     },
     "Valid until" : {
+
+    },
+    "VAT Rate" : {
 
     },
     "Warning" : {

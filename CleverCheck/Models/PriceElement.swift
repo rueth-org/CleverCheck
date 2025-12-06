@@ -29,14 +29,16 @@ final class PriceElement: Identifiable, Equatable {
     var homeConsumption: HomeConsumption?
     var label: String
     var amount: Cost
+    var isGross: Bool
     var type: PriceElementType
     var vatRate: Double
     
-    init(label: String, amount: Cost, type: PriceElementType, vatRate: Double? = nil) {
+    init(label: String, amount: Cost, isGross: Bool, type: PriceElementType, vatRate: Double? = nil) {
         self.label = label
         self.amount = amount
         self.type = type
         self.vatRate = vatRate ?? UserSettings.shared.vatRate
+        self.isGross = isGross
     }
     
     func description(homeConsumption: HomeConsumption?) -> String {
