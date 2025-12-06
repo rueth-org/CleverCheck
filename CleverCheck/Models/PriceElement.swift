@@ -32,7 +32,7 @@ final class PriceElement: Identifiable, Equatable {
     var type: PriceElementType
     var vatRate: Double
     
-    init(id: UUID = UUID(), label: String, amount: Cost, type: PriceElementType, vatRate: Double? = nil) {
+    init(label: String, amount: Cost, type: PriceElementType, vatRate: Double? = nil) {
         self.label = label
         self.amount = amount
         self.type = type

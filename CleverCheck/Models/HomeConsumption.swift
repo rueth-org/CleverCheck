@@ -37,10 +37,17 @@ final class HomeConsumption {
         }
     }
     
-    init(name: String, validFrom: Date, validUntil: Date, consumption: Measurement<UnitEnergy>) {
+    init(
+        name: String,
+        validFrom: Date,
+        validUntil: Date,
+        consumption: Measurement<UnitEnergy>,
+        associatedChargingLocation: ChargingLocation? = nil
+    ) {
         self.name = name
         self.validFrom = validFrom
         self.validUntil = validUntil
         self.consumptionKWh = consumption.converted(to: .kilowattHours).value
+        self.associatedChargingLocation = associatedChargingLocation
     }
 }

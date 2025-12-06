@@ -72,20 +72,22 @@ struct ContentView: View {
             Button("Charging Sessions") {
                 navigationPath.append(NavigationDestination.ChargingSessions)
             }
+            Button("Home Consumptions") {
+                navigationPath.append(NavigationDestination.HomeConsumptions)
+            }
+            Spacer()
+            
             Button("Cars") {
                 navigationPath.append(NavigationDestination.Cars)
-            }
-            Button("Chargers") {
-                navigationPath.append(NavigationDestination.Chargers)
             }
             Button("Charging Locations") {
                 navigationPath.append(NavigationDestination.ChargingLocations)
             }
+            Button("Chargers") {
+                navigationPath.append(NavigationDestination.Chargers)
+            }
             Button("Charging Cost Plans") {
                 navigationPath.append(NavigationDestination.ChargingCostPlans)
-            }
-            Button("Home Consumptions") {
-                navigationPath.append(NavigationDestination.HomeConsumptions)
             }
             Spacer()
             Button("Delete all data") {

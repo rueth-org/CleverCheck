@@ -10,11 +10,12 @@ import SwiftData
 
 @Model
 final class ChargingSession {
+    var id = UUID()
     var startTime: Date?
     var endTime: Date
     var charger: Charger
     var chargedEnergyKWh: Double
-    var car: Car
+    var car: Car?
     var mileageKilometer: Double?
     var initialSOC: Double?
     var finalSOC: Double?

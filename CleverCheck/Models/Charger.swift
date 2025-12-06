@@ -10,6 +10,7 @@ import SwiftData
 
 @Model
 final class Charger {
+    var id = UUID()
     var name: String
     var chargingLocation: ChargingLocation?
     

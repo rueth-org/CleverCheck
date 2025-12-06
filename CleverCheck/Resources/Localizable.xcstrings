@@ -594,6 +594,7 @@
       }
     },
     "New car: make" : {
+      "extractionState" : "stale",
       "localizations" : {
         "da" : {
           "stringUnit" : {
@@ -610,6 +611,7 @@
       }
     },
     "New car: model" : {
+      "extractionState" : "stale",
       "localizations" : {
         "da" : {
           "stringUnit" : {

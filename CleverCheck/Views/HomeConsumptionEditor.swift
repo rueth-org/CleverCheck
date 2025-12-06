@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct HomeConsumptionEditor: View {
     static let dateFormatter: DateFormatter = {
@@ -46,6 +47,8 @@ struct HomeConsumptionEditor: View {
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
     
+    @Query(sort: \ChargingLocation.name) private var chargingLocations: [ChargingLocation]
+    
     private var editorTitle: String {
         homeConsumption == nil ? "New Home Consumption" : "Edit Home Consumption"
     }
@@ -65,6 +68,12 @@ struct HomeConsumptionEditor: View {
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                 Text(consumption.unit.symbol)
+            }
+            Picker("Location", selection: $associatedChargingLocation) {
+                Text("- none -").tag(nil as ChargingLocation?)
+                ForEach(chargingLocations, id: \.id) { location in
+                    Text(location.name).tag(location as ChargingLocation?)
+                }
             }
             
             Section(header: Text("Price Elements")) {
@@ -276,8 +285,15 @@ struct HomeConsumptionEditor: View {
             homeConsumption.validFrom = validFrom
             homeConsumption.validUntil = validUntil
             homeConsumption.consumption = consumption
+            homeConsumption.associatedChargingLocation = associatedChargingLocation
         } else {
-            let newHomeConsumption = HomeConsumption(name: name, validFrom: validFrom, validUntil: validUntil, consumption: consumption)
+            let newHomeConsumption = HomeConsumption(
+                name: name,
+                validFrom: validFrom,
+                validUntil: validUntil,
+                consumption: consumption,
+                associatedChargingLocation: associatedChargingLocation
+            )
             for priceElement in priceElements {
                 newHomeConsumption.priceElements.append(priceElement)
             }

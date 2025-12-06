@@ -10,6 +10,7 @@ import SwiftData
 
 @Model
 final class Car {
+    var id = UUID()
     var make: String
     var model: String
     var defaultSOC: Double
@@ -25,9 +26,5 @@ final class Car {
         self.make = make
         self.model = model
         self.defaultSOC = defaultSOC
-    }
-    
-    static func new() -> Car {
-        return Car(make: NSLocalizedString("New car: make", comment: ""), model: NSLocalizedString("New car: model", comment: ""))
     }
 }

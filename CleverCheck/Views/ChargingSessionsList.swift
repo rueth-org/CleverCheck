@@ -36,7 +36,7 @@ struct ChargingSessionsList: View {
                                 Text("kWh")
                             }
                             HStack {
-                                Text(chargingSession.car.description)
+                                Text(chargingSession.car?.description ?? "- unknown -")
                                 Spacer()
                                 if chargingSession.finalSOC != nil {
                                     Text(chargingSession.finalSOC!.formatted(.percent))
@@ -56,7 +56,7 @@ struct ChargingSessionsList: View {
         var predicate: Predicate<ChargingSession>
         if let id = selectedCar?.persistentModelID {
             predicate = #Predicate<ChargingSession> { chargingSession in
-                chargingSession.car.persistentModelID == id
+                chargingSession.car?.persistentModelID == id
             }
         } else {
             predicate = .true
