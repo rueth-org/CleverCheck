@@ -118,7 +118,20 @@
       }
     },
     "/day" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/dag"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/Tag"
+          }
+        }
+      }
     },
     "%@" : {
 
@@ -156,7 +169,20 @@
 
     },
     "Add" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilføj"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinzufügen"
+          }
+        }
+      }
     },
     "Amount" : {
       "extractionState" : "manual",
@@ -176,10 +202,36 @@
       }
     },
     "Amount is gross" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Med moms"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bruttobetrag"
+          }
+        }
+      }
     },
     "Archived" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arkiveret"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archiviert"
+          }
+        }
+      }
     },
     "Cancel" : {
       "localizations" : {
@@ -311,10 +363,36 @@
       }
     },
     "Consumption" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forbrug"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbrauch"
+          }
+        }
+      }
     },
     "Cost amount" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beløb"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Betrag"
+          }
+        }
+      }
     },
     "Default price" : {
       "localizations" : {
@@ -360,6 +438,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alle Daten löschen"
+          }
+        }
+      }
+    },
+    "Duplicate" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplikere"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplizieren"
           }
         }
       }
@@ -458,7 +552,20 @@
       }
     },
     "Home Consumptions" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hjemmeforbrug"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heimverbräuche"
+          }
+        }
+      }
     },
     "Individual" : {
       "localizations" : {
@@ -496,7 +603,20 @@
 
     },
     "Label" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kendetegn"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kennzeichen"
+          }
+        }
+      }
     },
     "Location" : {
       "extractionState" : "manual",
@@ -596,45 +716,37 @@
         }
       }
     },
-    "New car: make" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ny bil: Mærke"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Neues Auto: Marke"
-          }
-        }
-      }
-    },
-    "New car: model" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ny bil: Model"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Neues Auto: Modell"
-          }
-        }
-      }
-    },
     "No cars found." : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke nogle køretøjer fundet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Fahrzeuge gefunden."
+          }
+        }
+      }
     },
     "No chargers found." : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke nogle ladere fundet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Ladestationen gefunden."
+          }
+        }
+      }
     },
     "No charging sessions found." : {
       "localizations" : {
@@ -653,7 +765,20 @@
       }
     },
     "No home consumptions found." : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke nogle hjemmeforbug fundet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Heimverbrauch gefunden."
+          }
+        }
+      }
     },
     "No location" : {
       "localizations" : {
@@ -672,10 +797,36 @@
       }
     },
     "No locations found." : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke nogle steder fundet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Orte gefunden."
+          }
+        }
+      }
     },
     "No plans found." : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke nogle planer fundet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Pläne gefunden."
+          }
+        }
+      }
     },
     "Notice" : {
       "extractionState" : "manual",
@@ -721,7 +872,20 @@
       }
     },
     "Price Elements" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prisbestanddet"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preisbestandteile"
+          }
+        }
+      }
     },
     "Refunded" : {
       "localizations" : {
@@ -855,16 +1019,68 @@
       }
     },
     "Type" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Typ"
+          }
+        }
+      }
     },
     "Valid from" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gyldig fra"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gültig von"
+          }
+        }
+      }
     },
     "Valid until" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gyldig indtil"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gültig bis"
+          }
+        }
+      }
     },
     "VAT Rate" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Momsrate"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mehrwertsteuersatz"
+          }
+        }
+      }
     },
     "Warning" : {
       "extractionState" : "manual",

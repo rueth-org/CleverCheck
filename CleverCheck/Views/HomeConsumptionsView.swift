@@ -46,6 +46,14 @@ struct HomeConsumptionsView: View {
                                 NavigationLink(value: NavigationDestination.EditConsumption(homeConsumption: homeConsumption)) {
                                     Text(homeConsumption.name)
                                 }
+                                .swipeActions(edge: .leading) {
+                                    Button {
+                                        duplicate(homeConsumption)
+                                    } label: {
+                                        Label("Duplicate", systemImage: "doc.on.doc")
+                                    }
+                                    .tint(.yellow)
+                                }
                             }
                             .onDelete { offsets in
                                 // Map offsets to the correct indices in homeConsumptions
@@ -97,5 +105,28 @@ struct HomeConsumptionsView: View {
                 modelContext.delete(homeConsumption)
             }
         }
+    }
+    
+    private func duplicate(_ homeConsumption: HomeConsumption) {
+        let newConsumption = HomeConsumption(
+            name: homeConsumption.name + " Copy",
+            validFrom: homeConsumption.validFrom,
+            validUntil: homeConsumption.validUntil,
+            consumption: homeConsumption.consumption,
+            associatedChargingLocation: homeConsumption.associatedChargingLocation
+        )
+        
+        for priceElement in homeConsumption.priceElements {
+            let newPriceElement = PriceElement(
+                label: priceElement.label,
+                amount: priceElement.amount,
+                isGross: priceElement.isGross,
+                type: priceElement.type,
+                vatRate: priceElement.vatRate
+            )
+            newConsumption.priceElements.append(newPriceElement)
+        }
+        
+        modelContext.insert(newConsumption)
     }
 }
