@@ -39,4 +39,18 @@ final class UserSettings {
     private init() {
         // Empty on purpose
     }
+    
+    func precision(for amount: Double) -> Int {
+        if amount < 1 {
+            return 4
+        } else if amount < 10 {
+            return 3
+        } else if amount < 100 {
+            return 2
+        } else if amount < 1000 {
+            return 1
+        } else {
+            return 0
+        }
+    }
 }

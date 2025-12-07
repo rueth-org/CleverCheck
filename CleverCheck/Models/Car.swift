@@ -14,6 +14,7 @@ final class Car {
     var make: String
     var model: String
     var defaultSOC: Double
+    var isArchived: Bool = false
     
     @Relationship(deleteRule: .deny, inverse: \ChargingSession.car)
     var chargingSessions = [ChargingSession]()

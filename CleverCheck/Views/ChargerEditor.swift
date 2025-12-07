@@ -17,6 +17,7 @@ struct ChargerEditor: View {
     
     @State private var name: String = ""
     @State private var chargingLocation: ChargingLocation? = nil
+    @State private var isArchived: Bool = false
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
@@ -36,6 +37,9 @@ struct ChargerEditor: View {
                     Text(location.name).tag(location)
                 }
             }
+            
+            Toggle("Archived", isOn: $isArchived)
+                .padding(.top)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -60,6 +64,7 @@ struct ChargerEditor: View {
                 // Edit the incoming charger.
                 name = charger.name
                 chargingLocation = charger.chargingLocation
+                isArchived = charger.isArchived
             }
         }
         .alert(
@@ -87,8 +92,10 @@ struct ChargerEditor: View {
                 // Edit the location
                 charger.name = name
                 charger.chargingLocation = chargingLocation
+                charger.isArchived = isArchived
             } else {
                 let newCharger = Charger(name: name, chargingLocation: chargingLocation)
+                newCharger.isArchived = isArchived
                 modelContext.insert(newCharger)
             }
             

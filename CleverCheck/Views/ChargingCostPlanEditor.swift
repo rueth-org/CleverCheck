@@ -40,6 +40,7 @@ struct ChargingCostPlanEditor: View {
     @State private var flatratePrice: Cost = Cost(amount: 0.0)
     @State private var connectedLocation: ChargingLocation?
     @State private var refundingPlan: ChargingCostPlan?
+    @State private var isArchived: Bool = false
     
     @FocusState private var focusedField: Field?
     @State private var showingAlert: Bool = false
@@ -83,6 +84,9 @@ struct ChargingCostPlanEditor: View {
             }
             
             planDataView()
+            
+            Toggle("Archived", isOn: $isArchived)
+                .padding(.top)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -109,6 +113,7 @@ struct ChargingCostPlanEditor: View {
                 charger = plan.charger
                 planType = plan.planType
                 selectedPlanType = plan.planType.description
+                isArchived = plan.isArchived
                 
                 switch plan.planType {
                 case .individual(defaultKWhPrice: let price):
@@ -224,8 +229,10 @@ struct ChargingCostPlanEditor: View {
             plan.car = car!
             plan.charger = charger!
             plan.planType = planType!
+            plan.isArchived = isArchived
         } else {
             let newPlan = ChargingCostPlan(car: car!, charger: charger!, planType: planType!)
+            newPlan.isArchived = isArchived
             modelContext.insert(newPlan)
         }
         

@@ -41,7 +41,14 @@ struct ChargingCostPlansView: View {
                                     Text("\(NSLocalizedString(chargingCostPlan.planType.description, comment: "")): \(chargingCostPlan.charger.description)")
                                 }
                             }
-                            .onDelete(perform: deletePlan)
+                            .onDelete { offsets in
+                                // Map offsets to the correct indices in allPlans
+                                let allPlansForCar = groupedPlans[carDescription]!
+                                let indicesToDelete = offsets.map { index in
+                                    allPlans.firstIndex(of: allPlansForCar[index])!
+                                }
+                                deletePlan(at: IndexSet(indicesToDelete))
+                            }
                         }
                     }
                 }

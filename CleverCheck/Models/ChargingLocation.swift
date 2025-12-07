@@ -12,6 +12,7 @@ import SwiftData
 final class ChargingLocation {
     var id: UUID
     var name: String
+    var isArchived: Bool = false
     
     @Relationship(deleteRule: .nullify, inverse: \HomeConsumption.associatedChargingLocation)
     var associatedHomeConsumptions = [HomeConsumption]()

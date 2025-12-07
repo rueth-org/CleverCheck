@@ -14,6 +14,7 @@ struct CarEditor: View {
     @State private var make: String = ""
     @State private var model: String = ""
     @State private var defaultSOC: Double = 80
+    @State private var isArchived: Bool = false
     
     @State private var isEditingSOC: Bool = false
     @State private var showingAlert: Bool = false
@@ -50,6 +51,9 @@ struct CarEditor: View {
                     isEditingSOC = editing
                 }
             }
+            
+            Toggle("Archived", isOn: $isArchived)
+                .padding(.top)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -75,6 +79,7 @@ struct CarEditor: View {
                 make = car.make
                 model = car.model
                 defaultSOC = car.defaultSOC * 100
+                isArchived = car.isArchived
             }
         }
         .alert(
@@ -104,8 +109,10 @@ struct CarEditor: View {
                 car.make = make
                 car.model = model
                 car.defaultSOC = defaultSOC/100
+                car.isArchived = isArchived
             } else {
                 let newCar = Car(make: make, model: model, defaultSOC: defaultSOC/100)
+                newCar.isArchived = isArchived
                 modelContext.insert(newCar)
             }
             

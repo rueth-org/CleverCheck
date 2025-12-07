@@ -11,7 +11,9 @@ struct ChargingLocationEditor: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     let chargingLocation: ChargingLocation?
+    
     @State private var name: String = ""
+    @State private var isArchived: Bool = false
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
@@ -23,6 +25,9 @@ struct ChargingLocationEditor: View {
     var body: some View {
         Form {
             TextField("Name", text: $name)
+            
+            Toggle("Archived", isOn: $isArchived)
+                .padding(.top)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -46,6 +51,7 @@ struct ChargingLocationEditor: View {
             if let chargingLocation {
                 // Edit the incoming chargingLocation.
                 name = chargingLocation.name
+                isArchived = chargingLocation.isArchived
             }
         }
         .alert(
@@ -72,8 +78,10 @@ struct ChargingLocationEditor: View {
             if let chargingLocation {
                 // Edit the location
                 chargingLocation.name = name
+                chargingLocation.isArchived = isArchived
             } else {
                 let newLocation = ChargingLocation(name: name)
+                newLocation.isArchived = isArchived
                 modelContext.insert(newLocation)
             }
             

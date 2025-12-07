@@ -41,7 +41,14 @@ struct ChargersView: View {
                                     Text(charger.name)
                                 }
                             }
-                            .onDelete(perform: deleteCharger)
+                            .onDelete { offsets in
+                                // Map offsets to the correct indices in chargers
+                                let allChargersAtLocation = groupedChargers[location]!
+                                let indicesToDelete = offsets.map { index in
+                                    chargers.firstIndex(of: allChargersAtLocation[index])!
+                                }
+                                deleteCharger(at: IndexSet(indicesToDelete))
+                            }
                         }
                     }
                 }

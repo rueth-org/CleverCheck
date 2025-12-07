@@ -60,7 +60,7 @@ final class PriceElement: Identifiable, Equatable {
     
     func description(homeConsumption: HomeConsumption?) -> String {
         let amountToBeDisplayed = self.getAmount(isGross: UserSettings.shared.displayGrossPrices)
-        let precision = amountToBeDisplayed < 1 ? 4 : 2
+        let precision = UserSettings.shared.precision(for: amountToBeDisplayed)
         return "\(amountToBeDisplayed.formatted(.number.precision(.fractionLength(precision)))) \(unitDescription(homeConsumption: homeConsumption))"
     }
     

@@ -39,6 +39,7 @@ struct ChargingSessionEditor: View {
     @State private var initialSOC: Double = 0.2
     @State private var enterFinalSOC: Bool = false
     @State private var finalSOC: Double = 0.8
+    @State private var isArchived: Bool = false
     
     @FocusState private var focusedField: Field?
     @State private var showingAlert = false
@@ -197,6 +198,9 @@ struct ChargingSessionEditor: View {
                         }
                     }
                 }
+                
+                Toggle("Archived", isOn: $isArchived)
+                    .padding(.top)
             }
         }
         .navigationBarBackButtonHidden(true)

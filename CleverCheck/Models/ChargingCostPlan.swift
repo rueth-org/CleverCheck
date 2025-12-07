@@ -35,6 +35,7 @@ public final class ChargingCostPlan {
     var car: Car
     var charger: Charger
     var planType: PlanType
+    var isArchived: Bool = false
     
     var description: String {
         "\(planType.description): \(car.description) / (\(charger.name))"

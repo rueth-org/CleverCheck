@@ -13,6 +13,7 @@ final class Charger {
     var id: UUID
     var name: String
     var chargingLocation: ChargingLocation?
+    var isArchived: Bool = false
     
     var description: String {
         var description = name
