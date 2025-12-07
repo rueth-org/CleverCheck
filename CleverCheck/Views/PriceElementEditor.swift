@@ -46,9 +46,9 @@ struct PriceElementEditor: View {
                 }
             }
             HStack {
-                Text("Amount")
+                Text("Cost amount")
                 Spacer()
-                TextField("Amount", value: $amount.amount, format: .number)
+                TextField("Cost amount", value: $amount.amount, format: .number)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                 Text("\(amount.currency.identifier)\(elementType.unitExtension(energyUnit: energyUnitSymbol))")
@@ -68,9 +68,7 @@ struct PriceElementEditor: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    withAnimation {
-                        saveAndExit()
-                    }
+                    saveAndExit()
                 }
             }
             ToolbarItem(placement: .cancellationAction) {
@@ -129,11 +127,17 @@ struct PriceElementEditor: View {
             
             priceElements.append(newPriceElement)
         } else {
-            priceElement!.label = priceElementLabel
-            priceElement!.amount = amount
-            priceElement!.isGross = amountIsGross
-            priceElement!.type = elementType
-            priceElement!.vatRate = vatRate
+            if let index = priceElements.firstIndex(of: priceElement!) {
+                priceElements[index].label = priceElementLabel
+                priceElements[index].amount = amount
+                priceElements[index].isGross = amountIsGross
+                priceElements[index].type = elementType
+                priceElements[index].vatRate = vatRate
+            } else {
+                activeAlert = .fatalError(message: "Could not find the price element to edit.")
+                showingAlert = true
+                return
+            }
         }
         
         // Leave editor

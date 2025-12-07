@@ -152,9 +152,16 @@ struct ContentView: View {
             .navigationDestination(for: HomeConsumptionsView.NavigationDestination.self) { screen in
                 switch screen {
                 case .NewConsumption:
-                    HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: nil)
+                    let newHomeConsumption = HomeConsumption(
+                        name: "",
+                        validFrom: Date.now.startDateOfMonth,
+                        validUntil: Date.now.endDateOfMonth,
+                        consumption: .init(value: 0.0, unit: .kilowattHours),
+                        associatedChargingLocation: nil
+                    )
+                    HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: newHomeConsumption, isNew: true)
                 case .EditConsumption(homeConsumption: let HomeConsumption):
-                    HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: HomeConsumption)
+                    HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: HomeConsumption, isNew: false)
                 }
             }
         }

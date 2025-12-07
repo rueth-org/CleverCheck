@@ -25,7 +25,7 @@ final class PriceElement: Identifiable, Equatable {
         }
     }
     
-    var id = UUID()
+    var id: UUID
     var homeConsumption: HomeConsumption?
     var label: String
     var amount: Cost
@@ -33,7 +33,24 @@ final class PriceElement: Identifiable, Equatable {
     var type: PriceElementType
     var vatRate: Double
     
-    init(label: String, amount: Cost, isGross: Bool, type: PriceElementType, vatRate: Double? = nil) {
+    var netAmount: Double {
+        if isGross {
+            return amount.amount / (1 + vatRate)
+        } else {
+            return amount.amount
+        }
+    }
+    
+    var grossAmount: Double {
+        if isGross {
+            return amount.amount
+        } else {
+            return amount.amount * (1 + vatRate)
+        }
+    }
+    
+    init(id: UUID = UUID(), label: String, amount: Cost, isGross: Bool, type: PriceElementType, vatRate: Double? = nil) {
+        self.id = id
         self.label = label
         self.amount = amount
         self.type = type
@@ -47,6 +64,14 @@ final class PriceElement: Identifiable, Equatable {
     
     func unitDescription(homeConsumption: HomeConsumption?) -> String {
         "\(amount.currency.identifier)\(type.unitExtension(energyUnit: homeConsumption?.consumption.unit.symbol ?? UserSettings.shared.energyUnit.symbol))"
+    }
+    
+    func getAmount(isGross: Bool) -> Double {
+        if isGross {
+            return grossAmount
+        } else {
+            return netAmount
+        }
     }
     
     static func == (lhs: PriceElement, rhs: PriceElement) -> Bool {

@@ -10,7 +10,7 @@ import SwiftData
 
 @Model
 final class ChargingLocation {
-    var id = UUID()
+    var id: UUID
     var name: String
     
     @Relationship(deleteRule: .nullify, inverse: \HomeConsumption.associatedChargingLocation)
@@ -19,7 +19,8 @@ final class ChargingLocation {
     @Relationship(deleteRule: .nullify, inverse: \ChargingSession.charger)
     var chargers = [Charger]()
     
-    init(name: String) {
+    init(id: UUID = UUID(), name: String) {
+        self.id = id
         self.name = name
     }
 }

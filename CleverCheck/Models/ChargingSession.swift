@@ -10,7 +10,7 @@ import SwiftData
 
 @Model
 final class ChargingSession {
-    var id = UUID()
+    var id: UUID
     var startTime: Date?
     var endTime: Date
     var charger: Charger
@@ -43,6 +43,7 @@ final class ChargingSession {
     }
     
     init(
+        id: UUID = UUID(),
         startTime: Date? = nil,
         endTime: Date,
         charger: Charger,
@@ -53,6 +54,7 @@ final class ChargingSession {
         finalSOC: Double? = nil,
         useDefaultFinalSOC: Bool = true
     ) {
+        self.id = id
         self.startTime = startTime
         self.endTime = endTime
         self.charger = charger

@@ -17,10 +17,17 @@ struct HomeConsumptionsView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     
-    @Query(sort: \HomeConsumption.name) private var homeConsumptions: [HomeConsumption]
+    @Query(sort: [SortDescriptor(\HomeConsumption.validUntil), SortDescriptor(\HomeConsumption.name)]) private var homeConsumptions: [HomeConsumption]
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
+    
+    private var groupedByMonths: [Date: [HomeConsumption]] {
+        Dictionary(grouping: homeConsumptions) { consumption in
+            let components = Calendar.current.dateComponents([.year, .month], from: consumption.validUntil)
+            return Calendar.current.date(from: components)!
+        }
+    }
     
     var body: some View {
         VStack {
@@ -33,12 +40,23 @@ struct HomeConsumptionsView: View {
                 Spacer()
             } else {
                 List {
-                    ForEach(homeConsumptions, id: \.self) { homeConsumption in
-                        NavigationLink(value: NavigationDestination.EditConsumption(homeConsumption: homeConsumption)) {
-                            Text(homeConsumption.name)
+                    ForEach(groupedByMonths.keys.sorted(), id: \.self) { month in
+                        Section(header: Text(month, format: Date.FormatStyle().year().month(.wide))) {
+                            ForEach(groupedByMonths[month]!, id: \.self) { homeConsumption in
+                                NavigationLink(value: NavigationDestination.EditConsumption(homeConsumption: homeConsumption)) {
+                                    Text(homeConsumption.name)
+                                }
+                            }
+                            .onDelete { offsets in
+                                // Map offsets to the correct indices in homeConsumptions
+                                let allConsumptionsInMonth = groupedByMonths[month]!
+                                let indicesToDelete = offsets.map { index in
+                                    homeConsumptions.firstIndex(of: allConsumptionsInMonth[index])!
+                                }
+                                deleteHomeConsumption(at: IndexSet(indicesToDelete))
+                            }
                         }
                     }
-                    .onDelete(perform: deleteHomeConsumption)
                 }
             }
         }

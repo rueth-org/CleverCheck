@@ -10,7 +10,7 @@ import SwiftData
 
 @Model
 final class Charger {
-    var id = UUID()
+    var id: UUID
     var name: String
     var chargingLocation: ChargingLocation?
     
@@ -22,7 +22,8 @@ final class Charger {
         return description
     }
     
-    init(name: String, chargingLocation: ChargingLocation? = nil) {
+    init(id: UUID = UUID(), name: String, chargingLocation: ChargingLocation? = nil) {
+        self.id = id
         self.name = name
         self.chargingLocation = chargingLocation
     }

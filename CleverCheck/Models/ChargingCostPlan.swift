@@ -31,7 +31,7 @@ public final class ChargingCostPlan {
         }
     }
     
-    public var id = UUID()
+    public var id: UUID
     var car: Car
     var charger: Charger
     var planType: PlanType
@@ -40,7 +40,8 @@ public final class ChargingCostPlan {
         "\(planType.description): \(car.description) / (\(charger.name))"
     }
     
-    init(car: Car, charger: Charger, planType: PlanType) {
+    init(id: UUID = UUID(), car: Car, charger: Charger, planType: PlanType) {
+        self.id = id
         self.car = car
         self.charger = charger
         self.planType = planType
