@@ -6,15 +6,19 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct PriceElementEditor: View {
+    @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     let priceElement: PriceElement?
-    @Binding var priceElements: [PriceElement]
+    let homeConsumption: HomeConsumption
     let energyUnitSymbol: String
     
+    @Query private var priceElements: [PriceElement]
+    
     @State private var label: String = ""
-    @State private var amount: Cost = .init(amount: 0, currency: UserSettings.shared.currency)
+    @State private var amount: Cost = .init(amount: 0)
     @State private var amountIsGross: Bool = true
     @State private var vatRate: Double = UserSettings.shared.vatRate
     @State private var elementType: PriceElement.PriceElementType = .byConsumption
@@ -51,7 +55,7 @@ struct PriceElementEditor: View {
                 TextField("Cost amount", value: $amount.amount, format: .number)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                Text("\(amount.currency.identifier)\(elementType.unitExtension(energyUnit: energyUnitSymbol))")
+                Text("\(amount.currency)\(elementType.unitExtension(energyUnit: energyUnitSymbol))")
             }
             Toggle("Amount is gross", isOn: $amountIsGross)
             HStack {
@@ -98,6 +102,27 @@ struct PriceElementEditor: View {
         }
     }
     
+    init(
+        navigationPath: Binding<NavigationPath>,
+        priceElement: PriceElement? = nil,
+        homeConsumption: HomeConsumption,
+        energyUnitSymbol: String
+    ) {
+        self._navigationPath = navigationPath
+        self.priceElement = priceElement
+        self.homeConsumption = homeConsumption
+        self.energyUnitSymbol = energyUnitSymbol
+        
+        let homeConsumptionID = homeConsumption.id
+        let predicate: Predicate<PriceElement> = #Predicate {
+            $0.homeConsumption?.id == homeConsumptionID
+        }
+        self._priceElements = Query(
+            filter: predicate,
+            sort: [SortDescriptor(\PriceElement.label)]
+        )
+    }
+    
     private func cancelAndExit() {
         navigationPath.removeLast()
     }
@@ -125,7 +150,11 @@ struct PriceElementEditor: View {
                 vatRate: vatRate
             )
             
-            priceElements.append(newPriceElement)
+            // Relate to home consumption
+            newPriceElement.homeConsumption = homeConsumption
+            
+            // Insert into database
+            modelContext.insert(newPriceElement)
         } else {
             if let index = priceElements.firstIndex(of: priceElement!) {
                 priceElements[index].label = priceElementLabel

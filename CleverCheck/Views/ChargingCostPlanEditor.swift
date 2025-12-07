@@ -246,7 +246,7 @@ struct ChargingCostPlanEditor: View {
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .focused($focusedField, equals: .individualDefaultPrice)
-                    Text("\(individualDefaultPrice.currency.identifier)/kWh")
+                    Text("\(individualDefaultPrice.currency)/kWh")
                     Button {
                         deleteIndividualDefaultPrice()
                     } label: {
@@ -275,7 +275,7 @@ struct ChargingCostPlanEditor: View {
                 TextField("", value: $flatratePrice.amount, format: .number)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                Text(individualDefaultPrice.currency.identifier)
+                Text(individualDefaultPrice.currency)
             }
         case ChargingCostPlan.PlanType.descriptionHomeConsumption:
             Picker("Location", selection: $connectedLocation) {

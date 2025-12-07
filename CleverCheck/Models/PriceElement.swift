@@ -59,11 +59,13 @@ final class PriceElement: Identifiable, Equatable {
     }
     
     func description(homeConsumption: HomeConsumption?) -> String {
-        "\(amount.amount.formatted()) \(unitDescription(homeConsumption: homeConsumption))"
+        let amountToBeDisplayed = self.getAmount(isGross: UserSettings.shared.displayGrossPrices)
+        let precision = amountToBeDisplayed < 1 ? 4 : 2
+        return "\(amountToBeDisplayed.formatted(.number.precision(.fractionLength(precision)))) \(unitDescription(homeConsumption: homeConsumption))"
     }
     
     func unitDescription(homeConsumption: HomeConsumption?) -> String {
-        "\(amount.currency.identifier)\(type.unitExtension(energyUnit: homeConsumption?.consumption.unit.symbol ?? UserSettings.shared.energyUnit.symbol))"
+        "\(amount.currency)\(type.unitExtension(energyUnit: homeConsumption?.consumption.unit.symbol ?? UserSettings.shared.energyUnit.symbol))"
     }
     
     func getAmount(isGross: Bool) -> Double {

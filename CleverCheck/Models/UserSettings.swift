@@ -15,6 +15,7 @@ final class UserSettings {
     var measurementSystem: Locale.MeasurementSystem = Locale.current.measurementSystem
     var currency: Locale.Currency = Locale.current.currency ?? .init("EUR")
     var vatRate: Double = 0.25
+    var displayGrossPrices: Bool = true
     
     var distanceUnit: UnitLength {
         switch measurementSystem {

@@ -25,6 +25,8 @@ struct HomeConsumptionEditor: View {
     @Binding var navigationPath: NavigationPath
     @State var homeConsumption: HomeConsumption
     var isNew: Bool
+
+    @Query private var priceElements: [PriceElement]
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
@@ -65,7 +67,7 @@ struct HomeConsumptionEditor: View {
                 }
                 
                 // The existing price elements
-                ForEach(homeConsumption.priceElements, id: \.id) { priceElement in
+                ForEach(priceElements, id: \.id) { priceElement in
                     NavigationLink(value: NavigationDestination.EditPriceElement(priceElement: priceElement, energyUnitSymbol: energyUnitSymbol)) {
                         HStack {
                             Text(priceElement.label)
@@ -85,14 +87,14 @@ struct HomeConsumptionEditor: View {
                 PriceElementEditor(
                     navigationPath: $navigationPath,
                     priceElement: nil,
-                    priceElements: $homeConsumption.priceElements,
+                    homeConsumption: homeConsumption,
                     energyUnitSymbol: energyUnitSymbol
                 )
             case .EditPriceElement(let priceElement, let energyUnitSymbol):
                 PriceElementEditor(
                     navigationPath: $navigationPath,
                     priceElement: priceElement,
-                    priceElements: $homeConsumption.priceElements,
+                    homeConsumption: homeConsumption,
                     energyUnitSymbol: energyUnitSymbol
                 )
             }
@@ -124,11 +126,28 @@ struct HomeConsumptionEditor: View {
             activeAlert.message()
         }
     }
+
+    init(navigationPath: Binding<NavigationPath>, homeConsumption: HomeConsumption, isNew: Bool) {
+        self._navigationPath = navigationPath
+        self.homeConsumption = homeConsumption
+        self.isNew = isNew
+        
+        let homeConsumptionID = homeConsumption.id
+        let predicate = #Predicate<PriceElement> { priceElement in
+            priceElement.homeConsumption?.id == homeConsumptionID
+        }
+        self._priceElements = Query(
+            filter: predicate,
+            sort: [SortDescriptor(\PriceElement.label)]
+        )
+    }
     
     private func deletePriceElements(at offsets: IndexSet) {
-        // Delete it from the context
-        withAnimation {
-            homeConsumption.priceElements.remove(atOffsets: offsets)
+        for index in offsets {
+            let priceElement = priceElements[index]
+            withAnimation {
+                modelContext.delete(priceElement)
+            }
         }
     }
     
