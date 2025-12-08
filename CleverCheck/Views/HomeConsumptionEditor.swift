@@ -59,10 +59,20 @@ struct HomeConsumptionEditor: View {
                     Text(location.name).tag(location as ChargingLocation?)
                 }
             }
+
+            Section(header: Text("Results")) {
+                HStack {
+                    Text("Price")
+                    Spacer()
+                    Text(homeConsumption.totalPrice(isGross: UserSettings.shared.displayGrossPrices).formatted(.currency(code: UserSettings.shared.currencyCode)))
+                        .multilineTextAlignment(.trailing)
+                }
+            }
             
             Section(header: Text("Price Elements")) {
                 // Add new price element
                 Button("Add", systemImage: "plus.circle") {
+                    save(andExit: false)
                     navigationPath.append(NavigationDestination.NewPriceElement(energyUnitSymbol: energyUnitSymbol))
                 }
                 
@@ -72,8 +82,8 @@ struct HomeConsumptionEditor: View {
                         HStack {
                             Text(priceElement.label)
                             Spacer()
-                            Text(priceElement.description(homeConsumption: homeConsumption))
-                                .multilineTextAlignment(.trailing)
+                            Text(priceElement.amountDescription)
+                            Text(priceElement.netGrossDescription)
                         }
                     }
                 }
@@ -106,7 +116,7 @@ struct HomeConsumptionEditor: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
                     withAnimation {
-                        saveAndExit()
+                        save(andExit: true)
                     }
                 }
             }
@@ -155,7 +165,7 @@ struct HomeConsumptionEditor: View {
         navigationPath.removeLast()
     }
     
-    private func saveAndExit() {
+    private func save(andExit: Bool) {
         // Check for valid name
         let name = homeConsumption.name.trimmingCharacters(in: .whitespaces)
         if name.isEmpty {
@@ -177,6 +187,8 @@ struct HomeConsumptionEditor: View {
         }
         
         // Leave editor
-        navigationPath.removeLast()
+        if andExit {
+            navigationPath.removeLast()
+        }
     }
 }

@@ -10,18 +10,36 @@ import SwiftData
 
 @Model
 final class PriceElement: Identifiable, Equatable {
-    enum PriceElementType: String, Codable, CaseIterable {
-        case daily, once, byConsumption = "by consumption"
+    enum PriceElementType: Codable, Hashable {
+        static var descriptionDaily: String { NSLocalizedString("Daily", comment: "") }
+        static var descriptionOnce: String { NSLocalizedString("Once", comment: "") }
+        static var descriptionByConsumption: String { NSLocalizedString("By consumption", comment: "") }
         
-        func unitExtension(energyUnit: String) -> String {
+        case daily
+        case once
+        case byConsumption(energyUnitSymbol: String)
+        
+        var unitExtension: String {
             switch self {
             case .daily:
                 return NSLocalizedString("/day", comment: "")
             case .once:
                 return ""
-            case .byConsumption:
-                return "/\(energyUnit)"
+            case .byConsumption(let energyUnitSymbol):
+                return "/\(energyUnitSymbol)"
             }
+        }
+        
+        var description: String {
+            switch self {
+            case .daily: return PriceElementType.descriptionDaily
+            case .once: return PriceElementType.descriptionOnce
+            case .byConsumption: return PriceElementType.descriptionByConsumption
+            }
+        }
+        
+        static var allCases: [PriceElementType] {
+            return [.daily, .once, .byConsumption(energyUnitSymbol: UserSettings.shared.energyUnit.symbol)]
         }
     }
     
@@ -49,6 +67,19 @@ final class PriceElement: Identifiable, Equatable {
         }
     }
     
+    var unitDescription: String {
+        "\(amount.currency)\(type.unitExtension)"
+    }
+    
+    var amountDescription: String {
+        let precision = UserSettings.shared.precision(for: self.amount.amount)
+        return "\(self.amount.amount.formatted(.number.precision(.fractionLength(precision)))) \(unitDescription)"
+    }
+    
+    var netGrossDescription: String {
+        isGross ? "Gross" : "Net"
+    }
+    
     init(id: UUID = UUID(), label: String, amount: Cost, isGross: Bool, type: PriceElementType, vatRate: Double? = nil) {
         self.id = id
         self.label = label
@@ -56,16 +87,6 @@ final class PriceElement: Identifiable, Equatable {
         self.type = type
         self.vatRate = vatRate ?? UserSettings.shared.vatRate
         self.isGross = isGross
-    }
-    
-    func description(homeConsumption: HomeConsumption?) -> String {
-        let amountToBeDisplayed = self.getAmount(isGross: UserSettings.shared.displayGrossPrices)
-        let precision = UserSettings.shared.precision(for: amountToBeDisplayed)
-        return "\(amountToBeDisplayed.formatted(.number.precision(.fractionLength(precision)))) \(unitDescription(homeConsumption: homeConsumption))"
-    }
-    
-    func unitDescription(homeConsumption: HomeConsumption?) -> String {
-        "\(amount.currency)\(type.unitExtension(energyUnit: homeConsumption?.consumption.unit.symbol ?? UserSettings.shared.energyUnit.symbol))"
     }
     
     func getAmount(isGross: Bool) -> Double {

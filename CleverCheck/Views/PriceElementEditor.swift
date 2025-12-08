@@ -21,7 +21,7 @@ struct PriceElementEditor: View {
     @State private var amount: Cost = .init(amount: 0)
     @State private var amountIsGross: Bool = true
     @State private var vatRate: Double = UserSettings.shared.vatRate
-    @State private var elementType: PriceElement.PriceElementType = .byConsumption
+    @State private var elementType: PriceElement.PriceElementType = .byConsumption(energyUnitSymbol: UserSettings.shared.energyUnit.symbol)
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
@@ -34,10 +34,6 @@ struct PriceElementEditor: View {
         priceElement == nil ? "New Price Element" : "Edit Price Element"
     }
     
-    private var priceElementTypes: [PriceElement.PriceElementType] {
-        PriceElement.PriceElementType.allCases.map { $0 }
-    }
-    
     var body: some View {
         Form {
             HStack {
@@ -45,8 +41,8 @@ struct PriceElementEditor: View {
                 TextField("Label", text: $label)
             }
             Picker("Type", selection: $elementType) {
-                ForEach(priceElementTypes, id: \.self) { type in
-                    Text(type.rawValue)
+                ForEach(PriceElement.PriceElementType.allCases, id: \.self) { type in
+                    Text(type.description).tag(type)
                 }
             }
             HStack {
@@ -55,7 +51,7 @@ struct PriceElementEditor: View {
                 TextField("Cost amount", value: $amount.amount, format: .number)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                Text("\(amount.currency)\(elementType.unitExtension(energyUnit: energyUnitSymbol))")
+                Text("\(amount.currency)\(elementType.unitExtension)")
             }
             Toggle("Amount is gross", isOn: $amountIsGross)
             HStack {

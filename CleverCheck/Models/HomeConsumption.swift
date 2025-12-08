@@ -37,6 +37,14 @@ final class HomeConsumption {
         }
     }
     
+    var numberOfDays: Int {
+        let calendar = Calendar.current
+        let startDate = calendar.startOfDay(for: validFrom)
+        let endDate = calendar.startOfDay(for: validUntil)
+        let components = calendar.dateComponents([.day], from: startDate, to: endDate)
+        return (components.day ?? 0) + 1
+    }
+    
     init(
         id: UUID = UUID(),
         name: String,
@@ -51,5 +59,22 @@ final class HomeConsumption {
         self.validUntil = validUntil
         self.consumptionKWh = consumption.converted(to: .kilowattHours).value
         self.associatedChargingLocation = associatedChargingLocation
+    }
+    
+    func totalPrice(isGross: Bool = true) -> Double {
+        return priceElements.reduce(0.0) {
+            switch $1.type {
+            case .daily:
+                return $0 + ($1.grossAmount * Double(numberOfDays))
+            case .once:
+                return $0 + $1.grossAmount
+            case .byConsumption(let energyUnitSymbol):
+                guard let energyUnit = UserSettings.shared.energyUnit(for: energyUnitSymbol) else {
+                    fatalError("Unknown energy unit symbol: \(energyUnitSymbol)")
+                }
+                let convertedConsumption = consumption.converted(to: energyUnit).value
+                return $0 + ($1.grossAmount * convertedConsumption)
+            }
+        }
     }
 }

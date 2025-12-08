@@ -233,6 +233,9 @@
         }
       }
     },
+    "By consumption" : {
+
+    },
     "Cancel" : {
       "localizations" : {
         "da" : {
@@ -393,6 +396,9 @@
           }
         }
       }
+    },
+    "Daily" : {
+
     },
     "Default price" : {
       "localizations" : {
@@ -855,6 +861,9 @@
         }
       }
     },
+    "Once" : {
+
+    },
     "Plan Type" : {
       "localizations" : {
         "da" : {
@@ -870,6 +879,9 @@
           }
         }
       }
+    },
+    "Price" : {
+
     },
     "Price Elements" : {
       "localizations" : {
@@ -918,6 +930,9 @@
           }
         }
       }
+    },
+    "Results" : {
+
     },
     "Save" : {
       "localizations" : {

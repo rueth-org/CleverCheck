@@ -53,4 +53,21 @@ final class UserSettings {
             return 0
         }
     }
+    
+    func energyUnit(for symbol: String) -> UnitEnergy? {
+        switch symbol {
+        case "kWh":
+            return .kilowattHours
+        case "cal":
+            return .calories
+        case "J":
+            return .joules
+        case "kJ":
+            return .kilojoules
+        case "kCal":
+            return .kilocalories
+        default:
+            return nil
+        }
+    }
 }
