@@ -61,7 +61,7 @@ final class HomeConsumption {
         self.associatedChargingLocation = associatedChargingLocation
     }
     
-    func totalPrice(isGross: Bool = true) -> Double {
+    func totalCost(isGross: Bool = true) -> Double {
         return priceElements.reduce(0.0) {
             switch $1.type {
             case .daily:
@@ -76,5 +76,48 @@ final class HomeConsumption {
                 return $0 + ($1.grossAmount * convertedConsumption)
             }
         }
+    }
+    
+    /// Calculates the total cost per month for the duration of the home consumption.
+    /// - Parameter isGross: Indicates whether to calculate gross or net costs. Default is true (gross).
+    /// - Returns: A dictionary where keys are month identifiers in "yyyy-MM" format and values are the corresponding costs for that month.
+    func totalCostPerMonth(isGross: Bool = true) -> [String: Double] {
+        let calendar = Calendar.current
+        let componentsFrom = calendar.dateComponents([.year, .month], from: validFrom)
+        let componentsUntil = calendar.dateComponents([.year, .month], from: validUntil)
+        let startYear = componentsFrom.year
+        let endYear = componentsUntil.year
+        let startMonth = componentsFrom.month
+        let endMonth = componentsUntil.month
+        let totalCost = totalCost(isGross: isGross)
+        
+        // Determine the number of days for each of the covered months, calculate each month's cost portion, and store them in a dictionary
+        var costPerMonth: [String: Double] = [:]
+        var currentDate = validFrom
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM"
+        while currentDate <= validUntil {
+            let monthKey = dateFormatter.string(from: currentDate)
+            let range = calendar.range(of: .day, in: .month, for: currentDate)!
+            let daysPerMonth = range.count
+            costPerMonth[monthKey] = totalCost / Double(numberOfDays) * Double(daysPerMonth)
+            // Move to the next month
+            if let nextMonth = calendar.date(byAdding: .month, value: 1, to: currentDate) {
+                currentDate = nextMonth
+            } else {
+                break
+            }
+        }
+        
+        // Normalize the costs to ensure they sum up to the total cost (to avoid rounding issues)
+        let sumOfCosts = costPerMonth.values.reduce(0, +)
+        if sumOfCosts != totalCost {
+            let difference = totalCost - sumOfCosts
+            if let firstKey = costPerMonth.keys.first {
+                costPerMonth[firstKey]! += difference
+            }
+        }
+        
+        return costPerMonth
     }
 }

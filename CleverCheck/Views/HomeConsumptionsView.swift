@@ -42,9 +42,20 @@ struct HomeConsumptionsView: View {
                 List {
                     ForEach(groupedByMonths.keys.sorted(), id: \.self) { month in
                         Section(header: Text(month, format: Date.FormatStyle().year().month(.wide))) {
+                            Text("Total: \(totalCost(for: month), format: .currency(code: UserSettings.shared.currencyCode))")
                             ForEach(groupedByMonths[month]!, id: \.self) { homeConsumption in
                                 NavigationLink(value: NavigationDestination.EditConsumption(homeConsumption: homeConsumption)) {
-                                    Text(homeConsumption.name)
+                                    VStack {
+                                        Text(homeConsumption.name)
+                                        HStack {
+                                            //Display dateoFrm - dateUntil  inshort format
+                                            Text("\(homeConsumption.validFrom, format: Date.FormatStyle().year().month(.twoDigits).day(.twoDigits)) - \(homeConsumption.validUntil, format: Date.FormatStyle().year().month(.twoDigits).day(.twoDigits))")
+                                            Spacer()
+                                            Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices), format: .currency(code: UserSettings.shared.currencyCode))
+                                        }
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    }
                                 }
                                 .swipeActions(edge: .leading) {
                                     Button {
@@ -128,5 +139,16 @@ struct HomeConsumptionsView: View {
         }
         
         modelContext.insert(newConsumption)
+    }
+    
+    private func totalCost(for month: Date) -> Double {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM"
+        let monthString = dateFormatter.string(from: month)
+        var total: Double = 0.0
+        for homeConsumption in homeConsumptions {
+            total += homeConsumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices)[monthString] ?? 0.0
+        }
+        return total
     }
 }

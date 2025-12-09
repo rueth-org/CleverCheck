@@ -64,7 +64,7 @@ struct HomeConsumptionEditor: View {
                 HStack {
                     Text("Price")
                     Spacer()
-                    Text(homeConsumption.totalPrice(isGross: UserSettings.shared.displayGrossPrices).formatted(.currency(code: UserSettings.shared.currencyCode)))
+                    Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).formatted(.currency(code: UserSettings.shared.currencyCode)))
                         .multilineTextAlignment(.trailing)
                 }
             }
