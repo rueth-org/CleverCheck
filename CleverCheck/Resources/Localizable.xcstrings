@@ -5,7 +5,20 @@
 
     },
     " Copy" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopier"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopieren"
+          }
+        }
+      }
     },
     "- all -" : {
       "localizations" : {
@@ -247,7 +260,20 @@
       }
     },
     "By consumption" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Efter forbrug"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Verbrauch"
+          }
+        }
+      }
     },
     "Cancel" : {
       "localizations" : {
@@ -411,7 +437,20 @@
       }
     },
     "Daily" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daglig"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Täglich"
+          }
+        }
+      }
     },
     "Default price" : {
       "localizations" : {
@@ -875,7 +914,20 @@
       }
     },
     "Once" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En gang"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einmalig"
+          }
+        }
+      }
     },
     "Plan Type" : {
       "localizations" : {
@@ -894,7 +946,20 @@
       }
     },
     "Price" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pris"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preis"
+          }
+        }
+      }
     },
     "Price Elements" : {
       "localizations" : {
@@ -945,7 +1010,20 @@
       }
     },
     "Results" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resultater"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ergebnisse"
+          }
+        }
+      }
     },
     "Save" : {
       "localizations" : {
@@ -959,6 +1037,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Speichern"
+          }
+        }
+      }
+    },
+    "Specific Cost: %@/%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Specific Cost: %1$@/%2$@"
           }
         }
       }
@@ -1046,8 +1134,34 @@
         }
       }
     },
-    "Total: %@" : {
+    "Total Consumption: %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Total Consumption: %1$@ %2$@"
+          }
+        }
+      }
+    },
+    "Total Cost: %@" : {
 
+    },
+    "Total:" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total:"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesamt:"
+          }
+        }
+      }
     },
     "Type" : {
       "localizations" : {

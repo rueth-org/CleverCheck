@@ -42,6 +42,10 @@ final class UserSettings {
         return dateFormatter
     }
     
+    var displayDateFormat: Date.FormatStyle {
+        Date.FormatStyle().year().month(.twoDigits).day(.twoDigits)
+    }
+    
     private init() {
         // Empty on purpose
     }

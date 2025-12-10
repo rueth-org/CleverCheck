@@ -42,16 +42,29 @@ struct HomeConsumptionsView: View {
                 List {
                     ForEach(groupedByMonths.keys.sorted(), id: \.self) { month in
                         Section(header: Text(month, format: Date.FormatStyle().year().month(.wide))) {
-                            Text("Total: \(totalCost(for: month), format: .currency(code: UserSettings.shared.currencyCode))")
+                            // The total cost for the month
+                            NavigationLink(value: groupedByMonths[month]!) {
+                                HStack {
+                                    Text("Total:")
+                                    Spacer()
+                                    Text(totalCost(for: month), format: .currency(code: UserSettings.shared.currencyCode))
+                                }
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+                            }
+                            
+                            // The list of home consumptions ending this month
                             ForEach(groupedByMonths[month]!, id: \.self) { homeConsumption in
                                 NavigationLink(value: NavigationDestination.EditConsumption(homeConsumption: homeConsumption)) {
-                                    VStack {
+                                    VStack(alignment: .leading) {
                                         Text(homeConsumption.name)
                                         HStack {
                                             //Display dateoFrm - dateUntil  inshort format
-                                            Text("\(homeConsumption.validFrom, format: Date.FormatStyle().year().month(.twoDigits).day(.twoDigits)) - \(homeConsumption.validUntil, format: Date.FormatStyle().year().month(.twoDigits).day(.twoDigits))")
+                                            Text("\(homeConsumption.validFrom, format: UserSettings.shared.displayDateFormat) - \(homeConsumption.validUntil, format: UserSettings.shared.displayDateFormat)")
                                             Spacer()
                                             Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices), format: .currency(code: UserSettings.shared.currencyCode))
+                                                .font(.subheadline)
+                                                .foregroundColor(.secondary)
                                         }
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
@@ -89,6 +102,9 @@ struct HomeConsumptionsView: View {
                     Image(systemName: "plus")
                 }
             }
+        }
+        .navigationDestination(for: [HomeConsumption].self) { homeConsumptions in
+            HomeConsumptionAnalysis(navigationPath: $navigationPath, homeConsumptions: homeConsumptions)
         }
         .alert(
             activeAlert?.title() ?? "Notice",

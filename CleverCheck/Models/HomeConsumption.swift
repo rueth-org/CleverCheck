@@ -29,6 +29,62 @@ final class HomeConsumption {
         }
     }
     
+    var consumptionPerMonth: [String: Double] {
+        let totalConsumption = consumption.converted(to: UserSettings.shared.energyUnit).value
+        
+        // Determine the number of days for each of the covered months, calculate each month's consumption portion, and store them in a dictionary
+        var consumptionPerMonth: [String: Double] = [:]
+        for (monthKey, daysInMonth) in daysPerMonth {
+            // Determine the consumption portion in this month
+            consumptionPerMonth[monthKey] = totalConsumption / Double(numberOfDays) * Double(daysInMonth)
+        }
+        
+        // Normalize the consumptions to ensure they sum up to the total consumption (to avoid rounding issues)
+        let sumOfConsumptions = consumptionPerMonth.values.reduce(0, +)
+        if sumOfConsumptions != totalConsumption {
+            let difference = totalConsumption - sumOfConsumptions
+            if let firstKey = consumptionPerMonth.keys.first {
+                consumptionPerMonth[firstKey]! += difference
+            }
+        }
+        
+        return consumptionPerMonth
+    }
+    
+    /// Calculates the number of days covered in each month within the validFrom to validUntil range.
+    var daysPerMonth: [String: Int] {
+        let calendar = Calendar.current
+        
+        // Determine the number of days for each of the covered months, and store them in a dictionary
+        var daysPerMonth: [String: Int] = [:]
+        var currentDate = validFrom
+        while currentDate <= validUntil {
+            let monthKey = UserSettings.shared.groupingDateFormatter.string(from: currentDate)
+            
+            // Determine the start of the month and next month
+            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: currentDate))!
+            guard let endOfMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth) else {
+                break
+            }
+            
+            // Determine if currentDate is later than the first day of the month
+            let monthStartDate = currentDate > startOfMonth ? currentDate : startOfMonth
+            
+            // Determine if validUntil is earlier than the last day of the month
+            let monthEndDate = validUntil < endOfMonth ? validUntil : endOfMonth.addingTimeInterval(-1)
+            
+            // Calculate the number of days in this month portion
+            let components = calendar.dateComponents([.day], from: monthStartDate, to: monthEndDate)
+            daysPerMonth[monthKey] = (components.day ?? 0) + 1
+            
+            // Move to the next month
+            currentDate = endOfMonth
+        }
+        
+        return daysPerMonth
+    }
+        
+    
     var description: String {
         if associatedChargingLocation != nil {
             return "\(name) (\(associatedChargingLocation!.name))"
@@ -61,6 +117,9 @@ final class HomeConsumption {
         self.associatedChargingLocation = associatedChargingLocation
     }
     
+    /// Calculates the total cost for the home consumption over its entire duration, adding up all price elements.
+    /// - Parameter isGross: Indicates whether to calculate gross or net costs. Default is true (gross).
+    /// - Returns: The total cost as a Double.
     func totalCost(isGross: Bool = true) -> Double {
         return priceElements.reduce(0.0) {
             switch $1.type {
@@ -82,35 +141,13 @@ final class HomeConsumption {
     /// - Parameter isGross: Indicates whether to calculate gross or net costs. Default is true (gross).
     /// - Returns: A dictionary where keys are month identifiers in "yyyy-MM" format and values are the corresponding costs for that month.
     func totalCostPerMonth(isGross: Bool = true) -> [String: Double] {
-        let calendar = Calendar.current
         let totalCost = totalCost(isGross: isGross)
         
         // Determine the number of days for each of the covered months, calculate each month's cost portion, and store them in a dictionary
         var costPerMonth: [String: Double] = [:]
-        var currentDate = validFrom
-        while currentDate <= validUntil {
-            let monthKey = UserSettings.shared.groupingDateFormatter.string(from: currentDate)
-            
-            // Determine the start of the month and next month
-            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: currentDate))!
-            guard let endOfMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth) else {
-                break
-            }
-            
-            // Determine if currentDate is later than the first day of the month
-            let monthStartDate = currentDate > startOfMonth ? currentDate : startOfMonth
-            
-            // Determine if validUntil is earlier than the last day of the month
-            let monthEndDate = validUntil < endOfMonth ? validUntil : endOfMonth.addingTimeInterval(-1)
-            
-            // Calculate the number of days in this month portion
-            let components = calendar.dateComponents([.day], from: monthStartDate, to: monthEndDate)
-            let daysInThisMonth = (components.day ?? 0) + 1
-            
+        for (monthKey, daysInMonth) in daysPerMonth {
             // Determine the cost portion in this month
-            costPerMonth[monthKey] = totalCost / Double(numberOfDays) * Double(daysInThisMonth)
-            // Move to the next month
-            currentDate = endOfMonth
+            costPerMonth[monthKey] = totalCost / Double(numberOfDays) * Double(daysInMonth)
         }
         
         // Normalize the costs to ensure they sum up to the total cost (to avoid rounding issues)
@@ -123,5 +160,12 @@ final class HomeConsumption {
         }
         
         return costPerMonth
+    }
+    
+    /// Calculates the specific cost per unit of energy consumed.
+    /// - Parameter isGross: Indicates whether to calculate gross or net costs. Default is true (gross).
+    /// - Returns: The specific cost as a Double.
+    func specificCost(isGross: Bool = true) -> Double {
+        totalCost(isGross: isGross) / consumption.converted(to: UserSettings.shared.energyUnit).value
     }
 }
