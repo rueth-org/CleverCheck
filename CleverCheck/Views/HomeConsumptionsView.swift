@@ -120,7 +120,7 @@ struct HomeConsumptionsView: View {
     
     private func duplicate(_ homeConsumption: HomeConsumption) {
         let newConsumption = HomeConsumption(
-            name: homeConsumption.name + " Copy",
+            name: homeConsumption.name + NSLocalizedString(" Copy", comment: ""),
             validFrom: homeConsumption.validFrom,
             validUntil: homeConsumption.validUntil,
             consumption: homeConsumption.consumption,
@@ -142,9 +142,7 @@ struct HomeConsumptionsView: View {
     }
     
     private func totalCost(for month: Date) -> Double {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM"
-        let monthString = dateFormatter.string(from: month)
+        let monthString = UserSettings.shared.groupingDateFormatter.string(from: month)
         var total: Double = 0.0
         for homeConsumption in homeConsumptions {
             total += homeConsumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices)[monthString] ?? 0.0

@@ -36,6 +36,12 @@ final class UserSettings {
         currency.identifier
     }
     
+    var groupingDateFormatter: DateFormatter {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM"
+        return dateFormatter
+    }
+    
     private init() {
         // Empty on purpose
     }

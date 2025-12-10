@@ -83,30 +83,34 @@ final class HomeConsumption {
     /// - Returns: A dictionary where keys are month identifiers in "yyyy-MM" format and values are the corresponding costs for that month.
     func totalCostPerMonth(isGross: Bool = true) -> [String: Double] {
         let calendar = Calendar.current
-        let componentsFrom = calendar.dateComponents([.year, .month], from: validFrom)
-        let componentsUntil = calendar.dateComponents([.year, .month], from: validUntil)
-        let startYear = componentsFrom.year
-        let endYear = componentsUntil.year
-        let startMonth = componentsFrom.month
-        let endMonth = componentsUntil.month
         let totalCost = totalCost(isGross: isGross)
         
         // Determine the number of days for each of the covered months, calculate each month's cost portion, and store them in a dictionary
         var costPerMonth: [String: Double] = [:]
         var currentDate = validFrom
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM"
         while currentDate <= validUntil {
-            let monthKey = dateFormatter.string(from: currentDate)
-            let range = calendar.range(of: .day, in: .month, for: currentDate)!
-            let daysPerMonth = range.count
-            costPerMonth[monthKey] = totalCost / Double(numberOfDays) * Double(daysPerMonth)
-            // Move to the next month
-            if let nextMonth = calendar.date(byAdding: .month, value: 1, to: currentDate) {
-                currentDate = nextMonth
-            } else {
+            let monthKey = UserSettings.shared.groupingDateFormatter.string(from: currentDate)
+            
+            // Determine the start of the month and next month
+            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: currentDate))!
+            guard let endOfMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth) else {
                 break
             }
+            
+            // Determine if currentDate is later than the first day of the month
+            let monthStartDate = currentDate > startOfMonth ? currentDate : startOfMonth
+            
+            // Determine if validUntil is earlier than the last day of the month
+            let monthEndDate = validUntil < endOfMonth ? validUntil : endOfMonth.addingTimeInterval(-1)
+            
+            // Calculate the number of days in this month portion
+            let components = calendar.dateComponents([.day], from: monthStartDate, to: monthEndDate)
+            let daysInThisMonth = (components.day ?? 0) + 1
+            
+            // Determine the cost portion in this month
+            costPerMonth[monthKey] = totalCost / Double(numberOfDays) * Double(daysInThisMonth)
+            // Move to the next month
+            currentDate = endOfMonth
         }
         
         // Normalize the costs to ensure they sum up to the total cost (to avoid rounding issues)
