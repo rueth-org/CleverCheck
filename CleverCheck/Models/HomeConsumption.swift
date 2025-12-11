@@ -15,6 +15,7 @@ final class HomeConsumption {
     var validFrom: Date
     var validUntil: Date
     var consumptionKWh: Double
+    var consumptionIncludedElsewhere: Bool = false
     var associatedChargingLocation: ChargingLocation?
     
     @Relationship(deleteRule: .cascade, inverse: \PriceElement.homeConsumption)
@@ -27,28 +28,6 @@ final class HomeConsumption {
         set {
             consumptionKWh = newValue.converted(to: .kilowattHours).value
         }
-    }
-    
-    var consumptionPerMonth: [String: Double] {
-        let totalConsumption = consumption.converted(to: UserSettings.shared.energyUnit).value
-        
-        // Determine the number of days for each of the covered months, calculate each month's consumption portion, and store them in a dictionary
-        var consumptionPerMonth: [String: Double] = [:]
-        for (monthKey, daysInMonth) in daysPerMonth {
-            // Determine the consumption portion in this month
-            consumptionPerMonth[monthKey] = totalConsumption / Double(numberOfDays) * Double(daysInMonth)
-        }
-        
-        // Normalize the consumptions to ensure they sum up to the total consumption (to avoid rounding issues)
-        let sumOfConsumptions = consumptionPerMonth.values.reduce(0, +)
-        if sumOfConsumptions != totalConsumption {
-            let difference = totalConsumption - sumOfConsumptions
-            if let firstKey = consumptionPerMonth.keys.first {
-                consumptionPerMonth[firstKey]! += difference
-            }
-        }
-        
-        return consumptionPerMonth
     }
     
     /// Calculates the number of days covered in each month within the validFrom to validUntil range.
@@ -83,7 +62,17 @@ final class HomeConsumption {
         
         return daysPerMonth
     }
-        
+    
+    var netConsumptionPerMonth: [String: Double] {
+        var grossConsumptionPerMonth = consumptionPerMonth(includeIfIncludedElsewhere: true)
+        if consumptionIncludedElsewhere {
+            for (monthKey, consumption) in grossConsumptionPerMonth {
+                grossConsumptionPerMonth[monthKey] = -consumption
+            }
+        }
+        print("\(name): \(grossConsumptionPerMonth)")
+        return grossConsumptionPerMonth
+    }
     
     var description: String {
         if associatedChargingLocation != nil {
@@ -107,6 +96,7 @@ final class HomeConsumption {
         validFrom: Date,
         validUntil: Date,
         consumption: Measurement<UnitEnergy>,
+        consumptionIncludedElsewhere: Bool,
         associatedChargingLocation: ChargingLocation? = nil
     ) {
         self.id = id
@@ -114,7 +104,55 @@ final class HomeConsumption {
         self.validFrom = validFrom
         self.validUntil = validUntil
         self.consumptionKWh = consumption.converted(to: .kilowattHours).value
+        self.consumptionIncludedElsewhere = consumptionIncludedElsewhere
         self.associatedChargingLocation = associatedChargingLocation
+    }
+    
+    func totalConsumption(includeIfIncludedElsewhere: Bool = false) -> Measurement<UnitEnergy> {
+        if consumptionIncludedElsewhere && !includeIfIncludedElsewhere {
+            return Measurement<UnitEnergy>(value: 0.0, unit: UserSettings.shared.energyUnit)
+        } else {
+            return consumption
+        }
+    }
+    
+    func consumptionPerMonth(includeIfIncludedElsewhere: Bool = false) -> [String: Double] {
+        if consumptionIncludedElsewhere && !includeIfIncludedElsewhere {
+            return [:]
+        }
+        
+        let totalConsumption = totalConsumption(includeIfIncludedElsewhere: includeIfIncludedElsewhere).value
+        
+        // Determine the number of days for each of the covered months, calculate each month's consumption portion, and store them in a dictionary
+        var consumptionPerMonth: [String: Double] = [:]
+        for (monthKey, daysInMonth) in daysPerMonth {
+            // Determine the consumption portion in this month
+            consumptionPerMonth[monthKey] = totalConsumption / Double(numberOfDays) * Double(daysInMonth)
+        }
+        
+        // Normalize the consumptions to ensure they sum up to the total consumption (to avoid rounding issues)
+        let sumOfConsumptions = consumptionPerMonth.values.reduce(0, +)
+        if sumOfConsumptions != totalConsumption {
+            let difference = totalConsumption - sumOfConsumptions
+            if let firstKey = consumptionPerMonth.keys.first {
+                consumptionPerMonth[firstKey]! += difference
+            }
+        }
+        
+        return consumptionPerMonth
+    }
+    
+    /// Calculates the total consumption for a specific month.
+    /// - Parameters:
+    ///   - monthKey: The month identifier in "yyyy-MM" format.
+    ///   - includeIfIncludedElsewhere: Indicates whether to include consumption that is marked as included elsewhere. Default is false.
+    /// - Returns: The total consumption for the specified month as a Double.
+    func consumptionForMonth(monthKey: String, includeIfIncludedElsewhere: Bool = false) -> Double {
+        return consumptionPerMonth(includeIfIncludedElsewhere: includeIfIncludedElsewhere)[monthKey] ?? 0.0
+    }
+    
+    func netConsumptionForMonth(monthKey: String) -> Double {
+        return netConsumptionPerMonth[monthKey] ?? 0.0
     }
     
     /// Calculates the total cost for the home consumption over its entire duration, adding up all price elements.
@@ -160,6 +198,15 @@ final class HomeConsumption {
         }
         
         return costPerMonth
+    }
+
+    /// Calculates the total cost for a specific month.
+    /// - Parameters:
+    ///   - monthKey: The month identifier in "yyyy-MM" format.
+    ///   - isGross: Indicates whether to calculate gross or net costs. Default is true (gross).
+    /// - Returns: The total cost for the specified month as a Double.
+    func totalCostForMonth(monthKey: String, isGross: Bool = true) -> Double {
+        return totalCostPerMonth(isGross: isGross)[monthKey] ?? 0.0
     }
     
     /// Calculates the specific cost per unit of energy consumed.

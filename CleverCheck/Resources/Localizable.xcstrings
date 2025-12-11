@@ -9,13 +9,13 @@
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kopier"
+            "value" : " Kopi"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kopieren"
+            "value" : " Kopie"
           }
         }
       }
@@ -162,12 +162,32 @@
         }
       }
     },
+    "%@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
     "%@: %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%@/%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@/%2$@"
           }
         }
       }
@@ -356,6 +376,22 @@
         }
       }
     },
+    "Charging" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opladning"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laden"
+          }
+        }
+      }
+    },
     "Charging Cost Plans" : {
       "localizations" : {
         "da" : {
@@ -420,6 +456,38 @@
         }
       }
     },
+    "Consumption included elsewhere" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forbrug inkluderet andetsteds"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbrauch anderweitig enthalten"
+          }
+        }
+      }
+    },
+    "Consumption:" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forbrug:"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbrauch:"
+          }
+        }
+      }
+    },
     "Cost amount" : {
       "localizations" : {
         "da" : {
@@ -436,6 +504,22 @@
         }
       }
     },
+    "Cost:" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Omkostninger:"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kosten:"
+          }
+        }
+      }
+    },
     "Daily" : {
       "localizations" : {
         "da" : {
@@ -448,6 +532,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Täglich"
+          }
+        }
+      }
+    },
+    "DANGER" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FARE"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ACHTUNG"
+          }
+        }
+      }
+    },
+    "Danger Zone" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Farezone"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gefahrenzone"
           }
         }
       }
@@ -483,6 +599,9 @@
           }
         }
       }
+    },
+    "DELETE ALL" : {
+
     },
     "Delete all data" : {
       "localizations" : {
@@ -534,7 +653,36 @@
       }
     },
     "Ending this month" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slutter denne måned"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Monat endend"
+          }
+        }
+      }
+    },
+    "Enter 'DELETE ALL' to confirm - this cannot be undone." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skriv 'DELETE ALL' for at bekræfte - dette kan ikke fortrydes."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitte gib 'DELETE ALL' ein - das kann nicht rückgängig gemacht werden."
+          }
+        }
+      }
     },
     "Error" : {
       "extractionState" : "manual",
@@ -592,6 +740,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Flatrate"
+          }
+        }
+      }
+    },
+    "Home" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hjemme"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuhause"
           }
         }
       }
@@ -712,6 +876,22 @@
         }
       }
     },
+    "Master Data" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stamdata"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stammdaten"
+          }
+        }
+      }
+    },
     "Mileage" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -773,6 +953,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Name"
+          }
+        }
+      }
+    },
+    "Net Consumption:" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nettoforbrug:"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nettoverbrauch:"
+          }
+        }
+      }
+    },
+    "Net Cost:" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nettoomkostninger:"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nettokosten:"
           }
         }
       }
@@ -1044,12 +1256,34 @@
         }
       }
     },
-    "Specific Cost: %@/%@" : {
+    "Settings" : {
       "localizations" : {
-        "en" : {
+        "da" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Specific Cost: %1$@/%2$@"
+            "state" : "translated",
+            "value" : "Indstillinger"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen"
+          }
+        }
+      }
+    },
+    "Specific Cost:" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Specifikke omkostninger:"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spezifische Kosten:"
           }
         }
       }
@@ -1121,6 +1355,22 @@
         }
       }
     },
+    "This month's summary" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne måneds sammenfatning"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monatszusammenfassung"
+          }
+        }
+      }
+    },
     "This should not have happened, please inform the developer team." : {
       "localizations" : {
         "da" : {
@@ -1137,40 +1387,35 @@
         }
       }
     },
-    "Total Consumption: %@ %@" : {
+    "Total Consumption:" : {
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Totalforbrug: %1$@ %2$@"
+            "value" : "Totalforbrug:"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gesamtverbrauch: %1$@ %2$@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Total Consumption: %1$@ %2$@"
+            "value" : "Gesamtverbrauch:"
           }
         }
       }
     },
-    "Total Cost: %@" : {
+    "Total Cost:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Totalomkostninger: %@"
+            "value" : "Totalomkostninger:"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gesamtkosten: %@"
+            "value" : "Gesamtkosten:"
           }
         }
       }

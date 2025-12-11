@@ -69,29 +69,18 @@ struct ContentView: View {
         
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            Button("Charging Sessions") {
-                navigationPath.append(NavigationDestination.ChargingSessions)
-            }
-            Button("Home Consumptions") {
-                navigationPath.append(NavigationDestination.HomeConsumptions)
-            }
-            Spacer()
-            
-            Button("Cars") {
-                navigationPath.append(NavigationDestination.Cars)
-            }
-            Button("Charging Locations") {
-                navigationPath.append(NavigationDestination.ChargingLocations)
-            }
-            Button("Chargers") {
-                navigationPath.append(NavigationDestination.Chargers)
-            }
-            Button("Charging Cost Plans") {
-                navigationPath.append(NavigationDestination.ChargingCostPlans)
-            }
-            Spacer()
-            Button("Delete all data") {
-                modelContext.container.deleteAllData()
+            TabView {
+                Tab("Charging", systemImage: "bolt.car") {
+                    ChargingView(navigationPath: $navigationPath)
+                }
+                
+                Tab("Home", systemImage: "house") {
+                    HomeView(navigationPath: $navigationPath)
+                }
+                
+                Tab("Settings", systemImage: "gear") {
+                    SettingsView(navigationPath: $navigationPath)
+                }
             }
             .navigationDestination(for: NavigationDestination.self) { screen in
                 switch screen {
@@ -157,6 +146,7 @@ struct ContentView: View {
                         validFrom: Date.now.startDateOfMonth,
                         validUntil: Date.now.endDateOfMonth,
                         consumption: .init(value: 0.0, unit: .kilowattHours),
+                        consumptionIncludedElsewhere: false,
                         associatedChargingLocation: nil
                     )
                     HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: newHomeConsumption, isNew: true)

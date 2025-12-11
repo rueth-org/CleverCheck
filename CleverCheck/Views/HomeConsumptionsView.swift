@@ -142,6 +142,7 @@ struct HomeConsumptionsView: View {
             validFrom: homeConsumption.validFrom,
             validUntil: homeConsumption.validUntil,
             consumption: homeConsumption.consumption,
+            consumptionIncludedElsewhere: homeConsumption.consumptionIncludedElsewhere,
             associatedChargingLocation: homeConsumption.associatedChargingLocation
         )
         

@@ -53,6 +53,7 @@ struct HomeConsumptionEditor: View {
                     .multilineTextAlignment(.trailing)
                 Text(homeConsumption.consumption.unit.symbol)
             }
+            Toggle("Consumption included elsewhere", isOn: $homeConsumption.consumptionIncludedElsewhere)
             Picker("Location", selection: $homeConsumption.associatedChargingLocation) {
                 Text("- none -").tag(nil as ChargingLocation?)
                 ForEach(chargingLocations, id: \.id) { location in
