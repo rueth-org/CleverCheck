@@ -533,6 +533,9 @@
         }
       }
     },
+    "Ending this month" : {
+
+    },
     "Error" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1136,6 +1139,18 @@
     },
     "Total Consumption: %@ %@" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Totalforbrug: %1$@ %2$@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesamtverbrauch: %1$@ %2$@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
@@ -1145,7 +1160,20 @@
       }
     },
     "Total Cost: %@" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Totalomkostninger: %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesamtkosten: %@"
+          }
+        }
+      }
     },
     "Total:" : {
       "localizations" : {

@@ -41,7 +41,7 @@ struct HomeConsumptionsView: View {
             } else {
                 List {
                     ForEach(groupedByMonths.keys.sorted(), id: \.self) { month in
-                        Section(header: Text(month, format: Date.FormatStyle().year().month(.wide))) {
+                        Section(header: Text(month, format: UserSettings.shared.displayDateFormatInSection)) {
                             // The total cost for the month
                             NavigationLink(value: groupedByMonths[month]!) {
                                 HStack {
@@ -104,7 +104,9 @@ struct HomeConsumptionsView: View {
             }
         }
         .navigationDestination(for: [HomeConsumption].self) { homeConsumptions in
-            HomeConsumptionAnalysis(navigationPath: $navigationPath, homeConsumptions: homeConsumptions)
+            if !homeConsumptions.isEmpty {
+                HomeConsumptionAnalysis(navigationPath: $navigationPath, homeConsumptions: homeConsumptions)
+            }
         }
         .alert(
             activeAlert?.title() ?? "Notice",
