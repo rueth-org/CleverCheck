@@ -31,7 +31,7 @@ struct HomeConsumptionEditor: View {
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
     
-    @Query(sort: \ChargingLocation.name) private var chargingLocations: [ChargingLocation]
+    @Query(sort: \Location.name) private var locations: [Location]
     
     private var editorTitle: String {
         isNew ? "New Home Consumption" : "Edit Home Consumption"
@@ -54,10 +54,10 @@ struct HomeConsumptionEditor: View {
                 Text(homeConsumption.consumption.unit.symbol)
             }
             Toggle("Consumption included elsewhere", isOn: $homeConsumption.consumptionIncludedElsewhere)
-            Picker("Location", selection: $homeConsumption.associatedChargingLocation) {
-                Text("- none -").tag(nil as ChargingLocation?)
-                ForEach(chargingLocations, id: \.id) { location in
-                    Text(location.name).tag(location as ChargingLocation?)
+            Picker("Location", selection: $homeConsumption.associatedLocation) {
+                Text("- none -").tag(nil as Location?)
+                ForEach(locations, id: \.id) { location in
+                    Text(location.name).tag(location as Location?)
                 }
             }
 

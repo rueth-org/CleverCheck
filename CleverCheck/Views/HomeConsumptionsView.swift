@@ -143,7 +143,7 @@ struct HomeConsumptionsView: View {
             validUntil: homeConsumption.validUntil,
             consumption: homeConsumption.consumption,
             consumptionIncludedElsewhere: homeConsumption.consumptionIncludedElsewhere,
-            associatedChargingLocation: homeConsumption.associatedChargingLocation
+            associatedLocation: homeConsumption.associatedLocation
         )
         
         for priceElement in homeConsumption.priceElements {

@@ -20,7 +20,7 @@ struct ChargingCostPlanEditor: View {
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
     @Query(sort: \Charger.name) private var chargers: [Charger]
-    @Query(sort: \ChargingLocation.name) private var chargingLocations: [ChargingLocation]
+    @Query(sort: \Location.name) private var locations: [Location]
     @Query(sort: [SortDescriptor(\ChargingCostPlan.car.make), SortDescriptor(\ChargingCostPlan.car.model), SortDescriptor(\ChargingCostPlan.charger.name)]) private var allPlans: [ChargingCostPlan]
     
     @State private var car: Car?
@@ -38,7 +38,7 @@ struct ChargingCostPlanEditor: View {
     @State private var individualDefaultPrice: Cost = Cost(amount: 0.0)
     @State private var enterIndividualDefaultPrice: Bool = false
     @State private var flatratePrice: Cost = Cost(amount: 0.0)
-    @State private var connectedLocation: ChargingLocation?
+    @State private var connectedLocation: Location?
     @State private var refundingPlan: ChargingCostPlan?
     @State private var isArchived: Bool = false
     
@@ -68,7 +68,7 @@ struct ChargingCostPlanEditor: View {
                 }
             }
             .onChange(of: charger) {
-                if let charger, let location = charger.chargingLocation {
+                if let charger, let location = charger.location {
                     self.connectedLocation = location
                 } else {
                     self.connectedLocation = nil
@@ -158,8 +158,8 @@ struct ChargingCostPlanEditor: View {
         enterIndividualDefaultPrice = false
     }
     
-    private func getLocationById(_ id: UUID) -> ChargingLocation? {
-        chargingLocations.first(where: { $0.id == id })
+    private func getLocationById(_ id: UUID) -> Location? {
+        locations.first(where: { $0.id == id })
     }
     
     private func cancelAndExit() {
@@ -286,15 +286,15 @@ struct ChargingCostPlanEditor: View {
             }
         case ChargingCostPlan.PlanType.descriptionHomeConsumption:
             Picker("Location", selection: $connectedLocation) {
-                Text("- Select a location -").tag(nil as ChargingLocation?)
-                ForEach(chargingLocations, id: \.id) { location in
+                Text("- Select a location -").tag(nil as Location?)
+                ForEach(locations, id: \.id) { location in
                     Text(location.name).tag(location)
                 }
             }
         case ChargingCostPlan.PlanType.descriptionRefunded:
             Picker("Location", selection: $connectedLocation) {
-                Text("- Select a location -").tag(nil as ChargingLocation?)
-                ForEach(chargingLocations, id: \.id) { location in
+                Text("- Select a location -").tag(nil as Location?)
+                ForEach(locations, id: \.id) { location in
                     Text(location.name).tag(location)
                 }
             }

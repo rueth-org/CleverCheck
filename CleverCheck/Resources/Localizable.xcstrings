@@ -408,22 +408,6 @@
         }
       }
     },
-    "Charging Locations" : {
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ladesteder"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ladeorte"
-          }
-        }
-      }
-    },
     "Charging Sessions" : {
       "localizations" : {
         "da" : {
@@ -856,6 +840,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ort"
+          }
+        }
+      }
+    },
+    "Locations" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steder"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orte"
           }
         }
       }
@@ -1399,23 +1399,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gesamtverbrauch:"
-          }
-        }
-      }
-    },
-    "Total Cost:" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Totalomkostninger:"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gesamtkosten:"
           }
         }
       }

@@ -14,7 +14,7 @@ struct CleverCheckApp: App {
         let schema = Schema([
             Car.self,
             Charger.self,
-            ChargingLocation.self,
+            Location.self,
             ChargingSession.self,
             ChargingCostPlan.self,
             HomeConsumption.self,

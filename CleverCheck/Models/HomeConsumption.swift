@@ -16,7 +16,7 @@ final class HomeConsumption {
     var validUntil: Date
     var consumptionKWh: Double
     var consumptionIncludedElsewhere: Bool = false
-    var associatedChargingLocation: ChargingLocation?
+    var associatedLocation: Location?
     
     @Relationship(deleteRule: .cascade, inverse: \PriceElement.homeConsumption)
     var priceElements: [PriceElement] = []
@@ -75,8 +75,8 @@ final class HomeConsumption {
     }
     
     var description: String {
-        if associatedChargingLocation != nil {
-            return "\(name) (\(associatedChargingLocation!.name))"
+        if associatedLocation != nil {
+            return "\(name) (\(associatedLocation!.name))"
         } else {
             return "\(name)"
         }
@@ -97,7 +97,7 @@ final class HomeConsumption {
         validUntil: Date,
         consumption: Measurement<UnitEnergy>,
         consumptionIncludedElsewhere: Bool,
-        associatedChargingLocation: ChargingLocation? = nil
+        associatedLocation: Location? = nil
     ) {
         self.id = id
         self.name = name
@@ -105,7 +105,7 @@ final class HomeConsumption {
         self.validUntil = validUntil
         self.consumptionKWh = consumption.converted(to: .kilowattHours).value
         self.consumptionIncludedElsewhere = consumptionIncludedElsewhere
-        self.associatedChargingLocation = associatedChargingLocation
+        self.associatedLocation = associatedLocation
     }
     
     func totalConsumption(includeIfIncludedElsewhere: Bool = false) -> Measurement<UnitEnergy> {

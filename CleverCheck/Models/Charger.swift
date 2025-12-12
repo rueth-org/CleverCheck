@@ -1,5 +1,5 @@
 //
-//  ChargingLocation.swift
+//  Location.swift
 //  CleverCheck
 //
 //  Created by Ulrich Rüth on 22/11/2025.
@@ -12,20 +12,20 @@ import SwiftData
 final class Charger {
     var id: UUID
     var name: String
-    var chargingLocation: ChargingLocation?
+    var location: Location?
     var isArchived: Bool = false
     
     var description: String {
         var description = name
-        if let location = chargingLocation {
+        if let location = location {
             description += " (\(location.name))"
         }
         return description
     }
     
-    init(id: UUID = UUID(), name: String, chargingLocation: ChargingLocation? = nil) {
+    init(id: UUID = UUID(), name: String, location: Location? = nil) {
         self.id = id
         self.name = name
-        self.chargingLocation = chargingLocation
+        self.location = location
     }
 }

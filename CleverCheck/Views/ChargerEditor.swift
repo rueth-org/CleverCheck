@@ -13,10 +13,10 @@ struct ChargerEditor: View {
     @Binding var navigationPath: NavigationPath
     let charger: Charger?
     
-    @Query private var chargingLocations: [ChargingLocation]
+    @Query private var locations: [Location]
     
     @State private var name: String = ""
-    @State private var chargingLocation: ChargingLocation? = nil
+    @State private var location: Location? = nil
     @State private var isArchived: Bool = false
     
     @State private var showingAlert: Bool = false
@@ -30,10 +30,10 @@ struct ChargerEditor: View {
         Form {
             TextField("Name", text: $name)
             
-            // Charging location
-            Picker("Location", selection: $chargingLocation) {
-                Text("- none -").tag(nil as ChargingLocation?)
-                ForEach(chargingLocations, id: \.id) { location in
+            // Location
+            Picker("Location", selection: $location) {
+                Text("- none -").tag(nil as Location?)
+                ForEach(locations, id: \.id) { location in
                     Text(location.name).tag(location)
                 }
             }
@@ -63,7 +63,7 @@ struct ChargerEditor: View {
             if let charger {
                 // Edit the incoming charger.
                 name = charger.name
-                chargingLocation = charger.chargingLocation
+                location = charger.location
                 isArchived = charger.isArchived
             }
         }
@@ -91,10 +91,10 @@ struct ChargerEditor: View {
             if let charger {
                 // Edit the location
                 charger.name = name
-                charger.chargingLocation = chargingLocation
+                charger.location = location
                 charger.isArchived = isArchived
             } else {
-                let newCharger = Charger(name: name, chargingLocation: chargingLocation)
+                let newCharger = Charger(name: name, location: location)
                 newCharger.isArchived = isArchived
                 modelContext.insert(newCharger)
             }

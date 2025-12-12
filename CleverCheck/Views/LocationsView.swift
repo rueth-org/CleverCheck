@@ -8,20 +8,20 @@
 import SwiftUI
 import SwiftData
 
-struct ChargingLocationsView: View {
+struct LocationsView: View {
     enum NavigationDestination: Hashable {
         case NewLocation
-        case EditLocation(chargingLocation: ChargingLocation)
+        case EditLocation(location: Location)
     }
     
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    @Query(sort: \ChargingLocation.name) private var chargingLocations: [ChargingLocation]
-    @State private var selectedLocation: ChargingLocation? = nil
+    @Query(sort: \Location.name) private var locations: [Location]
+    @State private var selectedLocation: Location? = nil
     
     var body: some View {
         VStack {
-            if chargingLocations.isEmpty {
+            if locations.isEmpty {
                 Spacer()
                 Image(systemName: "mappin.and.ellipse")
                     .font(.largeTitle)
@@ -30,9 +30,9 @@ struct ChargingLocationsView: View {
                 Spacer()
             } else {
                 List {
-                    ForEach(chargingLocations, id: \.self) { chargingLocation in
-                        NavigationLink(value: NavigationDestination.EditLocation(chargingLocation: chargingLocation)) {
-                            Text(chargingLocation.name)
+                    ForEach(locations, id: \.self) { location in
+                        NavigationLink(value: NavigationDestination.EditLocation(location: location)) {
+                            Text(location.name)
                         }
                     }
                     .onDelete(perform: deleteLocation)
@@ -41,7 +41,7 @@ struct ChargingLocationsView: View {
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
-                Text("Charging Locations")
+                Text("Locations")
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 EditButton()
@@ -60,7 +60,7 @@ struct ChargingLocationsView: View {
         // TODO check if can be deleted
         for offset in offsets {
             // Find location in our query
-            let location = chargingLocations[offset]
+            let location = locations[offset]
 
             // Delete it from the context
             withAnimation {

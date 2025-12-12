@@ -7,10 +7,10 @@
 
 import SwiftUI
 
-struct ChargingLocationEditor: View {
+struct LocationEditor: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    let chargingLocation: ChargingLocation?
+    let location: Location?
     
     @State private var name: String = ""
     @State private var isArchived: Bool = false
@@ -19,7 +19,7 @@ struct ChargingLocationEditor: View {
     @State private var activeAlert: SimpleAlertType?
     
     private var editorTitle: String {
-        chargingLocation == nil ? "New Location" : "Edit Location"
+        location == nil ? "New Location" : "Edit Location"
     }
     
     var body: some View {
@@ -48,10 +48,10 @@ struct ChargingLocationEditor: View {
             }
         }
         .onAppear {
-            if let chargingLocation {
-                // Edit the incoming chargingLocation.
-                name = chargingLocation.name
-                isArchived = chargingLocation.isArchived
+            if let location {
+                // Edit the incoming location.
+                name = location.name
+                isArchived = location.isArchived
             }
         }
         .alert(
@@ -75,12 +75,12 @@ struct ChargingLocationEditor: View {
             activeAlert = .error(message: "Name is required.")
             showingAlert = true
         } else {
-            if let chargingLocation {
+            if let location {
                 // Edit the location
-                chargingLocation.name = name
-                chargingLocation.isArchived = isArchived
+                location.name = name
+                location.isArchived = isArchived
             } else {
-                let newLocation = ChargingLocation(name: name)
+                let newLocation = Location(name: name)
                 newLocation.isArchived = isArchived
                 modelContext.insert(newLocation)
             }

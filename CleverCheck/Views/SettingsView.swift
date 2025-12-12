@@ -23,8 +23,8 @@ struct SettingsView: View {
                 Button("Cars") {
                     navigationPath.append(ContentView.NavigationDestination.Cars)
                 }
-                Button("Charging Locations") {
-                    navigationPath.append(ContentView.NavigationDestination.ChargingLocations)
+                Button("Locations") {
+                    navigationPath.append(ContentView.NavigationDestination.Locations)
                 }
                 Button("Chargers") {
                     navigationPath.append(ContentView.NavigationDestination.Chargers)

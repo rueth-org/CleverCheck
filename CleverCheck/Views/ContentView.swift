@@ -59,7 +59,7 @@ struct ContentView: View {
         case ChargingSessions
         case Cars
         case Chargers
-        case ChargingLocations
+        case Locations
         case ChargingCostPlans
         case HomeConsumptions
     }
@@ -90,8 +90,8 @@ struct ContentView: View {
                     CarsView(navigationPath: $navigationPath)
                 case .Chargers:
                     ChargersView(navigationPath: $navigationPath)
-                case .ChargingLocations:
-                    ChargingLocationsView(navigationPath: $navigationPath)
+                case .Locations:
+                    LocationsView(navigationPath: $navigationPath)
                 case .ChargingCostPlans:
                     ChargingCostPlansView(navigationPath: $navigationPath)
                 case .HomeConsumptions:
@@ -106,12 +106,12 @@ struct ContentView: View {
                     CarEditor(navigationPath: $navigationPath, car: car)
                 }
             }
-            .navigationDestination(for: ChargingLocationsView.NavigationDestination.self) { screen in
+            .navigationDestination(for: LocationsView.NavigationDestination.self) { screen in
                 switch screen {
                 case .NewLocation:
-                    ChargingLocationEditor(navigationPath: $navigationPath, chargingLocation: nil)
-                case .EditLocation(chargingLocation: let chargingLocation):
-                    ChargingLocationEditor(navigationPath: $navigationPath, chargingLocation: chargingLocation)
+                    LocationEditor(navigationPath: $navigationPath, location: nil)
+                case .EditLocation(location: let location):
+                    LocationEditor(navigationPath: $navigationPath, location: location)
                 }
             }
             .navigationDestination(for: ChargingSessionsView.NavigationDestination.self) { screen in
@@ -147,7 +147,7 @@ struct ContentView: View {
                         validUntil: Date.now.endDateOfMonth,
                         consumption: .init(value: 0.0, unit: .kilowattHours),
                         consumptionIncludedElsewhere: false,
-                        associatedChargingLocation: nil
+                        associatedLocation: nil
                     )
                     HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: newHomeConsumption, isNew: true)
                 case .EditConsumption(homeConsumption: let HomeConsumption):

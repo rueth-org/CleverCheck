@@ -20,7 +20,7 @@ struct ChargersView: View {
     @State private var selectedCharger: Charger? = nil
     
     private var groupedChargers: [String: [Charger]] {
-        Dictionary(grouping: chargers) { $0.chargingLocation?.name ?? NSLocalizedString("No location", comment: "") }
+        Dictionary(grouping: chargers) { $0.location?.name ?? NSLocalizedString("No location", comment: "") }
     }
     
     var body: some View {
