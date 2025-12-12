@@ -108,8 +108,8 @@ struct ContentView: View {
             }
             .navigationDestination(for: LocationsView.NavigationDestination.self) { screen in
                 switch screen {
-                case .NewLocation:
-                    LocationEditor(navigationPath: $navigationPath, location: nil)
+                case .NewLocation(location: let location):
+                    LocationEditor(navigationPath: $navigationPath, location: location)
                 case .EditLocation(location: let location):
                     LocationEditor(navigationPath: $navigationPath, location: location)
                 }

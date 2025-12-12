@@ -10,7 +10,7 @@ import SwiftData
 
 struct LocationsView: View {
     enum NavigationDestination: Hashable {
-        case NewLocation
+        case NewLocation(location: Location?)
         case EditLocation(location: Location)
     }
     
@@ -31,7 +31,7 @@ struct LocationsView: View {
             } else {
                 List {
                     ForEach(locations, id: \.self) { location in
-                        NavigationLink(value: NavigationDestination.EditLocation(location: location)) {
+                        NavigationLink(value: location) {
                             Text(location.name)
                         }
                     }
@@ -53,7 +53,7 @@ struct LocationsView: View {
     }
     
     private func newLocation() {
-        navigationPath.append(NavigationDestination.NewLocation)
+        navigationPath.append(NavigationDestination.NewLocation(location: nil))
     }
     
     private func deleteLocation(at offsets: IndexSet) {

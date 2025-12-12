@@ -31,7 +31,7 @@ struct PriceElementEditor: View {
     }
     
     private var editorTitle: String {
-        priceElement == nil ? "New Price Element" : "Edit Price Element"
+        priceElement == nil ? NSLocalizedString("New Price Element", comment: "") : NSLocalizedString("Edit Price Element", comment: "")
     }
     
     var body: some View {

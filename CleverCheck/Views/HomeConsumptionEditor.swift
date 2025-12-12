@@ -34,7 +34,7 @@ struct HomeConsumptionEditor: View {
     @Query(sort: \Location.name) private var locations: [Location]
     
     private var editorTitle: String {
-        isNew ? "New Home Consumption" : "Edit Home Consumption"
+        isNew ? NSLocalizedString("New Home Consumption", comment: "") : NSLocalizedString("Edit Home Consumption", comment: "")
     }
     
     private var energyUnitSymbol: String {

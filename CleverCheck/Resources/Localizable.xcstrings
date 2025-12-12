@@ -20,22 +20,6 @@
         }
       }
     },
-    "- all -" : {
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "- alle -"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "- alle -"
-          }
-        }
-      }
-    },
     "- none -" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -230,6 +214,38 @@
         }
       }
     },
+    "All Locations" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle steder"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Orte"
+          }
+        }
+      }
+    },
+    "All vehicles" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle køretøjer"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Fahrzeuge"
+          }
+        }
+      }
+    },
     "Amount" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -317,13 +333,19 @@
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bil"
+            "value" : "Køretøj"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fahrzeug"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vehicle"
           }
         }
       }
@@ -333,13 +355,19 @@
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Biler"
+            "value" : "Køretøjer"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fahrzeuge"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vehicles"
           }
         }
       }
@@ -615,6 +643,76 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Duplizieren"
+          }
+        }
+      }
+    },
+    "Edit Car" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fahrzeug bearbeiten"
+          }
+        }
+      }
+    },
+    "Edit Charger" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lader bearbeiten"
+          }
+        }
+      }
+    },
+    "Edit Home Consumption" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heimverbrauch bearbeiten"
+          }
+        }
+      }
+    },
+    "Edit Location" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ort bearbeiten"
+          }
+        }
+      }
+    },
+    "Edit Plan" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan bearbeiten"
+          }
+        }
+      }
+    },
+    "Edit Price Element" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preisbestandteil bearbeiten"
+          }
+        }
+      }
+    },
+    "Edit Session" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ladevorgang bearbeiten"
           }
         }
       }
@@ -985,6 +1083,76 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nettokosten:"
+          }
+        }
+      }
+    },
+    "New Car" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neues Fahrzeug"
+          }
+        }
+      }
+    },
+    "New Charger" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Lader"
+          }
+        }
+      }
+    },
+    "New Home Consumption" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Heimverbrauch"
+          }
+        }
+      }
+    },
+    "New Location" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Ort"
+          }
+        }
+      }
+    },
+    "New Plan" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Plan"
+          }
+        }
+      }
+    },
+    "New Price Element" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Preisbestandteil"
+          }
+        }
+      }
+    },
+    "New Session" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Ladevorgang"
           }
         }
       }

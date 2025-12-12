@@ -19,7 +19,7 @@ struct LocationEditor: View {
     @State private var activeAlert: SimpleAlertType?
     
     private var editorTitle: String {
-        location == nil ? "New Location" : "Edit Location"
+        location == nil ? NSLocalizedString("New Location", comment: "") : NSLocalizedString("Edit Location", comment: "")
     }
     
     var body: some View {

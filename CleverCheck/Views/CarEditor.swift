@@ -21,7 +21,7 @@ struct CarEditor: View {
     @State private var activeAlert: SimpleAlertType?
     
     private var editorTitle: String {
-        car == nil ? "New Car" : "Edit Car"
+        car == nil ? NSLocalizedString("New Car", comment: "") : NSLocalizedString("Edit Car", comment: "")
     }
     
     var body: some View {

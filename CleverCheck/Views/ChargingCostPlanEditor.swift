@@ -47,7 +47,7 @@ struct ChargingCostPlanEditor: View {
     @State private var activeAlert: SimpleAlertType?
     
     private var editorTitle: String {
-        plan == nil ? "New Plan" : "Edit Plan"
+        plan == nil ? NSLocalizedString("New Plan", comment: "") : NSLocalizedString("Edit Plan", comment: "")
     }
     
     var body: some View {

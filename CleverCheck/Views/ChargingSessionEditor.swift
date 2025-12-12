@@ -46,7 +46,7 @@ struct ChargingSessionEditor: View {
     @State private var activeAlert: SimpleAlertType?
     
     private var editorTitle: String {
-        chargingSession == nil ? "New Session" : "Edit Session"
+        chargingSession == nil ? NSLocalizedString("New Session", comment: "") : NSLocalizedString("Edit Session", comment: "")
     }
     
     var body: some View {

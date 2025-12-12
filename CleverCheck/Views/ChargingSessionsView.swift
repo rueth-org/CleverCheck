@@ -35,12 +35,12 @@ struct ChargingSessionsView: View {
                 }
                 Spacer()
                 Picker("Car", selection: $selectedCar) {
-                    Text("- all -").tag(nil as Car?)
+                    Text("All vehicles").tag(nil as Car?)
                     ForEach(cars, id: \.self) { car in
                         Text(car.description).tag(car)
                     }
                 }
-            }.padding(.horizontal)
+            }.padding()
             
             ChargingSessionsList(navigationPath: $navigationPath, selectedCar: selectedCar)
         }

@@ -23,7 +23,7 @@ struct ChargerEditor: View {
     @State private var activeAlert: SimpleAlertType?
     
     private var editorTitle: String {
-        charger == nil ? "New Charger" : "Edit Charger"
+        charger == nil ? NSLocalizedString("New Charger", comment: "") : NSLocalizedString("Edit Charger", comment: "")
     }
     
     var body: some View {
