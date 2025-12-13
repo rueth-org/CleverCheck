@@ -12,6 +12,7 @@ struct HomeConsumptionAnalysis: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     var homeConsumptions: [HomeConsumption]
+    private var location: Location?
     
     @Query private var allHomeConsumptions: [HomeConsumption]
     
@@ -43,6 +44,8 @@ struct HomeConsumptionAnalysis: View {
     var body: some View {
         List {
             Section(header: Text("This month's summary")) {
+                Text("Location: \(location?.name ?? NSLocalizedString("All locations", comment: ""))")
+                    .bold()
                 HStack {
                     Text("Net Cost:")
                     Spacer()
@@ -99,6 +102,22 @@ struct HomeConsumptionAnalysis: View {
                 Text(month, format: UserSettings.shared.displayDateFormatInSection)
                     .font(.headline)
             }
+        }
+    }
+    
+    init(navigationPath: Binding<NavigationPath>, homeConsumptions: [HomeConsumption], location: Location? = nil) {
+        self._navigationPath = navigationPath
+        self.homeConsumptions = homeConsumptions
+        self.location = location
+        
+        // Get the location from the first home consumption
+        if let location {
+            // Fetch all home consumptions for this location
+            let locationId = location.id
+            self._allHomeConsumptions = Query(filter: #Predicate<HomeConsumption> { $0.associatedLocation?.id == locationId })
+        } else {
+            // No location, fetch all home consumptions
+            self._allHomeConsumptions = Query()
         }
     }
 }

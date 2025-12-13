@@ -214,7 +214,7 @@
         }
       }
     },
-    "All Locations" : {
+    "All locations" : {
       "localizations" : {
         "da" : {
           "stringUnit" : {
@@ -938,6 +938,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ort"
+          }
+        }
+      }
+    },
+    "Location: %@" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sted: %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ort: %@"
           }
         }
       }

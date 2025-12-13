@@ -37,7 +37,7 @@ struct HomeConsumptionsView: View {
                 Spacer()
                 // Location selector
                 Picker("Location", selection: $selectedLocation) {
-                    Text("All Locations").tag(nil as Location?)
+                    Text("All locations").tag(nil as Location?)
                     ForEach(locations, id: \.self) { location in
                         Text(location.name).tag(location)
                     }
@@ -60,7 +60,7 @@ struct HomeConsumptionsView: View {
         }
         .navigationDestination(for: [HomeConsumption].self) { homeConsumptions in
             if !homeConsumptions.isEmpty {
-                HomeConsumptionAnalysis(navigationPath: $navigationPath, homeConsumptions: homeConsumptions)
+                HomeConsumptionAnalysis(navigationPath: $navigationPath, homeConsumptions: homeConsumptions, location: selectedLocation)
             }
         }
         .alert(
