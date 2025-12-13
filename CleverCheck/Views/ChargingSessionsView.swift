@@ -14,6 +14,7 @@ struct ChargingSessionsView: View {
         case EditSession(chargingSession: ChargingSession)
     }
     
+    @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     @State private var selectedCar: Car?
     
@@ -22,6 +23,18 @@ struct ChargingSessionsView: View {
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
+    
+    var predicate: Predicate<ChargingSession> {
+        var predicate: Predicate<ChargingSession>
+        if let id = selectedCar?.persistentModelID {
+            predicate = #Predicate<ChargingSession> { chargingSession in
+                chargingSession.car?.persistentModelID == id
+            }
+        } else {
+            predicate = .true
+        }
+        return predicate
+    }
     
     var body: some View {
         VStack {
@@ -42,7 +55,38 @@ struct ChargingSessionsView: View {
                 }
             }.padding()
             
-            ChargingSessionsList(navigationPath: $navigationPath, selectedCar: selectedCar)
+            // List of charging sessions
+            DynamicList(
+                predicate: predicate,
+                sorting: [SortDescriptor(\ChargingSession.endTime)],
+                emptyStateMessage: "No charging sessions found.",
+                emptyStateSystemImage: "bolt.car",
+                activeAlert: $activeAlert,
+                showingAlert: $showingAlert,
+                canDelete: { chargingSession in
+                    // No restrictions on deletion
+                    return true
+                },
+                content: { chargingSession in
+                    NavigationLink(value: ChargingSessionsView.NavigationDestination.EditSession(chargingSession: chargingSession)) {
+                        VStack {
+                            HStack {
+                                Text(chargingSession.endTime, format: Date.FormatStyle(date: .abbreviated, time: .none))
+                                Spacer()
+                                Text(chargingSession.chargedEnergyKWh.formatted())
+                                Text("kWh")
+                            }
+                            HStack {
+                                Text(chargingSession.car?.description ?? "- unknown -")
+                                Spacer()
+                                if chargingSession.finalSOC != nil {
+                                    Text(chargingSession.finalSOC!.formatted(.percent))
+                                }
+                            }
+                        }
+                    }
+                }
+            )
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -74,6 +118,20 @@ struct ChargingSessionsView: View {
             navigationPath.append(NavigationDestination.NewSession(car: selectedCar))
         }
     }
+    
+    /*
+    private func deleteSession(at offsets: IndexSet) {
+        // TODO check if can be deleted
+        for offset in offsets {
+            // Find location in our query
+            let session = chargingSessions[offset]
+
+            // Delete it from the context
+            withAnimation {
+                modelContext.delete(session)
+            }
+        }
+    }*/
 
     private func addCar() {
         navigationPath.append(CarsView.NavigationDestination.NewCar)

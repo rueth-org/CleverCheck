@@ -2,7 +2,7 @@
   "sourceLanguage" : "en",
   "strings" : {
     "" : {
-
+      "shouldTranslate" : false
     },
     " Copy" : {
       "localizations" : {
@@ -134,7 +134,7 @@
       }
     },
     "%@" : {
-
+      "shouldTranslate" : false
     },
     "%@ - %@" : {
       "localizations" : {
@@ -144,7 +144,8 @@
             "value" : "%1$@ - %2$@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@ %@" : {
       "localizations" : {
@@ -154,7 +155,8 @@
             "value" : "%1$@ %2$@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@: %@" : {
       "localizations" : {
@@ -164,7 +166,8 @@
             "value" : "%1$@: %2$@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@/%@" : {
       "localizations" : {
@@ -174,10 +177,11 @@
             "value" : "%1$@/%2$@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@/kWh" : {
-
+      "shouldTranslate" : false
     },
     "%@%@" : {
       "localizations" : {
@@ -187,16 +191,17 @@
             "value" : "%1$@%2$@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@%%" : {
-
+      "shouldTranslate" : false
     },
     "50%" : {
-
+      "shouldTranslate" : false
     },
     "100%" : {
-
+      "shouldTranslate" : false
     },
     "Add" : {
       "localizations" : {
@@ -613,7 +618,7 @@
       }
     },
     "DELETE ALL" : {
-
+      "shouldTranslate" : false
     },
     "Delete all data" : {
       "localizations" : {
@@ -649,16 +654,34 @@
     },
     "Edit Car" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rediger køretøj"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fahrzeug bearbeiten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Vehicle"
           }
         }
       }
     },
     "Edit Charger" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rediger lader"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -669,6 +692,12 @@
     },
     "Edit Home Consumption" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rediger hjemmeforbrug"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -679,6 +708,12 @@
     },
     "Edit Location" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rediger sted"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -689,6 +724,12 @@
     },
     "Edit Plan" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rediger plan"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -699,6 +740,12 @@
     },
     "Edit Price Element" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rediger prisbestanddel"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -709,6 +756,12 @@
     },
     "Edit Session" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rediger session"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -824,7 +877,8 @@
             "value" : "Flatrate"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "Home" : {
       "localizations" : {
@@ -907,7 +961,7 @@
       }
     },
     "kWh" : {
-
+      "shouldTranslate" : false
     },
     "Label" : {
       "localizations" : {
@@ -1105,16 +1159,34 @@
     },
     "New Car" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ny køretøj"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Neues Fahrzeug"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Vehicle"
           }
         }
       }
     },
     "New Charger" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ny lader"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1125,6 +1197,12 @@
     },
     "New Home Consumption" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ny hjemmeforbrug"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1135,6 +1213,12 @@
     },
     "New Location" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nyt sted"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1145,6 +1229,12 @@
     },
     "New Plan" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ny plan"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1155,6 +1245,12 @@
     },
     "New Price Element" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ny prisbestanddel"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1165,6 +1261,12 @@
     },
     "New Session" : {
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ny session"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1201,22 +1303,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keine Ladestationen gefunden."
-          }
-        }
-      }
-    },
-    "No charging sessions found." : {
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ikke nogle ladesessioner fundet."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine Ladevorgänge gefunden"
           }
         }
       }
@@ -1310,7 +1396,8 @@
             "value" : "OK"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "Once" : {
       "localizations" : {
@@ -1365,7 +1452,7 @@
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prisbestanddet"
+            "value" : "Prisbestanddel"
           }
         },
         "de" : {

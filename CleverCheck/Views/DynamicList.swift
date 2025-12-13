@@ -9,16 +9,17 @@ import SwiftUI
 import SwiftData
 
 struct DynamicList<T: PersistentModel, Content: View>: View {
+    @Environment(\.modelContext) private var modelContext
     @Query private var fetchedData: [T]
     let content: (T) -> Content
+    let canDelete: (T) -> Bool
     let emptyStateMessage: String
     let emptyStateSystemImage: String?
     
+    @Binding var showingAlert: Bool
+    @Binding var activeAlert: SimpleAlertType?
+    
     var body: some View {
-        List(fetchedData, id: \.self) { item in
-            self.content(item)
-        }
-        
         // Empty state view
         if fetchedData.isEmpty {
             Text(emptyStateMessage)
@@ -27,18 +28,31 @@ struct DynamicList<T: PersistentModel, Content: View>: View {
             if let emptyStateSystemImage {
                 Image(systemName: emptyStateSystemImage)
             }
+            Spacer()
+        } else {
+            List {
+                ForEach(fetchedData, id: \.self) { item in
+                    self.content(item)
+                }
+                .onDelete(perform: delete)
+            }
         }
-        
     }
     
     init(
         predicate: Predicate<T>?,
         sorting: [SortDescriptor<T>]?,
-        sortAscending: Bool?,
         emptyStateMessage: String = "No items found",
-        emptySSateSystemImage: String? = nil,
+        emptyStateSystemImage: String? = nil,
+        activeAlert: Binding<SimpleAlertType?>,
+        showingAlert: Binding<Bool>,
+        canDelete: @escaping (T) -> Bool,
         @ViewBuilder content: @escaping (T) -> Content
-    ) throws {
+    ) {
+        self.canDelete = canDelete
+        self._activeAlert = activeAlert
+        self._showingAlert = showingAlert
+        
         if let sorting {
             _fetchedData = Query(filter: predicate, sort: sorting)
         } else {
@@ -50,6 +64,25 @@ struct DynamicList<T: PersistentModel, Content: View>: View {
         
         // Assign the empty state closure
         self.emptyStateMessage = emptyStateMessage
-        self.emptyStateSystemImage = emptySSateSystemImage
+        self.emptyStateSystemImage = emptyStateSystemImage
+    }
+    
+    private func delete(at offsets: IndexSet) {
+        for offset in offsets {
+            // Find item in our query
+            let item = fetchedData[offset]
+
+            // Delete it from the context if possible
+            if canDelete(item) {
+                withAnimation {
+                    modelContext.delete(item)
+                }
+            } else {
+                activeAlert = .warning(
+                    message: "Cannot delete this item."
+                )
+                showingAlert = true
+            }
+        }
     }
 }
