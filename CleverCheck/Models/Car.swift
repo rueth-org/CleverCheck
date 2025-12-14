@@ -10,7 +10,7 @@ import SwiftData
 
 @Model
 final class Car {
-    var id: UUID
+    var id: UUID = UUID()
     var make: String
     var model: String
     var defaultSOC: Double
@@ -23,8 +23,7 @@ final class Car {
         return "\(make) \(model)"
     }
     
-    init(id: UUID = UUID(), make: String, model: String, defaultSOC: Double = 0.8) {
-        self.id = id
+    init(make: String, model: String, defaultSOC: Double = 0.8) {
         self.make = make
         self.model = model
         self.defaultSOC = defaultSOC

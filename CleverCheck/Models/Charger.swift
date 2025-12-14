@@ -10,7 +10,7 @@ import SwiftData
 
 @Model
 final class Charger {
-    var id: UUID
+    var id: UUID = UUID()
     var name: String
     var location: Location?
     var isArchived: Bool = false
@@ -23,8 +23,7 @@ final class Charger {
         return description
     }
     
-    init(id: UUID = UUID(), name: String, location: Location? = nil) {
-        self.id = id
+    init(name: String, location: Location? = nil) {
         self.name = name
         self.location = location
     }

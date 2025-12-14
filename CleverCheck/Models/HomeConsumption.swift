@@ -10,7 +10,7 @@ import SwiftData
 
 @Model
 final class HomeConsumption {
-    var id: UUID
+    var id: UUID = UUID()
     var name: String
     var validFrom: Date
     var validUntil: Date
@@ -91,7 +91,6 @@ final class HomeConsumption {
     }
     
     init(
-        id: UUID = UUID(),
         name: String,
         validFrom: Date,
         validUntil: Date,
@@ -99,7 +98,6 @@ final class HomeConsumption {
         consumptionIncludedElsewhere: Bool,
         associatedLocation: Location? = nil
     ) {
-        self.id = id
         self.name = name
         self.validFrom = validFrom
         self.validUntil = validUntil

@@ -10,7 +10,7 @@ import SwiftData
 
 @Model
 final class Location {
-    var id: UUID
+    var id: UUID = UUID()
     var name: String
     var isArchived: Bool = false
     
@@ -20,8 +20,7 @@ final class Location {
     @Relationship(deleteRule: .nullify, inverse: \ChargingSession.charger)
     var chargers = [Charger]()
     
-    init(id: UUID = UUID(), name: String) {
-        self.id = id
+    init(name: String) {
         self.name = name
     }
 }

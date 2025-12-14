@@ -43,7 +43,7 @@ final class PriceElement: Identifiable, Equatable {
         }
     }
     
-    var id: UUID
+    var id: UUID = UUID()
     var homeConsumption: HomeConsumption?
     var label: String
     var amount: Cost
@@ -80,8 +80,7 @@ final class PriceElement: Identifiable, Equatable {
         isGross ? "Gross" : "Net"
     }
     
-    init(id: UUID = UUID(), label: String, amount: Cost, isGross: Bool, type: PriceElementType, vatRate: Double? = nil) {
-        self.id = id
+    init(label: String, amount: Cost, isGross: Bool, type: PriceElementType, vatRate: Double? = nil) {
         self.label = label
         self.amount = amount
         self.type = type
