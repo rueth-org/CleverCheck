@@ -116,10 +116,10 @@ struct ContentView: View {
             }
             .navigationDestination(for: ChargingSessionsView.NavigationDestination.self) { screen in
                 switch screen {
-                case .NewSession(car: let car):
-                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: nil, car: car)
-                case .EditSession(chargingSession: let chargingSession):
-                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: chargingSession)
+                case .NewSession(let selectedCar):
+                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: nil, selectedCar: selectedCar)
+                case .EditSession(chargingSession: let chargingSession, let selectedCar):
+                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: chargingSession, selectedCar: selectedCar)
                 }
             }
             .navigationDestination(for: ChargersView.NavigationDestination.self) { screen in

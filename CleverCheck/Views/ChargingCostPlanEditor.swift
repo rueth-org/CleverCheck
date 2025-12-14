@@ -21,7 +21,7 @@ struct ChargingCostPlanEditor: View {
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
     @Query(sort: \Charger.name) private var chargers: [Charger]
     @Query(sort: \Location.name) private var locations: [Location]
-    @Query(sort: [SortDescriptor(\ChargingCostPlan.car.make), SortDescriptor(\ChargingCostPlan.car.model), SortDescriptor(\ChargingCostPlan.charger.name)]) private var allPlans: [ChargingCostPlan]
+    @Query private var allPlans: [ChargingCostPlan]
     
     @State private var car: Car?
     @State private var charger: Charger?
@@ -302,7 +302,7 @@ struct ChargingCostPlanEditor: View {
             Picker("Refunding Plan", selection: $refundingPlan) {
                 Text("- Select a plan -").tag(nil as ChargingCostPlan?)
                 ForEach(allPlans, id: \.id) { plan in
-                    Text(plan.description).tag(plan)
+                    Text(plan.descriptionShortNoCar).tag(plan)
                 }
             }
         case .none:

@@ -60,6 +60,8 @@ struct HomeConsumptionEditor: View {
                     Text(location.name).tag(location as Location?)
                 }
             }
+            TextField("Comments", text: $homeConsumption.comment, axis: .vertical)
+                .lineLimit(3)
 
             Section(header: Text("Results")) {
                 HStack {

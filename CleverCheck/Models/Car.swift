@@ -11,13 +11,13 @@ import SwiftData
 @Model
 final class Car {
     var id: UUID = UUID()
-    var make: String
-    var model: String
-    var defaultSOC: Double
+    var make: String = ""
+    var model: String = ""
+    var defaultSOC: Double = 0.8
     var isArchived: Bool = false
     
-    @Relationship(deleteRule: .deny, inverse: \ChargingSession.car)
-    var chargingSessions = [ChargingSession]()
+    @Relationship(deleteRule: .nullify, inverse: \ChargingCostPlan.car)
+    var chargingCostPlans: [ChargingCostPlan]?
     
     var description: String {
         return "\(make) \(model)"

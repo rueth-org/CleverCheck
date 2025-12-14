@@ -45,11 +45,11 @@ final class PriceElement: Identifiable, Equatable {
     
     var id: UUID = UUID()
     var homeConsumption: HomeConsumption?
-    var label: String
-    var amount: Cost
-    var isGross: Bool
-    var type: PriceElementType
-    var vatRate: Double
+    var label: String = ""
+    var amount: Cost = Cost(amount: 0.0)
+    var isGross: Bool = true
+    var type: PriceElementType = PriceElementType.byConsumption(energyUnitSymbol: "kWh")
+    var vatRate: Double = 0.25
     
     var netAmount: Double {
         if isGross {

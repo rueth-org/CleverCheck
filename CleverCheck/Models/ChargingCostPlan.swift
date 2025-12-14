@@ -32,13 +32,28 @@ public final class ChargingCostPlan {
     }
     
     public var id: UUID = UUID()
-    var car: Car
-    var charger: Charger
-    var planType: PlanType
+    var car: Car?
+    var charger: Charger?
+    var planType: PlanType = PlanType.individual(defaultKWhPrice: Cost(amount: 0.0))
     var isArchived: Bool = false
     
-    var description: String {
-        "\(planType.description): \(car.description) / (\(charger.name))"
+    @Relationship(deleteRule: .nullify, inverse: \ChargingSession.chargingCostPlan)
+    var chargingSessions: [ChargingSession]?
+    
+    var descriptionShortNoCar: String {
+        "\(charger?.description ?? "Unknown charger")"
+    }
+    
+    var descriptionShort: String {
+        "\(car?.description ?? "Unknown car") - \(descriptionShortNoCar)"
+    }
+    
+    var descriptionLongNoCar: String {
+        "\(descriptionShortNoCar) (\(planType.description))"
+    }
+    
+    var descriptionLong: String {
+        "\(descriptionShort) (\(planType.description))"
     }
     
     init(car: Car, charger: Charger, planType: PlanType) {

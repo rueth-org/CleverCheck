@@ -11,14 +11,17 @@ import SwiftData
 @Model
 final class Charger {
     var id: UUID = UUID()
-    var name: String
+    var name: String = ""
     var location: Location?
     var isArchived: Bool = false
+    
+    @Relationship(deleteRule: .nullify, inverse: \ChargingCostPlan.charger)
+    var chargingCostPlans: [ChargingCostPlan]?
     
     var description: String {
         var description = name
         if let location = location {
-            description += " (\(location.name))"
+            description += " - \(location.name)"
         }
         return description
     }

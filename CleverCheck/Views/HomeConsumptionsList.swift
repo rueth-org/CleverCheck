@@ -111,15 +111,18 @@ struct HomeConsumptionsList: View {
             associatedLocation: homeConsumption.associatedLocation
         )
         
-        for priceElement in homeConsumption.priceElements {
-            let newPriceElement = PriceElement(
-                label: priceElement.label,
-                amount: priceElement.amount,
-                isGross: priceElement.isGross,
-                type: priceElement.type,
-                vatRate: priceElement.vatRate
-            )
-            newConsumption.priceElements.append(newPriceElement)
+        if let priceElements = homeConsumption.priceElements {
+            newConsumption.priceElements = [PriceElement]()
+            for priceElement in priceElements {
+                let newPriceElement = PriceElement(
+                    label: priceElement.label,
+                    amount: priceElement.amount,
+                    isGross: priceElement.isGross,
+                    type: priceElement.type,
+                    vatRate: priceElement.vatRate
+                )
+                newConsumption.priceElements!.append(newPriceElement)
+            }
         }
         
         modelContext.insert(newConsumption)

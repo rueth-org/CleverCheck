@@ -11,15 +11,16 @@ import SwiftData
 @Model
 final class HomeConsumption {
     var id: UUID = UUID()
-    var name: String
-    var validFrom: Date
-    var validUntil: Date
-    var consumptionKWh: Double
+    var name: String = ""
+    var validFrom: Date = Date.now.startDateOfMonth
+    var validUntil: Date = Date.now.endDateOfMonth
+    var consumptionKWh: Double = 0.0
     var consumptionIncludedElsewhere: Bool = false
     var associatedLocation: Location?
+    var comment: String = ""
     
     @Relationship(deleteRule: .cascade, inverse: \PriceElement.homeConsumption)
-    var priceElements: [PriceElement] = []
+    var priceElements: [PriceElement]?
     
     @Transient var consumption: Measurement<UnitEnergy> {
         get {
@@ -96,7 +97,8 @@ final class HomeConsumption {
         validUntil: Date,
         consumption: Measurement<UnitEnergy>,
         consumptionIncludedElsewhere: Bool,
-        associatedLocation: Location? = nil
+        associatedLocation: Location? = nil,
+        comment: String? = nil
     ) {
         self.name = name
         self.validFrom = validFrom
@@ -104,6 +106,9 @@ final class HomeConsumption {
         self.consumptionKWh = consumption.converted(to: .kilowattHours).value
         self.consumptionIncludedElsewhere = consumptionIncludedElsewhere
         self.associatedLocation = associatedLocation
+        if let comment {
+            self.comment = comment
+        }
     }
     
     func totalConsumption(includeIfIncludedElsewhere: Bool = false) -> Measurement<UnitEnergy> {
@@ -157,7 +162,11 @@ final class HomeConsumption {
     /// - Parameter isGross: Indicates whether to calculate gross or net costs. Default is true (gross).
     /// - Returns: The total cost as a Double.
     func totalCost(isGross: Bool = true) -> Double {
-        return priceElements.reduce(0.0) {
+        if priceElements == nil {
+            return 0.0
+        }
+        
+        return priceElements!.reduce(0.0) {
             switch $1.type {
             case .daily:
                 return $0 + ($1.grossAmount * Double(numberOfDays))

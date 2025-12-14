@@ -23,12 +23,12 @@ struct ChargingSessionEditor: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     var chargingSession: ChargingSession?
-    @State var car: Car?
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
-    @Query(sort: \Charger.name) private var chargers: [Charger]
+    @Query private var chargingCostPlans: [ChargingCostPlan]
     
-    @State private var charger: Charger?
+    @State private var selectedCar: Car?
+    @State private var chargingCostPlan: ChargingCostPlan?
     @State private var enterStartTime: Bool = false
     @State private var startTime: Date = Date.now.addingTimeInterval(-10800) // -3h
     @State private var endTime: Date = Date.now
@@ -39,6 +39,7 @@ struct ChargingSessionEditor: View {
     @State private var initialSOC: Double = 0.2
     @State private var enterFinalSOC: Bool = false
     @State private var finalSOC: Double = 0.8
+    @State private var comment: String = ""
     @State private var isArchived: Bool = false
     
     @FocusState private var focusedField: Field?
@@ -52,6 +53,34 @@ struct ChargingSessionEditor: View {
     var body: some View {
         VStack {
             Form {
+                // Display selected vehicle
+                HStack {
+                    Text("Vehicle")
+                    Spacer()
+                    if let selectedCar = selectedCar {
+                        Text("\(selectedCar.make) \(selectedCar.model)")
+                            .font(.headline)
+                    } else {
+                        Text("No vehicle selected")
+                            .font(.headline)
+                    }
+                }
+                
+                // Charging Cost Plan
+                Picker("Charging Cost Plan", selection: $chargingCostPlan) {
+                    Text("- Select a plan -").tag(nil as ChargingCostPlan?)
+                    ForEach(chargingCostPlans) { chargingCostPlan in
+                        Text("\(selectedCar == nil ? chargingCostPlan.descriptionShort : chargingCostPlan.descriptionShortNoCar)").tag(chargingCostPlan)
+                    }
+                    .onChange(of: chargingCostPlan) { oldValue, newValue in
+                        if newValue != nil {
+                            self.selectedCar = newValue!.car
+                        } else {
+                            self.selectedCar = nil
+                        }
+                    }
+                }
+                
                 // Start time (optional)
                 if enterStartTime {
                     HStack {
@@ -79,22 +108,6 @@ struct ChargingSessionEditor: View {
                 
                 // End time
                 DatePicker("End", selection: $endTime)
-                
-                // Car
-                Picker("Car", selection: $car) {
-                    Text("- Select a car -").tag(nil as Car?)
-                    ForEach(cars) { car in
-                        Text(car.description).tag(car)
-                    }
-                }
-                
-                // Charger
-                Picker("Charger", selection: $charger) {
-                    Text("- Select a charger -").tag(nil as Charger?)
-                    ForEach(chargers) { charger in
-                        Text("\(charger.description)").tag(charger)
-                    }
-                }
                 
                 // Amount
                 HStack {
@@ -199,6 +212,9 @@ struct ChargingSessionEditor: View {
                     }
                 }
                 
+                TextField("Comments", text: $comment, axis: .vertical)
+                    .lineLimit(3)
+                
                 Toggle("Archived", isOn: $isArchived)
                     .padding(.top)
             }
@@ -232,9 +248,7 @@ struct ChargingSessionEditor: View {
                     self.enterStartTime = false
                 }
                 self.endTime = chargingSession.endTime
-                self.charger = chargingSession.charger
                 self.chargedEnergy = chargingSession.chargedEnergy
-                self.car = chargingSession.car
                 if let mileage = chargingSession.mileage {
                     self.mileage = mileage
                     self.enterMileage = true
@@ -256,6 +270,9 @@ struct ChargingSessionEditor: View {
                     self.finalSOC = 0.8
                     self.enterFinalSOC = false
                 }
+                if let comment = chargingSession.comment {
+                    self.comment = comment
+                }
             }
         }
         .alert(
@@ -266,6 +283,31 @@ struct ChargingSessionEditor: View {
             activeAlert.button()
         } message: { activeAlert in
             activeAlert.message()
+        }
+    }
+    
+    init(
+        navigationPath: Binding<NavigationPath>,
+        chargingSession: ChargingSession? = nil,
+        selectedCar: Car? = nil
+    ) {
+        self._navigationPath = navigationPath
+        self.chargingSession = chargingSession
+        self.selectedCar = selectedCar
+        
+        if let selectedCar {
+            // Filter charging cost plan query by car
+            let id = selectedCar.persistentModelID
+            let predicate = #Predicate<ChargingCostPlan> { chargingCostPlan in
+                if let car = chargingCostPlan.car {
+                    return car.persistentModelID == id
+                } else {
+                    return true // Display all plans
+                }
+            }
+            _chargingCostPlans = Query(filter: predicate)
+        } else {
+            _chargingCostPlans = Query()
         }
     }
     
@@ -289,16 +331,9 @@ struct ChargingSessionEditor: View {
     }
     
     private func saveAndExit() {
-        // Data check: No car selected
-        if car == nil {
-            activeAlert = .error(message: "Please select a car.")
-            showingAlert = true
-            return
-        }
-        
-        // Data check: No charger selected
-        if charger == nil {
-            activeAlert = .error(message: "Please select a charger.")
+        // Data check: No plan selected
+        if chargingCostPlan == nil {
+            activeAlert = .error(message: "Please select a plan.")
             showingAlert = true
             return
         }
@@ -317,19 +352,20 @@ struct ChargingSessionEditor: View {
             // Updating an existing charging session
             chargingSession.startTime = enterStartTime ? self.startTime : nil
             chargingSession.endTime = self.endTime
-            chargingSession.charger = self.charger!
+            chargingSession.chargingCostPlan = self.chargingCostPlan!
             chargingSession.chargedEnergy = self.chargedEnergy
-            chargingSession.car = self.car!
             chargingSession.mileage = enterMileage ? self.mileage : nil
             chargingSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
             chargingSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
+            chargingSession.comment = self.comment
         } else {
             // Create new charging session
-            let newSession = ChargingSession(endTime: self.endTime, charger: self.charger!, chargedEnergy: self.chargedEnergy, car: self.car!)
+            let newSession = ChargingSession(endTime: self.endTime, chargedEnergy: self.chargedEnergy, chargingCostPlan: self.chargingCostPlan!)
             newSession.startTime = enterStartTime ? self.startTime : nil
             newSession.mileage = enterMileage ? self.mileage : nil
             newSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
             newSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
+            newSession.comment = self.comment
             modelContext.insert(newSession)
         }
         

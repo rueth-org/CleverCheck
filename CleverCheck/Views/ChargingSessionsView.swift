@@ -10,8 +10,8 @@ import SwiftData
 
 struct ChargingSessionsView: View {
     enum NavigationDestination: Hashable {
-        case NewSession(car: Car?)
-        case EditSession(chargingSession: ChargingSession)
+        case NewSession(selectedCar: Car?)
+        case EditSession(chargingSession: ChargingSession, selectedCar: Car?)
     }
     
     @Environment(\.modelContext) private var modelContext
@@ -19,7 +19,7 @@ struct ChargingSessionsView: View {
     @State private var selectedCar: Car?
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
-    @Query(sort: \Charger.name) private var chargers: [Charger]
+    @Query private var chargingCostPlans: [ChargingCostPlan]
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
@@ -28,10 +28,14 @@ struct ChargingSessionsView: View {
         var predicate: Predicate<ChargingSession>
         if let id = selectedCar?.persistentModelID {
             predicate = #Predicate<ChargingSession> { chargingSession in
-                chargingSession.car?.persistentModelID == id
+                if let car = chargingSession.chargingCostPlan?.car {
+                    return car.persistentModelID == id
+                } else {
+                    return true // Display all sessions
+                }
             }
         } else {
-            predicate = .true
+            predicate = .true // Display all sessions
         }
         return predicate
     }
@@ -68,7 +72,7 @@ struct ChargingSessionsView: View {
                     return true
                 },
                 content: { chargingSession in
-                    NavigationLink(value: ChargingSessionsView.NavigationDestination.EditSession(chargingSession: chargingSession)) {
+                    NavigationLink(value: ChargingSessionsView.NavigationDestination.EditSession(chargingSession: chargingSession, selectedCar: selectedCar)) {
                         VStack {
                             HStack {
                                 Text(chargingSession.endTime, format: Date.FormatStyle(date: .abbreviated, time: .none))
@@ -77,7 +81,7 @@ struct ChargingSessionsView: View {
                                 Text("kWh")
                             }
                             HStack {
-                                Text(chargingSession.car?.description ?? "- unknown -")
+                                Text(chargingSession.chargingCostPlan?.descriptionShort ?? "Unknown plan")
                                 Spacer()
                                 if chargingSession.finalSOC != nil {
                                     Text(chargingSession.finalSOC!.formatted(.percent))
@@ -111,28 +115,21 @@ struct ChargingSessionsView: View {
     }
     
     private func addSession() {
-        if cars.isEmpty || chargers.isEmpty {
-            activeAlert = .warning(message: "Please add a car and a charger first")
+        if cars.isEmpty {
+            activeAlert = .warning(message: "Please add a car first")
             showingAlert = true
-        } else {
-            navigationPath.append(NavigationDestination.NewSession(car: selectedCar))
+            return
         }
+        
+        if chargingCostPlans.isEmpty {
+            activeAlert = .warning(message: "Please add a charging cost plan first")
+            showingAlert = true
+            return
+        }
+            
+        navigationPath.append(NavigationDestination.NewSession(selectedCar: selectedCar))
     }
     
-    /*
-    private func deleteSession(at offsets: IndexSet) {
-        // TODO check if can be deleted
-        for offset in offsets {
-            // Find location in our query
-            let session = chargingSessions[offset]
-
-            // Delete it from the context
-            withAnimation {
-                modelContext.delete(session)
-            }
-        }
-    }*/
-
     private func addCar() {
         navigationPath.append(CarsView.NavigationDestination.NewCar)
     }

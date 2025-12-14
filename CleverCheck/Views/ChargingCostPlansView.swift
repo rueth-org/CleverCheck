@@ -16,11 +16,19 @@ struct ChargingCostPlansView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    @Query(sort: [SortDescriptor(\ChargingCostPlan.car.make), SortDescriptor(\ChargingCostPlan.car.model), SortDescriptor(\ChargingCostPlan.charger.name)]) private var allPlans: [ChargingCostPlan]
+    
+    @Query private var allPlans: [ChargingCostPlan]
+    
     @State private var selectedPlan: ChargingCostPlan? = nil
     
     private var groupedPlans: [String: [ChargingCostPlan]] {
-        Dictionary(grouping: allPlans) { $0.car.make + " " + $0.car.model }
+        Dictionary(grouping: allPlans) {
+            if $0.car == nil {
+                return "Unknown car"
+            } else {
+                return $0.car!.make + " " + $0.car!.model
+            }
+        }
     }
     
     var body: some View {
@@ -38,7 +46,7 @@ struct ChargingCostPlansView: View {
                         Section(header: Text(carDescription)) {
                             ForEach(groupedPlans[carDescription]!, id: \.self) { chargingCostPlan in
                                 NavigationLink(value: NavigationDestination.EditPlan(plan: chargingCostPlan)) {
-                                    Text("\(NSLocalizedString(chargingCostPlan.planType.description, comment: "")): \(chargingCostPlan.charger.description)")
+                                    Text(NSLocalizedString(chargingCostPlan.descriptionLongNoCar, comment: ""))
                                 }
                             }
                             .onDelete { offsets in

@@ -42,13 +42,19 @@
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "- Vælg bil -"
+            "value" : "- Vælg køretøj -"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "- Auto auswählen -"
+            "value" : "- Fahrzeug auswählen -"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "- Select a vehicle -"
           }
         }
       }
@@ -153,17 +159,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ %2$@"
-          }
-        }
-      },
-      "shouldTranslate" : false
-    },
-    "%@: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@: %2$@"
           }
         }
       },
@@ -332,6 +327,23 @@
         }
       }
     },
+    "Cannot delete this item." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dette element kan ikke slettes."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kann diesen Eintrag nicht löschen."
+          }
+        }
+      }
+    },
     "Car" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -425,12 +437,28 @@
         }
       }
     },
-    "Charging Cost Plans" : {
+    "Charging Cost Plan" : {
       "localizations" : {
         "da" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ladeomkostningsplan"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ladekostenplan"
+          }
+        }
+      }
+    },
+    "Charging Cost Plans" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ladeomkostningsplaner"
           }
         },
         "de" : {
@@ -453,6 +481,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ladevorgänge"
+          }
+        }
+      }
+    },
+    "Comments" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommentarer"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kommentare"
           }
         }
       }
@@ -533,6 +577,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kosten:"
+          }
+        }
+      }
+    },
+    "Could not find the price element to edit." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke finde priselementet til redigering."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konnte das zu bearbeitende Preiselement nicht finden."
           }
         }
       }
@@ -979,6 +1040,40 @@
         }
       }
     },
+    "Label of the price element already exists." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etiketten for priselementet findes allerede."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kennzeichen des Preiselements ist bereits vorhanden."
+          }
+        }
+      }
+    },
+    "Label of the price element cannot be empty." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priselementets etiket må ikke være tomt."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kennzeichen des Preiselements darf nicht leer sein."
+          }
+        }
+      }
+    },
     "Location" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1040,6 +1135,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Marke"
+          }
+        }
+      }
+    },
+    "Make and model are required." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mærke og model er påkrævet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marke und Modell werden benötigt."
           }
         }
       }
@@ -1121,6 +1233,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Name"
+          }
+        }
+      }
+    },
+    "Name is required." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Navn er påkrævet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name wird benötigt."
           }
         }
       }
@@ -1288,6 +1417,12 @@
             "state" : "translated",
             "value" : "Keine Fahrzeuge gefunden."
           }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No vehicles found."
+          }
         }
       }
     },
@@ -1303,6 +1438,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keine Ladestationen gefunden."
+          }
+        }
+      }
+    },
+    "No charging sessions found." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingen opladningssessioner fundet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Ladevorgänge gefunden."
           }
         }
       }
@@ -1339,6 +1491,23 @@
         }
       }
     },
+    "No location found." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intet sted fundet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Ort gefunden."
+          }
+        }
+      }
+    },
     "No locations found." : {
       "localizations" : {
         "da" : {
@@ -1367,6 +1536,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keine Pläne gefunden."
+          }
+        }
+      }
+    },
+    "No refunding cost plan found." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingen refusionsplan for omkostninger fundet."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Erstattungsplan gefunden."
+          }
+        }
+      }
+    },
+    "No vehicle selected" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intet køretøj er valgt"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Fahrzeug ausgewählt"
           }
         }
       }
@@ -1427,6 +1629,154 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plantyp"
+          }
+        }
+      }
+    },
+    "Please add a car first" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilføj venligst et køretøj først."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitte erst ein Fahrzeug hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please add a vehicle first."
+          }
+        }
+      }
+    },
+    "Please add a charging cost plan first" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilføj venligst en opladningsomkostningsplan først"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitte erst einen Kostenplan hinzufügen"
+          }
+        }
+      }
+    },
+    "Please select a car." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vælg venligst et køretøj."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitte ein Fahrzeug wählen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please select a vehicle."
+          }
+        }
+      }
+    },
+    "Please select a charger." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vælg venligst en oplader."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitte einen Lader wählen."
+          }
+        }
+      }
+    },
+    "Please select a location." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vælg venligst et sted."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitte einen Ort wählen."
+          }
+        }
+      }
+    },
+    "Please select a plan type." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vælg venligst en plantype."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitte einen Plantyp wählen."
+          }
+        }
+      }
+    },
+    "Please select a plan." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vælg venligst en plan."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitte einen Plan wählen."
+          }
+        }
+      }
+    },
+    "Please select a refunding plan." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vælg venligst en refunderingsplan."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitte einen Erstattungsplan wählen."
           }
         }
       }
@@ -1706,6 +2056,23 @@
         }
       }
     },
+    "Unsupported plan type: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke-understøttet plantype: %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht unterstützter Plantyp: %@"
+          }
+        }
+      }
+    },
     "Valid from" : {
       "localizations" : {
         "da" : {
@@ -1754,6 +2121,22 @@
         }
       }
     },
+    "Vehicle" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Køretøj"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fahrzeug"
+          }
+        }
+      }
+    },
     "Warning" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1772,5 +2155,5 @@
       }
     }
   },
-  "version" : "1.0"
+  "version" : "1.1"
 }

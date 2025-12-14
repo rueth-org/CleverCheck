@@ -11,14 +11,14 @@ import SwiftData
 @Model
 final class Location {
     var id: UUID = UUID()
-    var name: String
+    var name: String = ""
     var isArchived: Bool = false
     
     @Relationship(deleteRule: .nullify, inverse: \HomeConsumption.associatedLocation)
-    var associatedHomeConsumptions = [HomeConsumption]()
+    var associatedHomeConsumptions: [HomeConsumption]?
     
-    @Relationship(deleteRule: .nullify, inverse: \ChargingSession.charger)
-    var chargers = [Charger]()
+    @Relationship(deleteRule: .nullify, inverse: \Charger.location)
+    var chargers: [Charger]?
     
     init(name: String) {
         self.name = name

@@ -12,13 +12,13 @@ import SwiftData
 final class ChargingSession {
     var id: UUID = UUID()
     var startTime: Date?
-    var endTime: Date
-    var charger: Charger
-    var chargedEnergyKWh: Double
-    var car: Car?
+    var endTime: Date = Date.now
+    var chargedEnergyKWh: Double = 0.0
+    var chargingCostPlan: ChargingCostPlan?
     var mileageKilometer: Double?
     var initialSOC: Double?
     var finalSOC: Double?
+    var comment: String?
     
     @Transient var chargedEnergy: Measurement<UnitEnergy> {
         get {
@@ -45,25 +45,25 @@ final class ChargingSession {
     init(
         startTime: Date? = nil,
         endTime: Date,
-        charger: Charger,
         chargedEnergy: Measurement<UnitEnergy>,
-        car: Car,
+        chargingCostPlan: ChargingCostPlan,
         mileage: Measurement<UnitLength>? = nil,
         initialSOC: Double? = nil,
         finalSOC: Double? = nil,
-        useDefaultFinalSOC: Bool = true
+        useDefaultFinalSOC: Bool = true,
+        comment: String? = nil
     ) {
         self.startTime = startTime
         self.endTime = endTime
-        self.charger = charger
         self.chargedEnergyKWh = chargedEnergy.converted(to: .kilowattHours).value
-        self.car = car
+        self.chargingCostPlan = chargingCostPlan
         self.mileageKilometer = mileage?.converted(to: .kilometers).value
         self.initialSOC = initialSOC
-        if useDefaultFinalSOC {
-            self.finalSOC = car.defaultSOC
+        if useDefaultFinalSOC, chargingCostPlan.car != nil {
+            self.finalSOC = chargingCostPlan.car!.defaultSOC
         } else {
             self.finalSOC = finalSOC
         }
+        self.comment = comment
     }
 }
