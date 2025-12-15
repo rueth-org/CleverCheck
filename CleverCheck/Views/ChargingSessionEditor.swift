@@ -46,6 +46,16 @@ struct ChargingSessionEditor: View {
     @State private var showingAlert = false
     @State private var activeAlert: SimpleAlertType?
     
+    private var shownPlans: [ChargingCostPlan] {
+        chargingCostPlans.filter({
+            if $0.car == nil || selectedCar == nil  {
+                return true // Show all
+            } else {
+                return $0.car!.id == selectedCar!.id
+            }
+        })
+    }
+    
     private var editorTitle: String {
         chargingSession == nil ? NSLocalizedString("New Session", comment: "") : NSLocalizedString("Edit Session", comment: "")
     }
@@ -69,7 +79,7 @@ struct ChargingSessionEditor: View {
                 // Charging Cost Plan
                 Picker("Charging Cost Plan", selection: $chargingCostPlan) {
                     Text("- Select a plan -").tag(nil as ChargingCostPlan?)
-                    ForEach(chargingCostPlans) { chargingCostPlan in
+                    ForEach(shownPlans) { chargingCostPlan in
                         Text("\(selectedCar == nil ? chargingCostPlan.descriptionShort : chargingCostPlan.descriptionShortNoCar)").tag(chargingCostPlan)
                     }
                     .onChange(of: chargingCostPlan) { oldValue, newValue in
