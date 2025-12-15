@@ -121,12 +121,6 @@ struct ChargingSessionsView: View {
             return
         }
         
-        if chargingCostPlans.isEmpty {
-            activeAlert = .warning(message: "Please add a charging cost plan first")
-            showingAlert = true
-            return
-        }
-            
         navigationPath.append(NavigationDestination.NewSession(selectedCar: selectedCar))
     }
     

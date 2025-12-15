@@ -132,8 +132,8 @@ struct ContentView: View {
             }
             .navigationDestination(for: ChargingCostPlansView.NavigationDestination.self) { screen in
                 switch screen {
-                case .NewPlan:
-                    ChargingCostPlanEditor(navigationPath: $navigationPath, plan: nil)
+                case .NewPlan(let car):
+                    ChargingCostPlanEditor(navigationPath: $navigationPath, plan: nil, car: car)
                 case .EditPlan(plan: let plan):
                     ChargingCostPlanEditor(navigationPath: $navigationPath, plan: plan)
                 }

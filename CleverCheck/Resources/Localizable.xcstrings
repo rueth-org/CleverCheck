@@ -214,6 +214,22 @@
         }
       }
     },
+    "Add Charging Cost Plan" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilføj opladningsomkostningsplan"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ladekostenplan hinzufügen"
+          }
+        }
+      }
+    },
     "All locations" : {
       "localizations" : {
         "da" : {
@@ -1557,22 +1573,6 @@
         }
       }
     },
-    "No vehicle selected" : {
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Intet køretøj er valgt"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kein Fahrzeug ausgewählt"
-          }
-        }
-      }
-    },
     "Notice" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1726,6 +1726,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bitte einen Ort wählen."
+          }
+        }
+      }
+    },
+    "Please select a plan" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vælg venligst en plan"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitte einen Plan wählen"
           }
         }
       }

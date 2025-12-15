@@ -23,7 +23,7 @@ struct ChargingCostPlanEditor: View {
     @Query(sort: \Location.name) private var locations: [Location]
     @Query private var allPlans: [ChargingCostPlan]
     
-    @State private var car: Car?
+    @State var car: Car?
     @State private var charger: Charger?
     @State private var planType: ChargingCostPlan.PlanType?
     

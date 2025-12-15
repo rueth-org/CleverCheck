@@ -71,22 +71,37 @@ struct ChargingSessionEditor: View {
                         Text("\(selectedCar.make) \(selectedCar.model)")
                             .font(.headline)
                     } else {
-                        Text("No vehicle selected")
-                            .font(.headline)
+                        Text("Please select a plan")
+                            .italic()
                     }
                 }
                 
                 // Charging Cost Plan
-                Picker("Charging Cost Plan", selection: $chargingCostPlan) {
-                    Text("- Select a plan -").tag(nil as ChargingCostPlan?)
-                    ForEach(shownPlans) { chargingCostPlan in
-                        Text("\(selectedCar == nil ? chargingCostPlan.descriptionShort : chargingCostPlan.descriptionShortNoCar)").tag(chargingCostPlan)
+                if shownPlans.isEmpty {
+                    HStack {
+                        Button {
+                            addPlan()
+                        } label: {
+                            HStack {
+                                Text("Add Charging Cost Plan")
+                                Spacer()
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundStyle(.gray)
+                            }
+                        }
                     }
-                    .onChange(of: chargingCostPlan) { oldValue, newValue in
-                        if newValue != nil {
-                            self.selectedCar = newValue!.car
-                        } else {
-                            self.selectedCar = nil
+                } else {
+                    Picker("Charging Cost Plan", selection: $chargingCostPlan) {
+                        Text("- Select a plan -").tag(nil as ChargingCostPlan?)
+                        ForEach(shownPlans) { chargingCostPlan in
+                            Text("\(selectedCar == nil ? chargingCostPlan.descriptionShort : chargingCostPlan.descriptionShortNoCar)").tag(chargingCostPlan)
+                        }
+                        .onChange(of: chargingCostPlan) { oldValue, newValue in
+                            if newValue != nil {
+                                self.selectedCar = newValue!.car
+                            } else {
+                                self.selectedCar = nil
+                            }
                         }
                     }
                 }
@@ -303,7 +318,7 @@ struct ChargingSessionEditor: View {
     ) {
         self._navigationPath = navigationPath
         self.chargingSession = chargingSession
-        self.selectedCar = selectedCar
+        self._selectedCar = State(initialValue: selectedCar)
         
         if let selectedCar {
             // Filter charging cost plan query by car
@@ -386,5 +401,9 @@ struct ChargingSessionEditor: View {
     private func cancelAndExit() {
         // Leave edit mode
         navigationPath.removeLast()
+    }
+    
+    private func addPlan() {
+        navigationPath.append(ChargingCostPlansView.NavigationDestination.NewPlan(car: selectedCar))
     }
 }

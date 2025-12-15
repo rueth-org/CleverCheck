@@ -10,7 +10,7 @@ import SwiftData
 
 struct ChargingCostPlansView: View {
     enum NavigationDestination: Hashable {
-        case NewPlan
+        case NewPlan(car: Car?)
         case EditPlan(plan: ChargingCostPlan)
     }
     
@@ -76,7 +76,7 @@ struct ChargingCostPlansView: View {
     }
     
     private func newPlan() {
-        navigationPath.append(NavigationDestination.NewPlan)
+        navigationPath.append(NavigationDestination.NewPlan(car: nil))
     }
     
     private func deletePlan(at offsets: IndexSet) {
