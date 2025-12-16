@@ -96,8 +96,7 @@ struct ChargingSessionsView: View {
             ToolbarItem(placement: .principal) {
                 Text("Charging Sessions")
             }
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                EditButton()
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(action: addSession) {
                     Image(systemName: "plus")
                 }

@@ -17,6 +17,7 @@ struct ChargersView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     @Query(sort: \Charger.name) private var chargers: [Charger]
+    @Query private var chargingCostPlans: [ChargingCostPlan]
     @State private var selectedCharger: Charger? = nil
     
     private var groupedChargers: [String: [Charger]] {
@@ -40,14 +41,23 @@ struct ChargersView: View {
                                 NavigationLink(value: NavigationDestination.EditCharger(charger: charger)) {
                                     Text(charger.name)
                                 }
-                            }
-                            .onDelete { offsets in
-                                // Map offsets to the correct indices in chargers
-                                let allChargersAtLocation = groupedChargers[location]!
-                                let indicesToDelete = offsets.map { index in
-                                    chargers.firstIndex(of: allChargersAtLocation[index])!
+                                .swipeActions {
+                                    if canDelete(charger) {
+                                        Button(role: .destructive) {
+                                            deleteCharger(charger)
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    } else {
+                                        Button(role: .destructive) {
+                                            // no action
+                                        } label: {
+                                            Label("Cannot delete", systemImage: "trash")
+                                        }
+                                        .tint(.secondary)
+                                        .disabled(true)
+                                    }
                                 }
-                                deleteCharger(at: IndexSet(indicesToDelete))
                             }
                         }
                     }
@@ -58,8 +68,7 @@ struct ChargersView: View {
             ToolbarItem(placement: .principal) {
                 Text("Chargers")
             }
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                EditButton()
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(action: newCharger) {
                     Image(systemName: "plus")
                 }
@@ -71,16 +80,13 @@ struct ChargersView: View {
         navigationPath.append(NavigationDestination.NewCharger)
     }
     
-    private func deleteCharger(at offsets: IndexSet) {
-        // TODO check if can be deleted
-        for offset in offsets {
-            // Find charger in our query
-            let charger = chargers[offset]
-
-            // Delete it from the context
-            withAnimation {
-                modelContext.delete(charger)
-            }
+    private func deleteCharger(_ charger: Charger) {
+        withAnimation {
+            modelContext.delete(charger)
         }
+    }
+    
+    private func canDelete(_ charger: Charger) -> Bool {
+        !chargingCostPlans.contains { $0.charger == charger }
     }
 }

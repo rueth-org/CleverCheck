@@ -265,6 +265,8 @@ struct ChargingSessionEditor: View {
         .onAppear {
             if let chargingSession {
                 // Edit the incoming charging session
+                self.chargingCostPlan = chargingSession.chargingCostPlan
+                self.selectedCar = chargingSession.chargingCostPlan?.car
                 if let startTime = chargingSession.startTime {
                     self.startTime = startTime
                     self.enterStartTime = true

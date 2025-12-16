@@ -51,8 +51,7 @@ struct HomeConsumptionsView: View {
             ToolbarItem(placement: .principal) {
                 Text("Home Consumptions")
             }
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                EditButton()
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(action: addHomeConsumption) {
                     Image(systemName: "plus")
                 }

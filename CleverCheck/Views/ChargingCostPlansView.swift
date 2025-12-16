@@ -18,6 +18,7 @@ struct ChargingCostPlansView: View {
     @Binding var navigationPath: NavigationPath
     
     @Query private var allPlans: [ChargingCostPlan]
+    @Query private var chargingSessions: [ChargingSession]
     
     @State private var selectedPlan: ChargingCostPlan? = nil
     
@@ -48,14 +49,23 @@ struct ChargingCostPlansView: View {
                                 NavigationLink(value: NavigationDestination.EditPlan(plan: chargingCostPlan)) {
                                     Text(NSLocalizedString(chargingCostPlan.descriptionLongNoCar, comment: ""))
                                 }
-                            }
-                            .onDelete { offsets in
-                                // Map offsets to the correct indices in allPlans
-                                let allPlansForCar = groupedPlans[carDescription]!
-                                let indicesToDelete = offsets.map { index in
-                                    allPlans.firstIndex(of: allPlansForCar[index])!
+                                .swipeActions {
+                                    if canDelete(chargingCostPlan) {
+                                        Button(role: .destructive) {
+                                            deletePlan(chargingCostPlan)
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    } else {
+                                        Button(role: .destructive) {
+                                            // no action
+                                        } label: {
+                                            Label("Cannot delete", systemImage: "trash")
+                                        }
+                                        .tint(.secondary)
+                                        .disabled(true)
+                                    }
                                 }
-                                deletePlan(at: IndexSet(indicesToDelete))
                             }
                         }
                     }
@@ -66,8 +76,7 @@ struct ChargingCostPlansView: View {
             ToolbarItem(placement: .principal) {
                 Text("Charging Cost Plans")
             }
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                EditButton()
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(action: newPlan) {
                     Image(systemName: "plus")
                 }
@@ -79,16 +88,13 @@ struct ChargingCostPlansView: View {
         navigationPath.append(NavigationDestination.NewPlan(car: nil))
     }
     
-    private func deletePlan(at offsets: IndexSet) {
-        // TODO check if can be deleted
-        for offset in offsets {
-            // Find plan in our query
-            let plan = allPlans[offset]
-
-            // Delete it from the context
-            withAnimation {
-                modelContext.delete(plan)
-            }
+    private func deletePlan(_ plan: ChargingCostPlan) {
+        withAnimation {
+            modelContext.delete(plan)
         }
+    }
+    
+    private func canDelete(_ plan: ChargingCostPlan) -> Bool {
+        !chargingSessions.contains { $0.chargingCostPlan == plan }
     }
 }

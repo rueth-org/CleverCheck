@@ -108,7 +108,7 @@ struct ChargingCostPlanEditor: View {
         }
         .onAppear {
             if let plan {
-                // Edit the incoming car.
+                // Edit the incoming plan.
                 car = plan.car
                 charger = plan.charger
                 planType = plan.planType

@@ -17,6 +17,8 @@ struct LocationsView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     @Query(sort: \Location.name) private var locations: [Location]
+    @Query private var chargers: [Charger]
+    @Query private var homeConsumptions: [HomeConsumption]
     @State private var selectedLocation: Location? = nil
     
     var body: some View {
@@ -34,8 +36,24 @@ struct LocationsView: View {
                         NavigationLink(value: NavigationDestination.EditLocation(location: location)) {
                             Text(location.name)
                         }
+                        .swipeActions {
+                            if canDelete(location) {
+                                Button(role: .destructive) {
+                                    deleteLocation(location)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            } else {
+                                Button(role: .destructive) {
+                                    // no action
+                                } label: {
+                                    Label("Cannot delete", systemImage: "trash")
+                                }
+                                .tint(.secondary)
+                                .disabled(true)
+                            }
+                        }
                     }
-                    .onDelete(perform: deleteLocation)
                 }
             }
         }
@@ -43,8 +61,7 @@ struct LocationsView: View {
             ToolbarItem(placement: .principal) {
                 Text("Locations")
             }
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                EditButton()
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(action: newLocation) {
                     Image(systemName: "plus")
                 }
@@ -56,16 +73,13 @@ struct LocationsView: View {
         navigationPath.append(NavigationDestination.NewLocation(location: nil))
     }
     
-    private func deleteLocation(at offsets: IndexSet) {
-        // TODO check if can be deleted
-        for offset in offsets {
-            // Find location in our query
-            let location = locations[offset]
-
-            // Delete it from the context
-            withAnimation {
-                modelContext.delete(location)
-            }
+    private func deleteLocation(_ location: Location) {
+        withAnimation {
+            modelContext.delete(location)
         }
+    }
+    
+    private func canDelete(_ location: Location) -> Bool {
+        !homeConsumptions.contains { $0.associatedLocation == location } && !chargers.contains { $0.location == location }
     }
 }

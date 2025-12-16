@@ -17,6 +17,7 @@ struct CarsView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
+    @Query private var chargingCostPlans: [ChargingCostPlan]
     @State private var selectedCar: Car? = nil
     
     var body: some View {
@@ -34,8 +35,24 @@ struct CarsView: View {
                         NavigationLink(value: NavigationDestination.EditCar(car: car)) {
                             Text(car.description)
                         }
+                        .swipeActions {
+                            if canDelete(car) {
+                                Button(role: .destructive) {
+                                    deleteCar(for: car)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            } else {
+                                Button(role: .destructive) {
+                                    // no action
+                                } label: {
+                                    Label("Cannot delete", systemImage: "trash")
+                                }
+                                .tint(.secondary)
+                                .disabled(true)
+                            }
+                        }
                     }
-                    .onDelete(perform: deleteCar)
                 }
             }
         }
@@ -43,8 +60,7 @@ struct CarsView: View {
             ToolbarItem(placement: .principal) {
                 Text("Cars")
             }
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                EditButton()
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(action: newCar) {
                     Image(systemName: "plus")
                 }
@@ -56,16 +72,13 @@ struct CarsView: View {
         navigationPath.append(NavigationDestination.NewCar)
     }
     
-    private func deleteCar(at offsets: IndexSet) {
-        // TODO check if can be deleted
-        for offset in offsets {
-            // Find car in our query
-            let car = cars[offset]
-
-            // Delete it from the context
-            withAnimation {
-                modelContext.delete(car)
-            }
+    private func deleteCar(for car: Car) {
+        withAnimation {
+            modelContext.delete(car)
         }
+    }
+    
+    private func canDelete(_ car: Car) -> Bool {
+        return !chargingCostPlans.contains { $0.car == car }
     }
 }
