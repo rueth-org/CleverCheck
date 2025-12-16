@@ -31,7 +31,7 @@ struct LocationsView: View {
             } else {
                 List {
                     ForEach(locations, id: \.self) { location in
-                        NavigationLink(value: location) {
+                        NavigationLink(value: NavigationDestination.EditLocation(location: location)) {
                             Text(location.name)
                         }
                     }
