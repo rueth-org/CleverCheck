@@ -32,6 +32,10 @@ final class UserSettings {
         .kilowattHours
     }
     
+    var powerUnit: UnitPower {
+        .kilowatts
+    }
+    
     var currencyCode: String {
         currency.identifier
     }

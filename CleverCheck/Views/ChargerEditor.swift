@@ -9,6 +9,10 @@ import SwiftUI
 import SwiftData
 
 struct ChargerEditor: View {
+    private enum Field: Int, Hashable {
+        case maxPower
+    }
+    
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     let charger: Charger?
@@ -17,7 +21,11 @@ struct ChargerEditor: View {
     
     @State private var name: String = ""
     @State private var location: Location? = nil
+    @State private var maxPower: Measurement<UnitPower> = .init(value: 0, unit: UserSettings.shared.powerUnit)
+    @State private var enterMaxPower: Bool = false
     @State private var isArchived: Bool = false
+    
+    @FocusState private var focusedField: Field?
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
@@ -35,6 +43,38 @@ struct ChargerEditor: View {
                 Text("- none -").tag(nil as Location?)
                 ForEach(locations, id: \.id) { location in
                     Text(location.name).tag(location)
+                }
+            }
+            
+            // Max Power (optional)
+            if enterMaxPower {
+                HStack {
+                    Text("Maximum Power")
+                    Spacer()
+                    TextField("", value: $maxPower.value, format: .number)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .focused($focusedField, equals: .maxPower)
+                    Text(maxPower.unit.symbol)
+                    Button {
+                        deleteMaxPower()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
+                }
+            } else {
+                // Offer to enter mileage
+                HStack {
+                    Text("Maximum Power")
+                    Spacer()
+                    Button {
+                        focusedField = .maxPower
+                        enterMaxPower = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
                 }
             }
             
@@ -64,6 +104,10 @@ struct ChargerEditor: View {
                 // Edit the incoming charger.
                 name = charger.name
                 location = charger.location
+                if let maxPower = charger.maxPower {
+                    enterMaxPower = true
+                    self.maxPower = maxPower
+                }
                 isArchived = charger.isArchived
             }
         }
@@ -76,6 +120,11 @@ struct ChargerEditor: View {
         } message: { activeAlert in
             activeAlert.message()
         }
+    }
+    
+    private func deleteMaxPower() {
+        enterMaxPower = false
+        maxPower = .init(value: 0, unit: UserSettings.shared.powerUnit)
     }
     
     private func cancelAndExit() {
@@ -92,15 +141,32 @@ struct ChargerEditor: View {
                 // Edit the location
                 charger.name = name
                 charger.location = location
+                if !checkMaxPower(charger: charger) { return }
                 charger.isArchived = isArchived
             } else {
                 let newCharger = Charger(name: name, location: location)
+                if !checkMaxPower(charger: newCharger) { return }
                 newCharger.isArchived = isArchived
                 modelContext.insert(newCharger)
             }
             
             // Leave editor
             navigationPath.removeLast()
+        }
+    }
+    
+    private func checkMaxPower(charger: Charger) -> Bool {
+        if enterMaxPower {
+            if maxPower.value == 0 {
+                activeAlert = .warning(message: "Max power must be greater than 0.")
+                showingAlert = true
+                return false
+            }
+            charger.maxPower = self.maxPower
+            return true
+        } else {
+            charger.maxPower = nil
+            return true
         }
     }
 }
