@@ -23,70 +23,62 @@ struct ChargingSessionsView: View {
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
     
-    var sessionFilter: [String: Predicate<ChargingSession>] {
-        var result: [String: Predicate<ChargingSession>] = [:]
+    private var groupedSessions: [String: [ChargingSession]] {
+        var result: [String: [ChargingSession]] = [:]
         if selectedCar == nil {
             // Display all vehicles
             for vehicle in vehicles {
-                let vehicleID = vehicle.persistentModelID
-                result[vehicle.description] = #Predicate<ChargingSession> { chargingSession in
-                    if let carID = chargingSession.chargingCostPlan?.car?.persistentModelID {
-                        return carID == vehicleID
-                    } else {
-                        return false
+                var chargingSessions: [ChargingSession] = []
+                if let chargingCostPlans = vehicle.chargingCostPlans {
+                    for chargingCostPlan in chargingCostPlans {
+                        chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions ?? [])
                     }
+                    result[vehicle.description] = chargingSessions.sorted(by: { $0.endTime < $1.endTime })
                 }
             }
         } else {
-            // Only display selected car
-            let vehicleID = selectedCar!.persistentModelID
-            result[selectedCar!.description] = #Predicate<ChargingSession> { chargingSession in
-                if let carID = chargingSession.chargingCostPlan?.car?.persistentModelID {
-                    return carID == vehicleID
-                } else {
-                    return false
+            // Display only the selected vehicle
+            var chargingSessions: [ChargingSession] = []
+            if let chargingCostPlans = selectedCar?.chargingCostPlans {
+                for chargingCostPlan in chargingCostPlans {
+                    chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions ?? [])
                 }
+                result[selectedCar!.description] = chargingSessions.sorted(by: { $0.endTime < $1.endTime })
             }
         }
         return result
     }
     
     var body: some View {
-        List(sessionFilter.keys.sorted(), id: \.self) { carDescription in
+        List(groupedSessions.keys.sorted(), id: \.self) { carDescription in
             Section(header: Text(carDescription)) {
-                // List of charging sessions
-                DynamicList(
-                    predicate: sessionFilter[carDescription]!,
-                    sorting: [SortDescriptor(\ChargingSession.endTime)],
-                    emptyStateMessage: "No charging sessions found.",
-                    emptyStateSystemImage: "bolt.car",
-                    activeAlert: $activeAlert,
-                    showingAlert: $showingAlert,
-                    canDelete: { chargingSession in
-                        // No restrictions on deletion
-                        return true
-                    },
-                    content: { chargingSession in
-                        NavigationLink(value: ChargingSessionsView.NavigationDestination.EditSession(chargingSession: chargingSession, selectedCar: selectedCar)) {
-                            VStack {
-                                HStack {
-                                    Text(chargingSession.endTime, format: Date.FormatStyle(date: .abbreviated, time: .none))
-                                    Spacer()
-                                    if chargingSession.finalSOC != nil {
-                                        Text(chargingSession.finalSOC!.formatted(.percent))
-                                    }
-                                    Spacer()
-                                    Text(chargingSession.chargedEnergyFormatted)
+                ForEach(groupedSessions[carDescription]!, id: \.self) { chargingSession in
+                    NavigationLink(value: ChargingSessionsView.NavigationDestination.EditSession(chargingSession: chargingSession, selectedCar: chargingSession.chargingCostPlan?.car)) {
+                        VStack {
+                            HStack {
+                                Text(chargingSession.endTime, format: Date.FormatStyle(date: .abbreviated, time: .none))
+                                Spacer()
+                                if chargingSession.finalSOC != nil {
+                                    Text(chargingSession.finalSOC!.formatted(.percent))
                                 }
-                                HStack {
-                                    Text(chargingSession.chargingCostPlan?.descriptionShortNoCar ?? "Unknown plan")
-                                        .font(.subheadline)
-                                    Spacer()
-                                }
+                                Spacer()
+                                Text(chargingSession.chargedEnergyFormatted)
+                            }
+                            HStack {
+                                Text(chargingSession.chargingCostPlan?.descriptionShortNoCar ?? "Unknown plan")
+                                    .font(.subheadline)
+                                Spacer()
                             }
                         }
                     }
-                )
+                    .swipeActions {
+                        Button(role: .destructive) {
+                            delete(for: chargingSession)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
             }
         }
         .toolbar {
@@ -138,5 +130,12 @@ struct ChargingSessionsView: View {
     
     private func addCar() {
         navigationPath.append(CarsView.NavigationDestination.NewCar)
+    }
+    
+    private func delete(for session: ChargingSession) {
+        // Delete it from the context
+        withAnimation {
+            modelContext.delete(session)
+        }
     }
 }
