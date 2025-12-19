@@ -18,7 +18,6 @@ struct CarsView: View {
     @Binding var navigationPath: NavigationPath
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
     @Query private var chargingCostPlans: [ChargingCostPlan]
-    @State private var selectedCar: Car? = nil
     
     var body: some View {
         VStack {
