@@ -15,6 +15,7 @@ final class ChargingSession {
     var endTime: Date = Date.now
     var chargedEnergyKWh: Double = 0.0
     var chargingCostPlan: ChargingCostPlan?
+    var chargingCost: Cost?
     var mileageKilometer: Double?
     var initialSOC: Double?
     var finalSOC: Double?
@@ -55,6 +56,7 @@ final class ChargingSession {
         endTime: Date,
         chargedEnergy: Measurement<UnitEnergy>,
         chargingCostPlan: ChargingCostPlan,
+        chargingCost: Cost? = nil,
         mileage: Measurement<UnitLength>? = nil,
         initialSOC: Double? = nil,
         finalSOC: Double? = nil,
@@ -65,6 +67,7 @@ final class ChargingSession {
         self.endTime = endTime
         self.chargedEnergyKWh = chargedEnergy.converted(to: .kilowattHours).value
         self.chargingCostPlan = chargingCostPlan
+        self.chargingCost = chargingCost
         self.mileageKilometer = mileage?.converted(to: .kilometers).value
         self.initialSOC = initialSOC
         if useDefaultFinalSOC, chargingCostPlan.car != nil {

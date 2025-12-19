@@ -619,6 +619,22 @@
         }
       }
     },
+    "Cost" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Omkostninger"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kosten"
+          }
+        }
+      }
+    },
     "Cost amount" : {
       "localizations" : {
         "da" : {

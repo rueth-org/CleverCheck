@@ -10,7 +10,7 @@ import SwiftData
 
 struct ChargingSessionEditor: View {
     private enum Field: Int, Hashable {
-        case mileage, initialSOC, finalSOC
+        case mileage, initialSOC, finalSOC, cost
     }
     
     static let dateFormatter: DateFormatter = {
@@ -33,6 +33,8 @@ struct ChargingSessionEditor: View {
     @State private var startTime: Date = Date.now.addingTimeInterval(-10800) // -3h
     @State private var endTime: Date = Date.now
     @State private var chargedEnergy: Measurement<UnitEnergy> = .init(value: 0, unit: .kilowattHours)
+    @State private var enterCost: Bool = false
+    @State private var cost: Cost = .init(amount: 0, currency: UserSettings.shared.currencyIdentifier)
     @State private var enterMileage: Bool = false
     @State private var mileage: Measurement<UnitLength> = .init(value: 0, unit: .kilometers)
     @State private var enterInitialSOC: Bool = false
@@ -141,6 +143,37 @@ struct ChargingSessionEditor: View {
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                     Text(chargedEnergy.unit.symbol)
+                }
+                
+                // Cost (optional)
+                if enterCost {
+                    HStack {
+                        Text("Cost")
+                        Spacer()
+                        TextField("", value: $cost.amount, format: .currency(code: cost.currency))
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .focused($focusedField, equals: .cost)
+                        Button {
+                            deleteCost()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.gray)
+                        }
+                    }
+                } else {
+                    // Offer to enter mileage
+                    HStack {
+                        Text("Cost")
+                        Spacer()
+                        Button {
+                            focusedField = .cost
+                            enterCost = true
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundStyle(.gray)
+                        }
+                    }
                 }
                 
                 // Mileage (optional)
@@ -276,6 +309,10 @@ struct ChargingSessionEditor: View {
                 }
                 self.endTime = chargingSession.endTime
                 self.chargedEnergy = chargingSession.chargedEnergy
+                if let cost = chargingSession.chargingCost {
+                    self.cost = cost
+                    self.enterCost = true
+                }
                 if let mileage = chargingSession.mileage {
                     self.mileage = mileage
                     self.enterMileage = true
@@ -342,6 +379,11 @@ struct ChargingSessionEditor: View {
         enterStartTime = false
     }
     
+    private func deleteCost() {
+        enterCost = false
+        cost = .init(amount: 0, currency: UserSettings.shared.currencyIdentifier)
+    }
+    
     private func deleteMileage() {
         enterMileage = false
         mileage = .init(value: 0, unit: UserSettings.shared.distanceUnit)
@@ -381,6 +423,7 @@ struct ChargingSessionEditor: View {
             chargingSession.endTime = self.endTime
             chargingSession.chargingCostPlan = self.chargingCostPlan!
             chargingSession.chargedEnergy = self.chargedEnergy
+            chargingSession.chargingCost = enterCost ? self.cost : nil
             chargingSession.mileage = enterMileage ? self.mileage : nil
             chargingSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
             chargingSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
@@ -389,6 +432,7 @@ struct ChargingSessionEditor: View {
             // Create new charging session
             let newSession = ChargingSession(endTime: self.endTime, chargedEnergy: self.chargedEnergy, chargingCostPlan: self.chargingCostPlan!)
             newSession.startTime = enterStartTime ? self.startTime : nil
+            newSession.chargingCost = enterCost ? self.cost : nil
             newSession.mileage = enterMileage ? self.mileage : nil
             newSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
             newSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
