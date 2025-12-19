@@ -37,7 +37,7 @@ struct HomeConsumptionsList: View {
                             HStack {
                                 Text("Total:")
                                 Spacer()
-                                Text(totalCost(for: month), format: .currency(code: UserSettings.shared.currencyCode))
+                                Text(totalCost(for: month), format: .currency(code: UserSettings.shared.currencyIdentifier))
                             }
                             .font(.subheadline)
                             .foregroundColor(.primary)
@@ -52,7 +52,7 @@ struct HomeConsumptionsList: View {
                                         //Display dateoFrm - dateUntil  inshort format
                                         Text("\(homeConsumption.validFrom, format: UserSettings.shared.displayDateFormat) - \(homeConsumption.validUntil, format: UserSettings.shared.displayDateFormat)")
                                         Spacer()
-                                        Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices), format: .currency(code: UserSettings.shared.currencyCode))
+                                        Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices), format: .currency(code: UserSettings.shared.currencyIdentifier))
                                             .font(.subheadline)
                                             .foregroundColor(.secondary)
                                     }

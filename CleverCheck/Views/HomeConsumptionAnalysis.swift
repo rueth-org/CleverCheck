@@ -49,7 +49,7 @@ struct HomeConsumptionAnalysis: View {
                 HStack {
                     Text("Net Cost:")
                     Spacer()
-                    Text(costOfMonth.formatted(.currency(code: UserSettings.shared.currencyCode)))
+                    Text(costOfMonth.formatted(.currency(code: UserSettings.shared.currencyIdentifier)))
                         .bold()
                 }
                 HStack {
@@ -68,7 +68,7 @@ struct HomeConsumptionAnalysis: View {
                     Text("Specific Cost:")
                     Spacer()
                     let specificCost = netConsumptionOfMonth > 0 ? costOfMonth / netConsumptionOfMonth : 0
-                    Text("\(specificCost.formatted(.currency(code: UserSettings.shared.currencyCode)))/\(UserSettings.shared.energyUnit.symbol)")
+                    Text("\(specificCost.formatted(.currency(code: UserSettings.shared.currencyIdentifier)))/\(UserSettings.shared.energyUnit.symbol)")
                         .bold()
                 }
             }
@@ -85,12 +85,12 @@ struct HomeConsumptionAnalysis: View {
                         HStack {
                             Text("Cost:")
                             Spacer()
-                            Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).formatted(.currency(code: UserSettings.shared.currencyCode)))
+                            Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).formatted(.currency(code: UserSettings.shared.currencyIdentifier)))
                         }
                         HStack {
                             Text("Specific Cost:")
                             Spacer()
-                            Text("\(homeConsumption.specificCost(isGross: UserSettings.shared.displayGrossPrices).formatted(.currency(code: UserSettings.shared.currencyCode)))/\(UserSettings.shared.energyUnit.symbol)")
+                            Text("\(homeConsumption.specificCost(isGross: UserSettings.shared.displayGrossPrices).formatted(.currency(code: UserSettings.shared.currencyIdentifier)))/\(UserSettings.shared.energyUnit.symbol)")
                         }
                     }
                     .padding(.vertical)

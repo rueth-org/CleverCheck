@@ -9,5 +9,5 @@ import Foundation
 
 struct Cost: Codable {
     var amount: Double
-    var currency: String = UserSettings.shared.currency.identifier
+    var currency: String = UserSettings.shared.currencyIdentifier
 }

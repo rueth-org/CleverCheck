@@ -6,22 +6,22 @@
 //
 
 import Foundation
+import SwiftUI
 import SwiftData
 
-@Model
 final class UserSettings {
     static let shared = UserSettings()
     
-    var measurementSystem: Locale.MeasurementSystem = Locale.current.measurementSystem
-    var currency: Locale.Currency = Locale.current.currency ?? .init("EUR")
-    var vatRate: Double = 0.25
-    var displayGrossPrices: Bool = true
+    @AppStorage("measurementSystem") var measurementSystem: String = Locale.current.measurementSystem.identifier
+    @AppStorage("currencyIdentifier") var currencyIdentifier: String = Locale.current.currency?.identifier ?? "EUR"
+    @AppStorage("vatRate") var vatRate: Double = 0.25
+    @AppStorage("displayGrossPrices") var displayGrossPrices: Bool = true
     
     var distanceUnit: UnitLength {
         switch measurementSystem {
-        case .metric:
+        case Locale.MeasurementSystem.metric.identifier:
             return .kilometers
-        case .us, .uk:
+        case Locale.MeasurementSystem.us.identifier, Locale.MeasurementSystem.uk.identifier:
             return .miles
         default:
             fatalError()
@@ -36,8 +36,8 @@ final class UserSettings {
         .kilowatts
     }
     
-    var currencyCode: String {
-        currency.identifier
+    var currency: Locale.Currency {
+        Locale.Currency.init(currencyIdentifier)
     }
     
     var groupingDateFormatter: DateFormatter {
