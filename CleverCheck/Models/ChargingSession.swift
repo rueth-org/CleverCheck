@@ -58,7 +58,7 @@ final class ChargingSession {
         mileage: Measurement<UnitLength>? = nil,
         initialSOC: Double? = nil,
         finalSOC: Double? = nil,
-        useDefaultFinalSOC: Bool = true,
+        useDefaultFinalSOC: Bool = false,
         comment: String? = nil
     ) {
         self.startTime = startTime

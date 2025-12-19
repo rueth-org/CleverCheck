@@ -29,14 +29,14 @@ fileprivate struct ChargingSessionDTO: Codable {
     let chargingCostPlan: String?
     let chargedEnergyKWh: Double?
     let price: Double?
-    let mileageKilometers: Double?
+    let mileageKilometer: Double?
 
     enum CodingKeys: String, CodingKey {
         case endTime
         case chargingCostPlan
         case chargedEnergyKWh
         case price
-        case mileageKilometers
+        case mileageKilometer
     }
 
     init(from decoder: Decoder) throws {
@@ -60,7 +60,7 @@ fileprivate struct ChargingSessionDTO: Codable {
 
         self.chargedEnergyKWh = decodeDoubleFlexible(for: .chargedEnergyKWh)
         self.price = decodeDoubleFlexible(for: .price)
-        self.mileageKilometers = decodeDoubleFlexible(for: .mileageKilometers)
+        self.mileageKilometer = decodeDoubleFlexible(for: .mileageKilometer)
     }
 }
 
@@ -96,8 +96,9 @@ public struct ChargingSessionImporter {
     /// - Parameters:
     ///   - data: JSON data representing an array of objects matching the DTO shape.
     ///   - modelContext: the SwiftData ModelContext to insert objects into.
+    ///   - assignedCar: (optional) Car to prefer for plan matching or fallback if no plan name is given.
     /// - Returns: an import report summarising the operation.
-    public static func importFrom(data: Data, into modelContext: ModelContext) throws -> ChargingSessionImportReport {
+    static func importFrom(data: Data, into modelContext: ModelContext, assignedCar: Car? = nil) throws -> ChargingSessionImportReport {
         var report = ChargingSessionImportReport()
 
         let decoder = JSONDecoder()
@@ -120,13 +121,18 @@ public struct ChargingSessionImporter {
                 // Find a matching plan if a name was provided
                 var matchedPlan: ChargingCostPlan? = nil
                 if let planName = dto.chargingCostPlan {
-                    matchedPlan = findPlan(named: planName, in: existingPlans)
+                    // If an assignedCar is provided, prefer plans belonging to that car
+                    let plansToSearch = assignedCar == nil ? existingPlans : existingPlans.filter { $0.car?.id == assignedCar!.id }
+                    matchedPlan = findPlan(named: planName, in: plansToSearch)
+                } else if let assigned = assignedCar {
+                    // No plan name provided: try to pick the first plan for the assigned car
+                    matchedPlan = existingPlans.first(where: { $0.car?.id == assigned.id })
                 }
 
-                if dto.chargingCostPlan != nil && matchedPlan == nil {
-                    // Skip sessions without a matching plan - creating a new plan requires additional domain info
+                if matchedPlan == nil {
+                    // If no matching plan found, skip this session and record an error
                     report.skippedNoPlan += 1
-                    report.errors.append("No matching plan found for \(dto.chargingCostPlan ?? "(nil)") at \(dto.endTime)")
+                    report.errors.append("No matching plan found for \(dto.chargingCostPlan ?? "(no plan provided)") at \(dto.endTime)")
                     continue
                 }
 
@@ -143,18 +149,15 @@ public struct ChargingSessionImporter {
                 let energyMeasurement = Measurement<UnitEnergy>(value: dto.chargedEnergyKWh ?? 0.0, unit: .kilowattHours)
 
                 // Create new ChargingSession
-                guard let plan = matchedPlan else {
-                    // If no plan was provided at all, treat as failed (we avoid creating orphan plans)
-                    report.failed += 1
-                    report.errors.append("No plan supplied for session at \(dto.endTime)")
-                    continue
-                }
-
+                let plan = matchedPlan!
                 let newSession = ChargingSession(endTime: date, chargedEnergy: energyMeasurement, chargingCostPlan: plan)
 
                 // mileage
-                if let mileage = dto.mileageKilometers {
+                if let mileage = dto.mileageKilometer {
                     newSession.mileage = Measurement<UnitLength>(value: mileage, unit: .kilometers)
+                    
+                    // If mileage is entered, the finalSOC is 80%
+                    newSession.finalSOC = 0.8
                 }
 
                 // store price in comment if provided
@@ -184,9 +187,9 @@ public struct ChargingSessionImporter {
     }
 
     /// Convenience to import from a local file URL
-    public static func importFromFile(url: URL, into modelContext: ModelContext) throws -> ChargingSessionImportReport {
+    static func importFromFile(url: URL, into modelContext: ModelContext, assignedCar: Car? = nil) throws -> ChargingSessionImportReport {
         let data = try Data(contentsOf: url)
-        return try importFrom(data: data, into: modelContext)
+        return try importFrom(data: data, into: modelContext, assignedCar: assignedCar)
     }
 
     // MARK: - Helpers

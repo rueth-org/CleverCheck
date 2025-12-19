@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
     @Binding var navigationPath: NavigationPath
 
     @State private var showingAlert = false
@@ -20,6 +21,9 @@ struct SettingsView: View {
     @State private var isImportingFile: Bool = false
     @State private var importMessage: String = ""
     @State private var showImportResult: Bool = false
+    @State private var showingCarPicker: Bool = false
+    @State private var selectedImportCarIndex: Int? = nil
+    @State private var selectedImportCar: Car? = nil
 
     var body: some View {
         Text("Settings")
@@ -43,7 +47,11 @@ struct SettingsView: View {
 
             Section(header: Text("Import")) {
                 Button("Import Charging Sessions (JSON)") {
-                    isImportingFile = true
+                    // First ask the user which Car to assign imports to
+                    // Reset selection to default (none)
+                    selectedImportCarIndex = nil
+                    selectedImportCar = nil
+                    showingCarPicker = true
                 }
                 .fileImporter(isPresented: $isImportingFile, allowedContentTypes: [UTType.json], allowsMultipleSelection: false) { result in
                     switch result {
@@ -51,13 +59,13 @@ struct SettingsView: View {
                         guard let url = urls.first else { return }
                         Task {
                             do {
-                                let report = try ChargingSessionImporter.importFromFile(url: url, into: modelContext)
+                                let report = try ChargingSessionImporter.importFromFile(url: url, into: modelContext, assignedCar: selectedImportCar)
                                 var msg = "Imported \(report.imported)/\(report.total) sessions."
                                 if report.skippedNoPlan > 0 || report.skippedDuplicate > 0 || report.failed > 0 {
                                     msg += " Skipped: \(report.skippedNoPlan) (no plan), \(report.skippedDuplicate) (duplicates), \(report.failed) (failed)."
                                 }
                                 if !report.errors.isEmpty {
-                                    msg += " Errors: \(report.errors.joined(separator: "; "))"
+                                    msg += " Errors: " + report.errors.joined(separator: "; ")
                                 }
                                 importMessage = msg
                                 showImportResult = true
@@ -72,6 +80,42 @@ struct SettingsView: View {
                     }
                 }
                 .foregroundColor(.blue)
+            }
+
+            // Car picker sheet
+            .sheet(isPresented: $showingCarPicker) {
+                NavigationView {
+                    Form {
+                        Section(header: Text("Assign imported sessions to")) {
+                            Picker("Car", selection: $selectedImportCarIndex) {
+                                Text("None (leave as in file or use plan)").tag(nil as Int?)
+                                ForEach(cars.indices, id: \.self) { idx in
+                                    Text(cars[idx].description).tag(Optional(idx))
+                                }
+                            }
+                            .pickerStyle(.inline)
+                        }
+                    }
+                    .navigationTitle("Select Car")
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") { showingCarPicker = false }
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Continue") {
+                                // Resolve selected car
+                                if let idx = selectedImportCarIndex, idx >= 0, idx < cars.count {
+                                    selectedImportCar = cars[idx]
+                                } else {
+                                    selectedImportCar = nil
+                                }
+                                showingCarPicker = false
+                                // Trigger file importer
+                                isImportingFile = true
+                            }
+                        }
+                    }
+                }
             }
 
             Section(header: Text("Danger Zone")) {
