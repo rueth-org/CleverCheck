@@ -42,6 +42,14 @@ final class ChargingSession {
         }
     }
     
+    var description: String {
+        "\(UserSettings.shared.shortDateFormatter.string(from: endTime)) - \(chargingCostPlan?.descriptionLong ?? "Unknown plan"): \(chargedEnergyFormatted)"
+    }
+    
+    var chargedEnergyFormatted: String {
+        String(format: "%.1f \(UserSettings.shared.energyUnit.symbol)", chargedEnergy.converted(to: UserSettings.shared.energyUnit).value)
+    }
+    
     init(
         startTime: Date? = nil,
         endTime: Date,

@@ -46,6 +46,12 @@ final class UserSettings {
         return dateFormatter
     }
     
+    var shortDateFormatter: DateFormatter {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy/MM/dd"
+        return dateFormatter
+    }
+    
     var displayDateFormat: Date.FormatStyle {
         Date.FormatStyle().year().month(.twoDigits).day(.twoDigits)
     }

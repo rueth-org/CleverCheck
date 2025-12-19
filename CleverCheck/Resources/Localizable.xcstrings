@@ -1073,9 +1073,6 @@
         }
       }
     },
-    "kWh" : {
-      "shouldTranslate" : false
-    },
     "Label" : {
       "localizations" : {
         "da" : {
@@ -1722,19 +1719,13 @@
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tilføj venligst et køretøj først."
+            "value" : "Tilføj venligst et køretøj først"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bitte erst ein Fahrzeug hinzufügen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Please add a vehicle first."
           }
         }
       }

@@ -22,20 +22,20 @@ struct DynamicList<T: PersistentModel, Content: View>: View {
     var body: some View {
         // Empty state view
         if fetchedData.isEmpty {
-            Text(emptyStateMessage)
-                .foregroundColor(.gray)
-                .padding()
-            if let emptyStateSystemImage {
-                Image(systemName: emptyStateSystemImage)
-            }
-            Spacer()
-        } else {
-            List {
-                ForEach(fetchedData, id: \.self) { item in
-                    self.content(item)
+            HStack {
+                Spacer()
+                if let emptyStateSystemImage {
+                    Image(systemName: emptyStateSystemImage)
                 }
-                .onDelete(perform: delete)
+                Text(emptyStateMessage)
+                    .foregroundColor(.gray)
+                Spacer()
             }
+        } else {
+            ForEach(fetchedData, id: \.self) { item in
+                self.content(item)
+            }
+            .onDelete(perform: delete)
         }
     }
     

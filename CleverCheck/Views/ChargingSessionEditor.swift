@@ -366,7 +366,7 @@ struct ChargingSessionEditor: View {
         }
         
         // Data check: start time before end time
-        if startTime >= endTime {
+        if enterStartTime && startTime >= endTime {
             activeAlert = .error(message: "Start time must be before end time.")
             showingAlert = true
             return
