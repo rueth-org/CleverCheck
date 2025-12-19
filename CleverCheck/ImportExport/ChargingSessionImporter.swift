@@ -1,0 +1,224 @@
+//
+//  ChargingSessionImporter.swift
+//  CleverCheck
+//
+//  Created by Ulrich Rüth on 19/12/2025.
+//
+
+import Foundation
+import SwiftData
+
+public enum ChargingSessionImportError: Error {
+    case decodingError(Error)
+    case dateParseError(String)
+    case noMatchingPlan(String)
+    case persistenceError(Error)
+}
+
+public struct ChargingSessionImportReport {
+    public var total: Int = 0
+    public var imported: Int = 0
+    public var skippedNoPlan: Int = 0
+    public var skippedDuplicate: Int = 0
+    public var failed: Int = 0
+    public var errors: [String] = []
+}
+
+fileprivate struct ChargingSessionDTO: Codable {
+    let endTime: String
+    let chargingCostPlan: String?
+    let chargedEnergyKWh: Double?
+    let price: Double?
+    let mileageKilometers: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case endTime
+        case chargingCostPlan
+        case chargedEnergyKWh
+        case price
+        case mileageKilometers
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // endTime as string (required)
+        self.endTime = try container.decode(String.self, forKey: .endTime)
+        self.chargingCostPlan = try? container.decodeIfPresent(String.self, forKey: .chargingCostPlan)
+
+        // Helper to decode numeric fields that may be Double or String with locale separators
+        func decodeDoubleFlexible(for key: CodingKeys) -> Double? {
+            // Try Double first
+            if let d = try? container.decodeIfPresent(Double.self, forKey: key) {
+                return d
+            }
+            // Then try String and parse
+            if let s = try? container.decodeIfPresent(String.self, forKey: key) {
+                return ChargingSessionImporter.parseLocalizedDouble(s)
+            }
+            return nil
+        }
+
+        self.chargedEnergyKWh = decodeDoubleFlexible(for: .chargedEnergyKWh)
+        self.price = decodeDoubleFlexible(for: .price)
+        self.mileageKilometers = decodeDoubleFlexible(for: .mileageKilometers)
+    }
+}
+
+public struct ChargingSessionImporter {
+    private static let isoFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    // Parse localized numeric string into Double
+    fileprivate static func parseLocalizedDouble(_ raw: String) -> Double? {
+        var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if s.isEmpty { return nil }
+
+        // Remove currency symbols and letters: keep digits, separators, plus/minus
+        s = s.filter { "0123456789.,+-".contains($0) }
+
+        // Handle common grouping/decimal conventions
+        if s.contains(".") && s.contains(",") {
+            // assume "." is thousands separator and "," is decimal (e.g. "1.234,56")
+            s = s.replacingOccurrences(of: ".", with: "")
+            s = s.replacingOccurrences(of: ",", with: ".")
+        } else if s.contains(",") && !s.contains(".") {
+            // assume "," is decimal separator
+            s = s.replacingOccurrences(of: ",", with: ".")
+        }
+
+        return Double(s)
+    }
+
+    /// Import from raw JSON Data.
+    /// - Parameters:
+    ///   - data: JSON data representing an array of objects matching the DTO shape.
+    ///   - modelContext: the SwiftData ModelContext to insert objects into.
+    /// - Returns: an import report summarising the operation.
+    public static func importFrom(data: Data, into modelContext: ModelContext) throws -> ChargingSessionImportReport {
+        var report = ChargingSessionImportReport()
+
+        let decoder = JSONDecoder()
+        do {
+            let dtos = try decoder.decode([ChargingSessionDTO].self, from: data)
+            report.total = dtos.count
+
+            // Preload existing plans and sessions to perform matching and deduplication in-memory
+            let existingPlans: [ChargingCostPlan] = try modelContext.fetch(FetchDescriptor<ChargingCostPlan>())
+            let existingSessions: [ChargingSession] = try modelContext.fetch(FetchDescriptor<ChargingSession>())
+
+            for dto in dtos {
+                // parse date
+                guard let date = parseDate(dto.endTime) else {
+                    report.failed += 1
+                    report.errors.append("Invalid date string: \(dto.endTime)")
+                    continue
+                }
+
+                // Find a matching plan if a name was provided
+                var matchedPlan: ChargingCostPlan? = nil
+                if let planName = dto.chargingCostPlan {
+                    matchedPlan = findPlan(named: planName, in: existingPlans)
+                }
+
+                if dto.chargingCostPlan != nil && matchedPlan == nil {
+                    // Skip sessions without a matching plan - creating a new plan requires additional domain info
+                    report.skippedNoPlan += 1
+                    report.errors.append("No matching plan found for \(dto.chargingCostPlan ?? "(nil)") at \(dto.endTime)")
+                    continue
+                }
+
+                // Deduplicate by endTime + plan
+                let isDuplicate = existingSessions.contains { session in
+                    return session.endTime == date && session.chargingCostPlan?.id == matchedPlan?.id
+                }
+                if isDuplicate {
+                    report.skippedDuplicate += 1
+                    continue
+                }
+
+                // Build charged energy
+                let energyMeasurement = Measurement<UnitEnergy>(value: dto.chargedEnergyKWh ?? 0.0, unit: .kilowattHours)
+
+                // Create new ChargingSession
+                guard let plan = matchedPlan else {
+                    // If no plan was provided at all, treat as failed (we avoid creating orphan plans)
+                    report.failed += 1
+                    report.errors.append("No plan supplied for session at \(dto.endTime)")
+                    continue
+                }
+
+                let newSession = ChargingSession(endTime: date, chargedEnergy: energyMeasurement, chargingCostPlan: plan)
+
+                // mileage
+                if let mileage = dto.mileageKilometers {
+                    newSession.mileage = Measurement<UnitLength>(value: mileage, unit: .kilometers)
+                }
+
+                // store price in comment if provided
+                if let price = dto.price {
+                    let priceText = String(format: "Price: %.2f", price)
+                    if let existingComment = newSession.comment, !existingComment.isEmpty {
+                        newSession.comment = existingComment + " (Imported: \(priceText))"
+                    } else {
+                        newSession.comment = "Imported: \(priceText)"
+                    }
+                }
+
+                modelContext.insert(newSession)
+                report.imported += 1
+            }
+
+            do {
+                try modelContext.save()
+            } catch {
+                throw ChargingSessionImportError.persistenceError(error)
+            }
+
+            return report
+        } catch let err {
+            throw ChargingSessionImportError.decodingError(err)
+        }
+    }
+
+    /// Convenience to import from a local file URL
+    public static func importFromFile(url: URL, into modelContext: ModelContext) throws -> ChargingSessionImportReport {
+        let data = try Data(contentsOf: url)
+        return try importFrom(data: data, into: modelContext)
+    }
+
+    // MARK: - Helpers
+
+    private static func parseDate(_ string: String) -> Date? {
+        // Try ISO8601 first
+        if let d = isoFormatter.date(from: string) {
+            return d
+        }
+        // fallback to common formats
+        let df = DateFormatter()
+        df.locale = Locale.current
+        df.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        if let d = df.date(from: string) {
+            return d
+        }
+        // Try without timezone
+        df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        if let d = df.date(from: string) {
+            return d
+        }
+        
+        // Try European format
+        df.dateFormat = "dd.MM.yyyy"
+        return df.date(from: string)
+    }
+
+    private static func findPlan(named name: String, in plans: [ChargingCostPlan]) -> ChargingCostPlan? {
+        // Try several human-friendly plan descriptions
+        return plans.first(where: { plan in
+            let candidates = [plan.descriptionLong, plan.descriptionShort, plan.descriptionLongNoCar, plan.descriptionShortNoCar]
+            return candidates.contains(where: { $0 == name })
+        })
+    }
+}
