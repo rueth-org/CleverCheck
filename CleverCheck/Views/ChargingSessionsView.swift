@@ -52,30 +52,40 @@ struct ChargingSessionsView: View {
     var body: some View {
         List(groupedSessions.keys.sorted(), id: \.self) { carDescription in
             Section(header: Text(carDescription)) {
-                ForEach(groupedSessions[carDescription]!, id: \.self) { chargingSession in
-                    NavigationLink(value: ChargingSessionsView.NavigationDestination.EditSession(chargingSession: chargingSession, selectedCar: chargingSession.chargingCostPlan?.car)) {
-                        VStack {
-                            HStack {
-                                Text(chargingSession.endTime, format: Date.FormatStyle(date: .abbreviated, time: .none))
-                                Spacer()
-                                if chargingSession.finalSOC != nil {
-                                    Text(chargingSession.finalSOC!.formatted(.percent))
+                if groupedSessions[carDescription]!.isEmpty {
+                    HStack {
+                        Spacer()
+                        Image(systemName: "bolt.fill")
+                        Text(.noChargingSessionsFound)
+                        Spacer()
+                    }
+                    .foregroundColor(.gray)
+                } else {
+                    ForEach(groupedSessions[carDescription]!, id: \.self) { chargingSession in
+                        NavigationLink(value: ChargingSessionsView.NavigationDestination.EditSession(chargingSession: chargingSession, selectedCar: chargingSession.chargingCostPlan?.car)) {
+                            VStack {
+                                HStack {
+                                    Text(chargingSession.endTime, format: Date.FormatStyle(date: .abbreviated, time: .none))
+                                    Spacer()
+                                    if chargingSession.finalSOC != nil {
+                                        Text(chargingSession.finalSOC!.formatted(.percent))
+                                    }
+                                    Spacer()
+                                    Text(chargingSession.chargedEnergyFormatted)
                                 }
-                                Spacer()
-                                Text(chargingSession.chargedEnergyFormatted)
-                            }
-                            HStack {
-                                Text(chargingSession.chargingCostPlan?.descriptionShortNoCar ?? "Unknown plan")
-                                    .font(.subheadline)
-                                Spacer()
+                                HStack {
+                                    Text(chargingSession.chargingCostPlan?.descriptionShortNoCar ?? "Unknown plan")
+                                        .font(.subheadline)
+                                    Spacer()
+                                }
                             }
                         }
-                    }
-                    .swipeActions {
-                        Button(role: .destructive) {
-                            delete(for: chargingSession)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                delete(for: chargingSession)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
                     }
                 }
