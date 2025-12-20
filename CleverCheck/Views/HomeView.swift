@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct HomeView: View {
     enum NavigationDestination: Hashable {
@@ -13,6 +14,9 @@ struct HomeView: View {
     }
     
     @State private var navigationPath = NavigationPath()
+    @State private var selectedLocation: Location? = nil
+    
+    @Query(sort: \Location.name) private var locations: [Location]
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -38,29 +42,67 @@ struct HomeView: View {
                 ToolbarItem(placement: .principal) {
                     Text("Home")
                 }
+                // Filter menu
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button(action: { selectedLocation = nil }) {
+                            Text("All locations")
+                        }
+                        ForEach(locations, id: \.self) { location in
+                            Button(action: { selectedLocation = location }) {
+                                Text(location.name)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                            .foregroundColor(selectedLocation == nil ? .primary : .blue)
+                    }
+                }
+                // Add home consumption (or location if none available)
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: locations.isEmpty ? addLocation : addHomeConsumption) {
+                        Image(systemName: "plus")
+                    }
+                }
             }
             .navigationDestination(for: NavigationDestination.self) { screen in
                 switch screen {
                 case .HomeConsumptions:
-                    HomeConsumptionsView(navigationPath: $navigationPath)
+                    HomeConsumptionsView(navigationPath: $navigationPath, selectedLocation: $selectedLocation)
                 }
             }
             .navigationDestination(for: HomeConsumptionsView.NavigationDestination.self) { screen in
                 switch screen {
-                case .NewConsumption:
+                case .NewConsumption(let location):
                     let newHomeConsumption = HomeConsumption(
                         name: "",
                         validFrom: Date.now.startDateOfMonth,
                         validUntil: Date.now.endDateOfMonth,
                         consumption: .init(value: 0.0, unit: .kilowattHours),
                         consumptionIncludedElsewhere: false,
-                        associatedLocation: nil
+                        associatedLocation: location
                     )
                     HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: newHomeConsumption, isNew: true)
                 case .EditConsumption(homeConsumption: let HomeConsumption):
                     HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: HomeConsumption, isNew: false)
                 }
             }
+            .navigationDestination(for: LocationsView.NavigationDestination.self) { screen in
+                switch screen {
+                case .NewLocation(location: let location):
+                    LocationEditor(navigationPath: $navigationPath, location: location)
+                case .EditLocation(location: let location):
+                    LocationEditor(navigationPath: $navigationPath, location: location)
+                }
+            }
         }
+    }
+    
+    private func addLocation() {
+        navigationPath.append(LocationsView.NavigationDestination.NewLocation(location: nil))
+    }
+    
+    private func addHomeConsumption() {
+        navigationPath.append(HomeConsumptionsView.NavigationDestination.NewConsumption(location: selectedLocation))
     }
 }

@@ -42,7 +42,7 @@ struct ChargingView: View {
                 ToolbarItem(placement: .principal) {
                     Text("Charging")
                 }
-                // New filter menu in the toolbar to replace the inline Picker
+                // Filter menu
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button(action: { selectedCar = nil }) {
@@ -58,6 +58,7 @@ struct ChargingView: View {
                             .foregroundColor(selectedCar == nil ? .primary : .blue)
                     }
                 }
+                // Add session (or car if none available)
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: vehicles.isEmpty ? addCar : addSession) {
                         Image(systemName: "plus")

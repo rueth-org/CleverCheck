@@ -10,49 +10,48 @@ import SwiftData
 
 struct HomeConsumptionsView: View {
     enum NavigationDestination: Hashable {
-        case NewConsumption
+        case NewConsumption(location: Location?)
         case EditConsumption(homeConsumption: HomeConsumption)
     }
     
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
+    @Binding var selectedLocation: Location?
     
     @Query private var locations: [Location]
     @Query(sort: [SortDescriptor(\HomeConsumption.validUntil), SortDescriptor(\HomeConsumption.name)]) private var homeConsumptions: [HomeConsumption]
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
-    @State private var selectedLocation: Location? = nil
+
     
     var body: some View {
         VStack {
-            HStack {
-                Text("Location")
-                Button {
-                    addLocation()
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(.gray)
-                }
-                Spacer()
-                // Location selector
-                Picker("Location", selection: $selectedLocation) {
-                    Text("All locations").tag(nil as Location?)
-                    ForEach(locations, id: \.self) { location in
-                        Text(location.name).tag(location)
-                    }
-                }
-            }
-            .padding(.horizontal)
-            
             HomeConsumptionsList(navigationPath: $navigationPath, associatedLocation: selectedLocation)
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text("Home Consumptions")
             }
+            // Filter menu
             ToolbarItem(placement: .topBarTrailing) {
-                Button(action: addHomeConsumption) {
+                Menu {
+                    Button(action: { selectedLocation = nil }) {
+                        Text("All locations")
+                    }
+                    ForEach(locations, id: \.self) { location in
+                        Button(action: { selectedLocation = location }) {
+                            Text(location.name)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                        .foregroundColor(selectedLocation == nil ? .primary : .blue)
+                }
+            }
+            // Add home consumption (or location if none available)
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: locations.isEmpty ? addLocation : addHomeConsumption) {
                     Image(systemName: "plus")
                 }
             }
@@ -78,7 +77,7 @@ struct HomeConsumptionsView: View {
             activeAlert = .warning(message: "Please add a location first")
             showingAlert = true
         } else {
-            navigationPath.append(NavigationDestination.NewConsumption)
+            navigationPath.append(NavigationDestination.NewConsumption(location: selectedLocation))
         }
     }
     
