@@ -33,7 +33,7 @@ struct ChargingSessionsView: View {
                     for chargingCostPlan in chargingCostPlans {
                         chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions ?? [])
                     }
-                    result[vehicle.description] = chargingSessions.sorted(by: { $0.endTime < $1.endTime })
+                    result[vehicle.description] = chargingSessions.sorted(by: { $0.endTime > $1.endTime })
                 }
             }
         } else {
@@ -43,7 +43,7 @@ struct ChargingSessionsView: View {
                 for chargingCostPlan in chargingCostPlans {
                     chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions ?? [])
                 }
-                result[selectedCar!.description] = chargingSessions.sorted(by: { $0.endTime < $1.endTime })
+                result[selectedCar!.description] = chargingSessions.sorted(by: { $0.endTime > $1.endTime })
             }
         }
         return result
