@@ -16,7 +16,7 @@ struct ChargingSessionsView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    @State private var selectedCar: Car?
+    @Binding var selectedCar: Car?
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var vehicles: [Car]
     

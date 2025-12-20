@@ -55,104 +55,20 @@ enum SimpleAlertType: Error {
 }
 
 struct ContentView: View {
-    enum NavigationDestination: Hashable {
-        case ChargingSessions
-        case Cars
-        case Chargers
-        case Locations
-        case ChargingCostPlans
-        case HomeConsumptions
-    }
-    
     @Environment(\.modelContext) private var modelContext
-    @State private var navigationPath = NavigationPath()
         
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            TabView {
-                Tab("Charging", systemImage: "bolt.car") {
-                    ChargingView(navigationPath: $navigationPath)
-                }
-                
-                Tab("Home", systemImage: "house") {
-                    HomeView(navigationPath: $navigationPath)
-                }
-                
-                Tab("Settings", systemImage: "gear") {
-                    SettingsView(navigationPath: $navigationPath)
-                }
+        TabView {
+            Tab("Charging", systemImage: "bolt.car") {
+                ChargingView()
             }
-            .navigationDestination(for: NavigationDestination.self) { screen in
-                switch screen {
-                case .ChargingSessions:
-                    ChargingSessionsView(navigationPath: $navigationPath)
-                case .Cars:
-                    CarsView(navigationPath: $navigationPath)
-                case .Chargers:
-                    ChargersView(navigationPath: $navigationPath)
-                case .Locations:
-                    LocationsView(navigationPath: $navigationPath)
-                case .ChargingCostPlans:
-                    ChargingCostPlansView(navigationPath: $navigationPath)
-                case .HomeConsumptions:
-                    HomeConsumptionsView(navigationPath: $navigationPath)
-                }
+            
+            Tab("Home", systemImage: "house") {
+                HomeView()
             }
-            .navigationDestination(for: CarsView.NavigationDestination.self) { screen in
-                switch screen {
-                case .NewCar:
-                    CarEditor(navigationPath: $navigationPath, car: nil)
-                case .EditCar(car: let car):
-                    CarEditor(navigationPath: $navigationPath, car: car)
-                }
-            }
-            .navigationDestination(for: LocationsView.NavigationDestination.self) { screen in
-                switch screen {
-                case .NewLocation(location: let location):
-                    LocationEditor(navigationPath: $navigationPath, location: location)
-                case .EditLocation(location: let location):
-                    LocationEditor(navigationPath: $navigationPath, location: location)
-                }
-            }
-            .navigationDestination(for: ChargingSessionsView.NavigationDestination.self) { screen in
-                switch screen {
-                case .NewSession(let selectedCar):
-                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: nil, selectedCar: selectedCar)
-                case .EditSession(chargingSession: let chargingSession, let selectedCar):
-                    ChargingSessionEditor(navigationPath: $navigationPath, chargingSession: chargingSession, selectedCar: selectedCar)
-                }
-            }
-            .navigationDestination(for: ChargersView.NavigationDestination.self) { screen in
-                switch screen {
-                case .NewCharger:
-                    ChargerEditor(navigationPath: $navigationPath, charger: nil)
-                case .EditCharger(charger: let charger):
-                    ChargerEditor(navigationPath: $navigationPath, charger: charger)
-                }
-            }
-            .navigationDestination(for: ChargingCostPlansView.NavigationDestination.self) { screen in
-                switch screen {
-                case .NewPlan(let car):
-                    ChargingCostPlanEditor(navigationPath: $navigationPath, plan: nil, car: car)
-                case .EditPlan(plan: let plan):
-                    ChargingCostPlanEditor(navigationPath: $navigationPath, plan: plan)
-                }
-            }
-            .navigationDestination(for: HomeConsumptionsView.NavigationDestination.self) { screen in
-                switch screen {
-                case .NewConsumption:
-                    let newHomeConsumption = HomeConsumption(
-                        name: "",
-                        validFrom: Date.now.startDateOfMonth,
-                        validUntil: Date.now.endDateOfMonth,
-                        consumption: .init(value: 0.0, unit: .kilowattHours),
-                        consumptionIncludedElsewhere: false,
-                        associatedLocation: nil
-                    )
-                    HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: newHomeConsumption, isNew: true)
-                case .EditConsumption(homeConsumption: let HomeConsumption):
-                    HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: HomeConsumption, isNew: false)
-                }
+            
+            Tab("Settings", systemImage: "gear") {
+                SettingsView()
             }
         }
     }
