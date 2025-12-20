@@ -162,7 +162,7 @@ struct ChargingSessionEditor: View {
                         }
                     }
                 } else {
-                    // Offer to enter mileage
+                    // Offer to enter cost
                     HStack {
                         Text("Cost")
                         Spacer()
@@ -414,7 +414,83 @@ struct ChargingSessionEditor: View {
             return
         }
         
-        // TODO check if mileage less than max
+        // Check if mileage more than the last one entered
+        if enterMileage {
+            let mileageKilometer = mileage.converted(to: .kilometers)
+            if let car = chargingCostPlan?.car {
+                if let allPlans = car.chargingCostPlans {
+                    // Get all charging sessions related to this car, sorted chronologically
+                    let allSessions = allPlans.flatMap { $0.chargingSessions ?? [] }.sorted(by: { $0.endTime < $1.endTime })
+                    
+                    if !allSessions.isEmpty {
+                        if endTime < allSessions.first!.endTime {
+                            // Checks when new entry is earlier than earliest entry
+                            // Find first entry with a mileage
+                            if let firstSessionWithMileage = allSessions.first(where: { $0.mileage != nil }) {
+                                // Check if new mileage is less than the one found
+                                if mileageKilometer > firstSessionWithMileage.mileage!.converted(to: .kilometers) {
+                                    let mileage = firstSessionWithMileage.mileage!.value
+                                    let precision = UserSettings.shared.precision(for: mileage)
+                                    activeAlert = .error(message: "Mileage must be less or equal than \(mileage.formatted(.number.precision(.fractionLength(precision)))) \(firstSessionWithMileage.mileage!.unit.symbol).")
+                                    showingAlert = true
+                                    return
+                                }
+                            }
+                        } else if endTime > allSessions.last!.endTime {
+                            // Checks when new entry is later than latest entry
+                            // Find last entry with a mileage
+                            if let lastEntryWithMileage = allSessions.last(where: { $0.mileage != nil }) {
+                                // Check if new mileage is less than the one found
+                                if mileageKilometer < lastEntryWithMileage.mileage!.converted(to: .kilometers) {
+                                    let mileage = lastEntryWithMileage.mileage!.value
+                                    let precision = UserSettings.shared.precision(for: mileage)
+                                    activeAlert = .error(message: "Mileage must be greater or equal than \(mileage.formatted(.number.precision(.fractionLength(precision)))) \(lastEntryWithMileage.mileage!.unit.symbol).")
+                                    showingAlert = true
+                                    return
+                                }
+                            }
+                        } else {
+                            // Check when new entry is inbetween existing entries
+                            // Find the index of the entry in allSession, which endTime-wise comes right before this new entry
+                            var index = 0
+                            while index < allSessions.count - 1 {
+                                if allSessions[index].endTime <= endTime && allSessions[index + 1].endTime > endTime {
+                                    let earlierSessions = allSessions[0...index]
+                                    let laterSessions = allSessions[(index + 1)...]
+                                    
+                                    // Find the last entry with a mileage in the earlier sessions
+                                    if let lastEntryWithMileage = earlierSessions.last(where: { $0.mileage != nil }) {
+                                        if mileageKilometer < lastEntryWithMileage.mileage!.converted(to: .kilometers) {
+                                            let mileage = lastEntryWithMileage.mileage!.value
+                                            let precision = UserSettings.shared.precision(for: mileage)
+                                            activeAlert = .error(message: "Mileage must be greater or equal than \(mileage.formatted(.number.precision(.fractionLength(precision)))) \(lastEntryWithMileage.mileage!.unit.symbol).")
+                                            showingAlert = true
+                                            return
+                                        }
+                                    }
+                                    
+                                    // Find the first entry with a mileage in the later sessions
+                                    if let firstEntryWithMileage = laterSessions.first(where: { $0.mileage != nil }) {
+                                        if mileageKilometer > firstEntryWithMileage.mileage!.converted(to: .kilometers) {
+                                            let mileage = firstEntryWithMileage.mileage!.value
+                                            let precision = UserSettings.shared.precision(for: mileage)
+                                            activeAlert = .error(message: "Mileage must be less or equal than \(mileage.formatted(.number.precision(.fractionLength(precision)))) \(firstEntryWithMileage.mileage!.unit.symbol).")
+                                            showingAlert = true
+                                            return
+                                        }
+                                    }
+                                    
+                                    // Leave the loop
+                                    break
+                                } else {
+                                    index += 1
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         
         // Save data
         if let chargingSession {
@@ -453,3 +529,4 @@ struct ChargingSessionEditor: View {
         navigationPath.append(ChargingCostPlansView.NavigationDestination.NewPlan(car: selectedCar))
     }
 }
+
