@@ -13,14 +13,43 @@ struct ChargingView: View {
         case ChargingSessions
     }
     
+    enum Resolution: LocalizedStringKey {
+        case yearly = "yearly"
+        case monthly = "monthly"
+    }
+    
+    @Environment(\.modelContext) private var modelContext
     @State private var navigationPath = NavigationPath()
     @State private var selectedCar: Car? = nil
+    @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
+    @State private var selectedMonth: Int = Calendar.current.component(.month, from: Date())
+    @State private var selectedResolution: Resolution = .monthly
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var vehicles: [Car]
     
+    var chargingData: ChargingData? {
+        if let selectedCar = selectedCar {
+            var resolution: ChargingData.Resolution
+            switch selectedResolution {
+            case .monthly:
+                resolution = .monthly(year: selectedYear, month: selectedMonth)
+            case .yearly:
+                resolution = .yearly(year: selectedYear)
+            }
+            return try? ChargingData(modelContext: modelContext, vehicle: selectedCar, resolution: resolution)
+        } else {
+            return nil
+        }
+    }
+    
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            VStack {
+            List {
+                if let chargingData = chargingData {
+                    ForEach(chargingData.chargingSessions, id: \.self) { session in
+                        Text(session.description)
+                    }
+                }
                 Button(action: {
                     navigationPath.append(NavigationDestination.ChargingSessions)
                 }) {
