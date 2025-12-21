@@ -99,12 +99,6 @@ struct ChargingSessionEditor: View {
                         .onChange(of: chargingCostPlan) { _oldValue, newValue in
                             // Update selectedCar to the plan's car (or nil) without force-unwrapping
                             self.selectedCar = newValue?.car
-                            // Persist selected car selection globally
-                            if let car = newValue?.car {
-                                UserSettings.shared.selectedCarID = car.id.uuidString
-                            } else {
-                                UserSettings.shared.selectedCarID = ""
-                            }
                         }
                     }
                 }
@@ -300,12 +294,7 @@ struct ChargingSessionEditor: View {
             if let chargingSession {
                 // Edit the incoming charging session
                 self.chargingCostPlan = chargingSession.chargingCostPlan
-                // Prefer the plan's car for editing session
                 self.selectedCar = chargingSession.chargingCostPlan?.car
-                // Persist selected car if available
-                if let car = self.selectedCar {
-                    UserSettings.shared.selectedCarID = car.id.uuidString
-                }
                 if let startTime = chargingSession.startTime {
                     self.startTime = startTime
                     self.enterStartTime = true
@@ -343,34 +332,6 @@ struct ChargingSessionEditor: View {
                 if let comment = chargingSession.comment {
                     self.comment = comment
                 }
-            } else {
-                // No chargingSession: initialize selectedCar from persisted selection if available
-                if self.selectedCar == nil {
-                    let selID = UserSettings.shared.selectedCarID
-                    if !selID.isEmpty {
-                        if let resolved = cars.first(where: { $0.id.uuidString == selID }) {
-                            self.selectedCar = resolved
-                        }
-                    }
-                }
-
-                // Persist current selectedCar if resolved
-                if let car = self.selectedCar {
-                    UserSettings.shared.selectedCarID = car.id.uuidString
-                }
-
-                // No incoming session: defaults
-                self.startTime = Date.now.addingTimeInterval(-10800)
-                self.endTime = Date.now
-                self.chargedEnergy = .init(value: 0, unit: .kilowattHours)
-                self.enterCost = false
-                self.cost = .init(amount: 0, currency: UserSettings.shared.currencyIdentifier)
-                self.enterMileage = false
-                self.mileage = .init(value: 0, unit: UserSettings.shared.distanceUnit)
-                self.enterInitialSOC = false
-                self.initialSOC = 0.2
-                self.enterFinalSOC = false
-                self.finalSOC = 0.8
             }
         }
         .alert(

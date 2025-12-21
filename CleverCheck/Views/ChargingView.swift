@@ -20,16 +20,12 @@ struct ChargingView: View {
     
     @Environment(\.modelContext) private var modelContext
     @State private var navigationPath = NavigationPath()
+    @State private var selectedCar: Car? = nil
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var selectedMonth: Int = Calendar.current.component(.month, from: Date())
     @State private var selectedResolution: Resolution = .monthly
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var vehicles: [Car]
-    
-    private var selectedCar: Car? {
-        guard !UserSettings.shared.selectedCarID.isEmpty else { return nil }
-        return vehicles.first(where: { $0.id.uuidString == UserSettings.shared.selectedCarID })
-    }
     
     var chargingData: ChargingData? {
         if let selectedCar = selectedCar {
@@ -49,11 +45,11 @@ struct ChargingView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             List {
-                /*if let chargingData = chargingData {
-                    ForEach(chargingData.existingSessions, id: \.self) { session in
+                if let chargingData = chargingData {
+                    ForEach(chargingData.chargingSessions, id: \.self) { session in
                         Text(session.description)
                     }
-                }*/
+                }
                 Button(action: {
                     navigationPath.append(NavigationDestination.ChargingSessions)
                 }) {
@@ -78,11 +74,11 @@ struct ChargingView: View {
                 // Filter menu
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button(action: { UserSettings.shared.selectedCarID = "" }) {
+                        Button(action: { selectedCar = nil }) {
                             Text("All vehicles")
                         }
                         ForEach(vehicles, id: \.self) { car in
-                            Button(action: { UserSettings.shared.selectedCarID = car.id.uuidString }) {
+                            Button(action: { selectedCar = car }) {
                                 Text(car.description)
                             }
                         }
@@ -101,7 +97,7 @@ struct ChargingView: View {
             .navigationDestination(for: NavigationDestination.self) { screen in
                 switch screen {
                 case .ChargingSessions:
-                    ChargingSessionsView(navigationPath: $navigationPath)
+                    ChargingSessionsView(navigationPath: $navigationPath, selectedCar: $selectedCar)
                 }
             }
             .navigationDestination(for: ChargingSessionsView.NavigationDestination.self) { screen in

@@ -16,7 +16,6 @@ final class UserSettings {
     @AppStorage("currencyIdentifier") var currencyIdentifier: String = Locale.current.currency?.identifier ?? "EUR"
     @AppStorage("vatRate") var vatRate: Double = 0.25
     @AppStorage("displayGrossPrices") var displayGrossPrices: Bool = true
-    @AppStorage("selectedCarID") var selectedCarID: String = ""
     
     var distanceUnit: UnitLength {
         switch measurementSystem {
