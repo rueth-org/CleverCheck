@@ -9,11 +9,11 @@ import SwiftUI
 import SwiftData
 
 enum SimpleAlertType: Error {
-    case success(message: String)
-    case notice(message: String)
-    case warning(message: String)
-    case error(message: String)
-    case fatalError(message: String)
+    case success(message: LocalizedStringKey)
+    case notice(message: LocalizedStringKey)
+    case warning(message: LocalizedStringKey)
+    case error(message: LocalizedStringKey)
+    case fatalError(message: LocalizedStringKey)
     
     func title() -> String {
         switch self {
@@ -34,22 +34,18 @@ enum SimpleAlertType: Error {
         Button("OK", role: .cancel) {}
     }
     
-    func message() -> some View {
-        Text(verbatim: messageAsString())
-    }
-    
-    func messageAsString() -> String {
+    func message() -> Text {
         switch self {
         case let .success(message: message):
-            return NSLocalizedString(message, comment: "")
+            return Text(message)
         case let .notice(message: message):
-            return NSLocalizedString(message, comment: "")
+            return Text(message)
         case let .warning(message: message):
-            return NSLocalizedString(message, comment: "")
+            return Text(message)
         case let .error(message: message):
-            return NSLocalizedString(message, comment: "")
+            return Text(message)
         case let .fatalError(message: message):
-            return "\(NSLocalizedString(message, comment: "")) - \(NSLocalizedString("This should not have happened, please inform the developer team.", comment: ""))"
+            return Text(message) + Text(" - This should not have happened, please inform the developer team.")
         }
     }
 }

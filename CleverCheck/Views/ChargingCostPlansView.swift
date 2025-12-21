@@ -47,7 +47,7 @@ struct ChargingCostPlansView: View {
                         Section(header: Text(carDescription)) {
                             ForEach(groupedPlans[carDescription]!, id: \.self) { chargingCostPlan in
                                 NavigationLink(value: NavigationDestination.EditPlan(plan: chargingCostPlan)) {
-                                    Text(NSLocalizedString(chargingCostPlan.descriptionLongNoCar, comment: ""))
+                                    Text(chargingCostPlan.descriptionLongNoCar)
                                 }
                                 .swipeActions {
                                     if canDelete(chargingCostPlan) {
