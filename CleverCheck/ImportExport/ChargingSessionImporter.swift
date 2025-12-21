@@ -28,14 +28,14 @@ fileprivate struct ChargingSessionDTO: Codable {
     let endTime: String
     let chargingCostPlan: String?
     let chargedEnergyKWh: Double?
-    let price: Double?
+    let chargingCost: Double?
     let mileageKilometer: Double?
 
     enum CodingKeys: String, CodingKey {
         case endTime
         case chargingCostPlan
         case chargedEnergyKWh
-        case price
+        case chargingCost
         case mileageKilometer
     }
 
@@ -59,7 +59,7 @@ fileprivate struct ChargingSessionDTO: Codable {
         }
 
         self.chargedEnergyKWh = decodeDoubleFlexible(for: .chargedEnergyKWh)
-        self.price = decodeDoubleFlexible(for: .price)
+        self.chargingCost = decodeDoubleFlexible(for: .chargingCost)
         self.mileageKilometer = decodeDoubleFlexible(for: .mileageKilometer)
     }
 }
@@ -122,7 +122,7 @@ public struct ChargingSessionImporter {
                 var matchedPlan: ChargingCostPlan? = nil
                 if let planName = dto.chargingCostPlan {
                     // If an assignedCar is provided, prefer plans belonging to that car
-                    let plansToSearch = assignedCar == nil ? existingPlans : existingPlans.filter { $0.car?.id == assignedCar!.id }
+                    let plansToSearch = assignedCar == nil ? existingPlans : existingPlans.filter { $0.car?.persistentModelID == assignedCar!.persistentModelID }
                     matchedPlan = findPlan(named: planName, in: plansToSearch)
                 } else if let assigned = assignedCar {
                     // No plan name provided: try to pick the first plan for the assigned car
@@ -160,14 +160,11 @@ public struct ChargingSessionImporter {
                     newSession.finalSOC = 0.8
                 }
 
-                // store price in comment if provided
-                if let price = dto.price {
-                    let priceText = String(format: "Price: %.2f", price)
-                    if let existingComment = newSession.comment, !existingComment.isEmpty {
-                        newSession.comment = existingComment + " (Imported: \(priceText))"
-                    } else {
-                        newSession.comment = "Imported: \(priceText)"
-                    }
+                // store charging cost in currency of Locale.current
+                if let chargingCost = dto.chargingCost {
+                    let currency = Locale.current.currency?.identifier ?? "EUR"
+                    let chargingCostObject = Cost(amount: chargingCost, currency: currency)
+                    newSession.chargingCost = chargingCostObject
                 }
 
                 modelContext.insert(newSession)

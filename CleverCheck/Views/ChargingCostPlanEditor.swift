@@ -301,7 +301,7 @@ struct ChargingCostPlanEditor: View {
             
             Picker("Refunding Plan", selection: $refundingPlan) {
                 Text("- Select a plan -").tag(nil as ChargingCostPlan?)
-                ForEach(allPlans, id: \.id) { plan in
+                ForEach(allPlans, id: \.self) { plan in
                     Text(plan.descriptionShortNoCar).tag(plan)
                 }
             }

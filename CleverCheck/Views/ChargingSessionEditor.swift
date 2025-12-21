@@ -52,7 +52,7 @@ struct ChargingSessionEditor: View {
         chargingCostPlans.filter { plan in
             // If either plan has no car or no selected car, show the plan
             guard let planCar = plan.car, let selCar = selectedCar else { return true }
-            return planCar.id == selCar.id
+            return planCar.persistentModelID == selCar.persistentModelID
         }
     }
     

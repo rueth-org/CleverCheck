@@ -145,9 +145,9 @@ struct HomeConsumptionEditor: View {
         self.homeConsumption = homeConsumption
         self.isNew = isNew
         
-        let homeConsumptionID = homeConsumption.id
+        let homeConsumptionID = homeConsumption.persistentModelID
         let predicate = #Predicate<PriceElement> { priceElement in
-            priceElement.homeConsumption?.id == homeConsumptionID
+            priceElement.homeConsumption?.persistentModelID == homeConsumptionID
         }
         self._priceElements = Query(
             filter: predicate,
