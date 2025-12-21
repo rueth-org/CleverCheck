@@ -8,12 +8,13 @@
 import Foundation
 import SwiftData
 
-struct ChargingData {
+struct ChargingData: Identifiable {
     enum Resolution: Equatable {
         case yearly(year: Int)
         case monthly(year: Int, month: Int)
     }
 
+    var id = UUID()
     var chargingSessions: [ChargingSession]
 
     init(modelContext: ModelContext, vehicle: Car, resolution: Resolution) throws {

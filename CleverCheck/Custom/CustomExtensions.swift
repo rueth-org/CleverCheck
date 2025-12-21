@@ -21,4 +21,12 @@ extension Date {
         }
         return date
     }
+    
+    func startDateOf(month: Int, year: Int) -> Date {
+        // Create the start date of the month defined by the given year and month
+        let calendar = Calendar.current
+        var components = DateComponents(year: year, month: month)
+        components.timeZone = TimeZone.current
+        return calendar.date(from: components)!
+    }
 }

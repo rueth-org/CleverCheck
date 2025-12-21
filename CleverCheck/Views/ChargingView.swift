@@ -46,8 +46,36 @@ struct ChargingView: View {
         NavigationStack(path: $navigationPath) {
             List {
                 if let chargingData = chargingData {
-                    ForEach(chargingData.chargingSessions, id: \.self) { session in
-                        Text(session.description)
+                    switch selectedResolution {
+                    case .monthly:
+                        let date = Date().startDateOf(month: selectedMonth, year: selectedYear)
+                        HStack {
+                            Button(action: decreaseMonth) {
+                                Image(systemName: "chevron.left")
+                            }
+                            .buttonStyle(.plain)
+                            Spacer()
+                            Text(DateFormatter.displayMonthly.string(from: date))
+                            Spacer()
+                            Button(action: increaseMonth) {
+                                Image(systemName: "chevron.right")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    case .yearly:
+                        Text("\(selectedYear)")
+                    }
+                    
+                    if chargingData.chargingSessions.isEmpty {
+                        HStack {
+                            Spacer()
+                            Text("No data")
+                                .italic()
+                                .foregroundStyle(Color.secondary)
+                            Spacer()
+                        }
+                    } else {
+                        ChargingViewChart(chargingData: chargingData)
                     }
                 }
                 Button(action: {
@@ -126,4 +154,34 @@ struct ChargingView: View {
     private func addCar() {
         navigationPath.append(CarsView.NavigationDestination.NewCar)
     }
+    
+    private func decreaseMonth() {
+        withAnimation {
+            if selectedMonth == 1 {
+                selectedMonth = 12
+                selectedYear -= 1
+            } else {
+                selectedMonth -= 1
+            }
+        }
+    }
+    
+    private func increaseMonth() {
+        withAnimation {
+            if selectedMonth == 12 {
+                selectedMonth = 1
+                selectedYear += 1
+            } else {
+                selectedMonth += 1
+            }
+        }
+    }
+}
+
+extension DateFormatter {
+    static let displayMonthly: DateFormatter = {
+         let formatter = DateFormatter()
+         formatter.dateFormat = "MMMM yyyy"
+         return formatter
+    }()
 }
