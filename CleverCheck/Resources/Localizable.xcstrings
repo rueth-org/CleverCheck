@@ -225,15 +225,6 @@
       },
       "shouldTranslate" : false
     },
-    "%@%%" : {
-      "shouldTranslate" : false
-    },
-    "50%" : {
-      "shouldTranslate" : false
-    },
-    "100%" : {
-      "shouldTranslate" : false
-    },
     "Add" : {
       "localizations" : {
         "da" : {
@@ -2379,23 +2370,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Monatszusammenfassung"
-          }
-        }
-      }
-    },
-    "This should not have happened, please inform the developer team." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dette burde ikke være sket, giv venligst besked til udviklerteamet."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Das sollte nicht passieren. Bitte informiere das Entwicklerteam."
           }
         }
       }

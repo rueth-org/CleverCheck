@@ -13,12 +13,15 @@ struct CarEditor: View {
     let car: Car?
     @State private var make: String = ""
     @State private var model: String = ""
-    @State private var defaultSOC: Double = 80
+    @State private var defaultSOC: Double = 0.8
     @State private var isArchived: Bool = false
     
     @State private var isEditingSOC: Bool = false
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
+    
+    private let minSOC: Double = 0.5
+    private let maxSOC: Double = 1.0
     
     private var editorTitle: String {
         car == nil ? NSLocalizedString("New Car", comment: "") : NSLocalizedString("Edit Car", comment: "")
@@ -32,20 +35,20 @@ struct CarEditor: View {
                 HStack {
                     Text("Default SOC")
                     Spacer()
-                    Text("\(defaultSOC.formatted(.number))%")
+                    Text(defaultSOC.formatted(.percent))
                         .foregroundColor(isEditingSOC ? .red : .primary)
                 }
                 Slider(
                     value: $defaultSOC,
-                    in: 50...100,
-                    step: 5
+                    in: 0.5...1.0,
+                    step: 0.05
                 ) {
                     Text("Speed")
                 } minimumValueLabel: {
-                    Text("50%")
+                    Text(minSOC.formatted(.percent))
                         .font(.caption)
                 } maximumValueLabel: {
-                    Text("100%")
+                    Text(maxSOC.formatted(.percent))
                         .font(.caption)
                 } onEditingChanged: { editing in
                     isEditingSOC = editing
@@ -78,7 +81,7 @@ struct CarEditor: View {
                 // Edit the incoming car.
                 make = car.make
                 model = car.model
-                defaultSOC = car.defaultSOC * 100
+                defaultSOC = car.defaultSOC
                 isArchived = car.isArchived
             }
         }
@@ -108,10 +111,10 @@ struct CarEditor: View {
                 // Edit the car
                 car.make = make
                 car.model = model
-                car.defaultSOC = defaultSOC/100
+                car.defaultSOC = defaultSOC
                 car.isArchived = isArchived
             } else {
-                let newCar = Car(make: make, model: model, defaultSOC: defaultSOC/100)
+                let newCar = Car(make: make, model: model, defaultSOC: defaultSOC)
                 newCar.isArchived = isArchived
                 modelContext.insert(newCar)
             }
