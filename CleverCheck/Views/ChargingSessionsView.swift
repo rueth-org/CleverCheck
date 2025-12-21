@@ -16,7 +16,6 @@ struct ChargingSessionsView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    @Binding var selectedCar: Car?
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var vehicles: [Car]
     
@@ -25,7 +24,9 @@ struct ChargingSessionsView: View {
     
     private var groupedSessions: [String: [ChargingSession]] {
         var result: [String: [ChargingSession]] = [:]
-        if selectedCar == nil {
+        let selectedCarID = UserSettings.shared.selectedCarID
+        let currentSelectedCar = selectedCarID.isEmpty ? nil : vehicles.first(where: { $0.id.uuidString == selectedCarID })
+        if currentSelectedCar == nil {
             // Display all vehicles
             for vehicle in vehicles {
                 var chargingSessions: [ChargingSession] = []
@@ -39,11 +40,11 @@ struct ChargingSessionsView: View {
         } else {
             // Display only the selected vehicle
             var chargingSessions: [ChargingSession] = []
-            if let chargingCostPlans = selectedCar?.chargingCostPlans {
+            if let chargingCostPlans = currentSelectedCar?.chargingCostPlans {
                 for chargingCostPlan in chargingCostPlans {
                     chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions ?? [])
                 }
-                result[selectedCar!.description] = chargingSessions.sorted(by: { $0.endTime > $1.endTime })
+                result[currentSelectedCar!.description] = chargingSessions.sorted(by: { $0.endTime > $1.endTime })
             }
         }
         return result
@@ -98,17 +99,17 @@ struct ChargingSessionsView: View {
             // New filter menu in the toolbar to replace the inline Picker
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button(action: { selectedCar = nil }) {
+                    Button(action: { UserSettings.shared.selectedCarID = "" }) {
                         Text("All vehicles")
                     }
                     ForEach(vehicles, id: \.self) { car in
-                        Button(action: { selectedCar = car }) {
+                        Button(action: { UserSettings.shared.selectedCarID = car.id.uuidString }) {
                             Text(car.description)
                         }
                     }
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
-                        .foregroundColor(selectedCar == nil ? .primary : .blue)
+                        .foregroundColor(UserSettings.shared.selectedCarID.isEmpty ? .primary : .blue)
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -135,7 +136,9 @@ struct ChargingSessionsView: View {
             return
         }
         
-        navigationPath.append(NavigationDestination.NewSession(selectedCar: selectedCar))
+        let selectedCarID = UserSettings.shared.selectedCarID
+        let currentSelectedCar = selectedCarID.isEmpty ? nil : vehicles.first(where: { $0.id.uuidString == selectedCarID })
+        navigationPath.append(NavigationDestination.NewSession(selectedCar: currentSelectedCar))
     }
     
     private func addCar() {
