@@ -12,6 +12,7 @@ struct ChargingData: Identifiable {
     enum Resolution: Equatable {
         case yearly(date: Date)
         case monthly(date: Date)
+        case daily(date: Date)
     }
 
     var id = UUID()
@@ -32,6 +33,17 @@ struct ChargingData: Identifiable {
             var result = [String: Double]()
             for session in chargingSessions {
                 let dayKey = DateFormatter.chartDisplayDateMonthly.string(from: session.endTime)
+                let energy = session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value
+                result[dayKey, default: 0] += energy
+            }
+            return result
+        case .daily(_):
+            var result = [String: Double]()
+            // The exact localized date format string used by this formatter (e.g. "h:mm a" or localized variant)
+            // This matches how `endTime.formatted(date: .omitted, time: .shortened)` would display the time.
+            for session in chargingSessions {
+                // Use the localized short time string as key (matches .shortened)
+                let dayKey = DateFormatter.chartDisplayDateDaily.string(from: session.endTime)
                 let energy = session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value
                 result[dayKey, default: 0] += energy
             }
@@ -60,6 +72,9 @@ struct ChargingData: Identifiable {
             let end: Date
 
             switch resolution {
+            case .daily(let date):
+                start = calendar.startOfDay(for: date)
+                end = calendar.date(byAdding: .day, value: 1, to: start)!
             case .monthly(let date):
                 // Start of the given month
                 let startOfMonth = date.startDateOfMonth
@@ -97,3 +112,19 @@ struct ChargingData: Identifiable {
     }
 }
 
+// Helper to fetch a localized short time date format string.
+extension DateFormatter {
+    /// Returns the localized date format string for a short time style (equivalent to `.timeStyle = .short`).
+    /// Falls back to a reasonable template if the formatter's `dateFormat` is unavailable.
+    static func localizedShortTimeFormat(locale: Locale = .current) -> String {
+        let f = DateFormatter()
+        f.locale = locale
+        f.timeStyle = .short
+        f.dateStyle = .none
+        if let df = f.dateFormat, !df.isEmpty {
+            return df
+        }
+        // As a fallback, produce a localized format from a template using hour/minute
+        return DateFormatter.dateFormat(fromTemplate: "j:mm", options: 0, locale: locale) ?? "HH:mm"
+    }
+}

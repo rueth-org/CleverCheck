@@ -16,6 +16,7 @@ struct ChargingView: View {
     enum Resolution: LocalizedStringKey {
         case yearly = "yearly"
         case monthly = "monthly"
+        case daily = "daily"
     }
     
     @Environment(\.modelContext) private var modelContext
@@ -30,6 +31,8 @@ struct ChargingView: View {
         if let selectedCar = selectedCar {
             var resolution: ChargingData.Resolution
             switch selectedResolution {
+            case .daily:
+                resolution = .daily(date: selectedDate)
             case .monthly:
                 resolution = .monthly(date: selectedDate)
             case .yearly:
@@ -52,6 +55,19 @@ struct ChargingView: View {
         return result
     }
     
+    var dayPickerList: [Date] {
+        var result = [Date]()
+        let calendar = Calendar.current
+        let year = calendar.component(.year, from: selectedDate)
+        let month = calendar.component(.month, from: selectedDate)
+        let daysInMonth = calendar.range(of: .day, in: .month, for: Date(timeInterval: 0, since: selectedDate))!.count
+        for i in 0..<daysInMonth {
+            let day = i + 1
+            result.append(DateComponents(calendar: calendar, year: year, month: month, day: day).date!)
+        }
+        return result
+    }
+    
     var body: some View {
         NavigationStack(path: $navigationPath) {
             List {
@@ -59,30 +75,6 @@ struct ChargingView: View {
                     Text(selectedCar?.description ?? "No car selected")
                         .font(Font.title.bold())
                     switch selectedResolution {
-                    case .monthly:
-                        HStack(alignment: .center) {
-                            Button(action: decreaseMonth) {
-                                Image(systemName: "chevron.left")
-                            }
-                            .buttonStyle(.plain)
-                            Spacer()
-                            Picker("", selection: $selectedDate) {
-                                ForEach(monthPickerList, id: \.self) { date in
-                                    Text(DateFormatter.displayMonthOnly.string(from: date)).tag(date)
-                                        .foregroundStyle(Color.primary)
-                                }
-                            }
-                            Button(action: switchToYearly) {
-                                Text(verbatim: "\(Calendar.current.component(.year, from: selectedDate))")
-                                    .foregroundStyle(Color.accentColor)
-                            }
-                            .buttonStyle(.plain)
-                            Spacer()
-                            Button(action: increaseMonth) {
-                                Image(systemName: "chevron.right")
-                            }
-                            .buttonStyle(.plain)
-                        }
                     case .yearly:
                         HStack(alignment: .center) {
                             Button(action: decreaseYear) {
@@ -101,6 +93,59 @@ struct ChargingView: View {
                             }
                             .buttonStyle(.plain)
                         }
+                    case .monthly:
+                        HStack(alignment: .center) {
+                            Button(action: decreaseMonth) {
+                                Image(systemName: "chevron.left")
+                            }
+                            .buttonStyle(.plain)
+                            Spacer()
+                            Picker("Month", selection: $selectedDate) {
+                                ForEach(monthPickerList, id: \.self) { date in
+                                    Text(DateFormatter.displayAbbreviatedMonthOnly.string(from: date)).tag(date)
+                                }
+                            }
+                            .labelsHidden()
+                            Button(action: switchToYearly) {
+                                Text(verbatim: "\(Calendar.current.component(.year, from: selectedDate))")
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                            .buttonStyle(.plain)
+                            Spacer()
+                            Button(action: increaseMonth) {
+                                Image(systemName: "chevron.right")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    case .daily:
+                        HStack(alignment: .center) {
+                            Button(action: decreaseDay) {
+                                Image(systemName: "chevron.left")
+                            }
+                            .buttonStyle(.plain)
+                            Spacer()
+                            Picker("Day", selection: $selectedDate) {
+                                ForEach(dayPickerList, id: \.self) { date in
+                                    Text(DateFormatter.chartDisplayDateMonthly.string(from: date)).tag(date)
+                                }
+                            }
+                            .labelsHidden()
+                            Button(action: switchToMonthly) {
+                                Text(DateFormatter.displayAbbreviatedMonthOnly.string(from: selectedDate))
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                            .buttonStyle(.plain)
+                            Button(action: switchToYearly) {
+                                Text(verbatim: "\(Calendar.current.component(.year, from: selectedDate))")
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                            .buttonStyle(.plain)
+                            Spacer()
+                            Button(action: increaseDay) {
+                                Image(systemName: "chevron.right")
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                     
                     if chargingData.chargingSessions.isEmpty {
@@ -112,7 +157,45 @@ struct ChargingView: View {
                             Spacer()
                         }
                     } else {
-                        ChargingViewChart(chargingData: chargingData)
+                        ChargingViewChart(chargingData: chargingData, onBarTap: { dateKey in
+                            let calendar = Calendar.current
+                            switch selectedResolution {
+                            case .yearly:
+                                // Switch to the month tapped and stored in dateKey as String (double-digit integer)
+                                let year = calendar.component(.year, from: selectedDate)
+                                let month = Int(dateKey) ?? calendar.component(.month, from: Date.now)
+                                if let newDate = DateComponents(
+                                    calendar: calendar,
+                                    year: year,
+                                    month: month,
+                                    day: 1
+                                ).date {
+                                    withAnimation {
+                                        selectedDate = newDate
+                                        selectedResolution = .monthly
+                                    }
+                                }
+                            case .monthly:
+                                // Switch to the day tapped and stored in dateKey as String (double-digit integer)
+                                let year = calendar.component(.year, from: selectedDate)
+                                let month = calendar.component(.month, from: selectedDate)
+                                let day = Int(dateKey) ?? calendar.component(.day, from: Date.now)
+                                if let newDate = DateComponents(
+                                    calendar: calendar,
+                                    year: year,
+                                    month: month,
+                                    day: day
+                                ).date {
+                                    withAnimation {
+                                        selectedDate = newDate
+                                        selectedResolution = .daily
+                                    }
+                                }
+                            case .daily:
+                                // TODO implement session view
+                                let _ = 1
+                            }
+                        })
                     }
                 } else {
                     Picker("Vehicle", selection: $selectedCar) {
@@ -199,6 +282,18 @@ struct ChargingView: View {
         navigationPath.append(CarsView.NavigationDestination.NewCar)
     }
     
+    private func decreaseDay() {
+        withAnimation {
+            selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
+        }
+    }
+    
+    private func increaseDay() {
+        withAnimation {
+            selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
+        }
+    }
+    
     private func decreaseMonth() {
         withAnimation {
             selectedDate = Calendar.current.date(byAdding: .month, value: -1, to: selectedDate)!
@@ -224,18 +319,23 @@ struct ChargingView: View {
     }
     
     private func switchToYearly() {
-        self.selectedResolution = .yearly
+        // Set correct date - we always need first of January of the year
+        let year = Calendar.current.component(.year, from: selectedDate)
+        let firstDayOfYear = Calendar.current.date(from: DateComponents(year: year, month: 1, day: 1))!
+        self.selectedDate = firstDayOfYear
+        withAnimation {
+            self.selectedResolution = .yearly
+        }
     }
     
     private func switchToMonthly() {
-        self.selectedResolution = .monthly
+        // Set correct date - we always need the first day of the month
+        let year = Calendar.current.component(.year, from: selectedDate)
+        let month = Calendar.current.component(.month, from: selectedDate)
+        let firstDayOfMonth = Calendar.current.date(from: DateComponents(year: year, month: month, day: 1))!
+        self.selectedDate = firstDayOfMonth
+        withAnimation {
+            self.selectedResolution = .monthly
+        }
     }
-}
-
-extension DateFormatter {
-    static let displayMonthOnly: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM"
-        return formatter
-    }()
 }
