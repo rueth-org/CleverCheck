@@ -21,9 +21,8 @@ struct ChargingView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var navigationPath = NavigationPath()
     @State private var selectedCar: Car? = nil
-    @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
-    @State private var selectedMonth: Int = Calendar.current.component(.month, from: Date())
     @State private var selectedResolution: Resolution = .monthly
+    @State private var selectedDate: Date = Date.now.startDateOfMonth
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var vehicles: [Car]
     
@@ -32,9 +31,9 @@ struct ChargingView: View {
             var resolution: ChargingData.Resolution
             switch selectedResolution {
             case .monthly:
-                resolution = .monthly(year: selectedYear, month: selectedMonth)
+                resolution = .monthly(date: selectedDate)
             case .yearly:
-                resolution = .yearly(year: selectedYear)
+                resolution = .yearly(date: selectedDate)
             }
             return try? ChargingData(modelContext: modelContext, vehicle: selectedCar, resolution: resolution)
         } else {
@@ -42,20 +41,42 @@ struct ChargingView: View {
         }
     }
     
+    var monthPickerList: [Date] {
+        var result = [Date]()
+        let calendar = Calendar.current
+        let year = calendar.component(.year, from: selectedDate)
+        for i in 0..<12 {
+            let month = i + 1
+            result.append(DateComponents(calendar: calendar, year: year, month: month, day: 1).date!)
+        }
+        return result
+    }
+    
     var body: some View {
         NavigationStack(path: $navigationPath) {
             List {
                 if let chargingData = chargingData {
+                    Text(selectedCar?.description ?? "No car selected")
+                        .font(Font.title.bold())
                     switch selectedResolution {
                     case .monthly:
-                        let date = Date().startDateOf(month: selectedMonth, year: selectedYear)
-                        HStack {
+                        HStack(alignment: .center) {
                             Button(action: decreaseMonth) {
                                 Image(systemName: "chevron.left")
                             }
                             .buttonStyle(.plain)
                             Spacer()
-                            Text(DateFormatter.displayMonthly.string(from: date))
+                            Picker("", selection: $selectedDate) {
+                                ForEach(monthPickerList, id: \.self) { date in
+                                    Text(DateFormatter.displayMonthOnly.string(from: date)).tag(date)
+                                        .foregroundStyle(Color.primary)
+                                }
+                            }
+                            Button(action: switchToYearly) {
+                                Text(verbatim: "\(Calendar.current.component(.year, from: selectedDate))")
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                            .buttonStyle(.plain)
                             Spacer()
                             Button(action: increaseMonth) {
                                 Image(systemName: "chevron.right")
@@ -63,7 +84,23 @@ struct ChargingView: View {
                             .buttonStyle(.plain)
                         }
                     case .yearly:
-                        Text("\(selectedYear)")
+                        HStack(alignment: .center) {
+                            Button(action: decreaseYear) {
+                                Image(systemName: "chevron.left")
+                            }
+                            .buttonStyle(.plain)
+                            Spacer()
+                            Button(action: switchToMonthly) {
+                                Text(verbatim: "\(Calendar.current.component(.year, from: selectedDate))")
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                            .buttonStyle(.plain)
+                            Spacer()
+                            Button(action: increaseYear) {
+                                Image(systemName: "chevron.right")
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                     
                     if chargingData.chargingSessions.isEmpty {
@@ -76,6 +113,13 @@ struct ChargingView: View {
                         }
                     } else {
                         ChargingViewChart(chargingData: chargingData)
+                    }
+                } else {
+                    Picker("Vehicle", selection: $selectedCar) {
+                        Text("Select vehicle to show data").tag(nil as Car?)
+                        ForEach(vehicles) { vehicle in
+                            Text(vehicle.description).tag(vehicle)
+                        }
                     }
                 }
                 Button(action: {
@@ -157,24 +201,34 @@ struct ChargingView: View {
     
     private func decreaseMonth() {
         withAnimation {
-            if selectedMonth == 1 {
-                selectedMonth = 12
-                selectedYear -= 1
-            } else {
-                selectedMonth -= 1
-            }
+            selectedDate = Calendar.current.date(byAdding: .month, value: -1, to: selectedDate)!
         }
     }
     
     private func increaseMonth() {
         withAnimation {
-            if selectedMonth == 12 {
-                selectedMonth = 1
-                selectedYear += 1
-            } else {
-                selectedMonth += 1
-            }
+            selectedDate = Calendar.current.date(byAdding: .month, value: 1, to: selectedDate)!
         }
+    }
+    
+    private func decreaseYear() {
+        withAnimation {
+            selectedDate = Calendar.current.date(byAdding: .year, value: -1, to: selectedDate)!
+        }
+    }
+    
+    private func increaseYear() {
+        withAnimation {
+            selectedDate = Calendar.current.date(byAdding: .year, value: 1, to: selectedDate)!
+        }
+    }
+    
+    private func switchToYearly() {
+        self.selectedResolution = .yearly
+    }
+    
+    private func switchToMonthly() {
+        self.selectedResolution = .monthly
     }
 }
 
@@ -183,5 +237,11 @@ extension DateFormatter {
          let formatter = DateFormatter()
          formatter.dateFormat = "MMMM yyyy"
          return formatter
+    }()
+    
+    static let displayMonthOnly: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM"
+        return formatter
     }()
 }
