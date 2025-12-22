@@ -13,13 +13,13 @@ struct ChargingViewChart: View {
     
     var body: some View {
         Chart {
-            ForEach(chargingData.chargingSessions, id: \.self) { session in
+            ForEach(chargingData.chargedEnergy.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
                 BarMark(
-                    x: .value("End Time", DateFormatter.chartDisplayDateMonthly.string(from: session.endTime)),
-                    y: .value("Charged Energy", session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value)
+                    x: .value("End Time", pair.key),
+                    y: .value("Charged Energy", pair.value)
                 )
                 .annotation(position: .top) {
-                    Text(session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value.formatted(.number.precision(.fractionLength(1))))
+                    Text(pair.value.formatted(.number.precision(.fractionLength(1))))
                         .font(.caption)
                         .foregroundColor(.black)
                         .padding(5)
@@ -34,7 +34,13 @@ struct ChargingViewChart: View {
 extension DateFormatter {
     static let chartDisplayDateMonthly: DateFormatter = {
          let formatter = DateFormatter()
-         formatter.dateFormat = "d."
+         formatter.dateFormat = "dd"
+         return formatter
+    }()
+    
+    static let chartDisplayDateYearly: DateFormatter = {
+         let formatter = DateFormatter()
+         formatter.dateFormat = "MM"
          return formatter
     }()
 }

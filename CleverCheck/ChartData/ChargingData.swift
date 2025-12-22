@@ -15,9 +15,33 @@ struct ChargingData: Identifiable {
     }
 
     var id = UUID()
+    var resolution: Resolution
     var chargingSessions: [ChargingSession]
+    
+    var chargedEnergy: [String: Double] {
+        switch resolution {
+        case .yearly(_):
+            var result = [String: Double]()
+            for session in chargingSessions {
+                let monthKey = DateFormatter.chartDisplayDateYearly.string(from: session.endTime)
+                let energy = session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value
+                result[monthKey, default: 0] += energy
+            }
+            return result
+        case .monthly(_):
+            var result = [String: Double]()
+            for session in chargingSessions {
+                let dayKey = DateFormatter.chartDisplayDateMonthly.string(from: session.endTime)
+                let energy = session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value
+                result[dayKey, default: 0] += energy
+            }
+            return result
+        }
+    }
 
     init(modelContext: ModelContext, vehicle: Car, resolution: Resolution) throws {
+        self.resolution = resolution
+        
         // Get the id of the vehicle
         let vehicleID = vehicle.persistentModelID
         
@@ -72,3 +96,4 @@ struct ChargingData: Identifiable {
         }
     }
 }
+

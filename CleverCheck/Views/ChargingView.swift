@@ -233,12 +233,6 @@ struct ChargingView: View {
 }
 
 extension DateFormatter {
-    static let displayMonthly: DateFormatter = {
-         let formatter = DateFormatter()
-         formatter.dateFormat = "MMMM yyyy"
-         return formatter
-    }()
-    
     static let displayMonthOnly: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM"
