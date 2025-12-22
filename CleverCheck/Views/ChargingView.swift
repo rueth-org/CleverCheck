@@ -13,10 +13,11 @@ struct ChargingView: View {
         case ChargingSessions
     }
     
-    enum Resolution: LocalizedStringKey {
-        case yearly = "yearly"
-        case monthly = "monthly"
-        case daily = "daily"
+    enum Resolution {
+        case yearly
+        case monthly
+        case daily
+        case session
     }
     
     @Environment(\.modelContext) private var modelContext
@@ -24,6 +25,7 @@ struct ChargingView: View {
     @State private var selectedCar: Car? = nil
     @State private var selectedResolution: Resolution = .monthly
     @State private var selectedDate: Date = Date.now.startDateOfMonth
+    @State private var selectedSession: ChargingSession? = nil
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var vehicles: [Car]
     
@@ -31,6 +33,8 @@ struct ChargingView: View {
         if let selectedCar = selectedCar {
             var resolution: ChargingData.Resolution
             switch selectedResolution {
+            case .session:
+                resolution = .daily(date: selectedDate)
             case .daily:
                 resolution = .daily(date: selectedDate)
             case .monthly:
@@ -72,6 +76,9 @@ struct ChargingView: View {
         NavigationStack(path: $navigationPath) {
             List {
                 if let chargingData = chargingData {
+                    
+                    // The date info part
+                    
                     Text(selectedCar?.description ?? "No car selected")
                         .font(Font.title.bold())
                     switch selectedResolution {
@@ -146,7 +153,65 @@ struct ChargingView: View {
                             }
                             .buttonStyle(.plain)
                         }
+                    case .session:
+                        if let sessionToBeDisplayed = selectedSession {
+                            // Determine the position of the session in all sessions of the day
+                            let numberOfSessions = chargingData.chargingSessions.count
+                            let sessionIndex = chargingData.chargingSessions.firstIndex(of: sessionToBeDisplayed)!
+                            
+                            // We are in sessions view
+                            VStack {
+                                HStack {
+                                    Spacer()
+                                    
+                                    Text("Charging Session \(sessionIndex + 1) of \(numberOfSessions)")
+                                        .font(.headline)
+                                    
+                                    Button(action: {
+                                        withAnimation {
+                                            selectedSession = nil
+                                            selectedResolution = .daily
+                                        }
+                                    }) {
+                                        Image(systemName: "xmark.circle.fill")
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(.gray)
+                                    
+                                    Spacer()
+                                }
+                                HStack(alignment: .center) {
+                                    Button(action: {
+                                        if sessionIndex > 0 {
+                                            selectedSession = chargingData.chargingSessions[sessionIndex - 1]
+                                        }
+                                    }) {
+                                        Image(systemName: "chevron.left")
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(sessionIndex == 0)
+                                    
+                                    Spacer()
+                                    
+                                    Text(sessionToBeDisplayed.endTime.formatted(date: .abbreviated, time: .shortened))
+                                    
+                                    Spacer()
+                                    
+                                    Button(action: {
+                                        if sessionIndex < numberOfSessions - 1 {
+                                            selectedSession = chargingData.chargingSessions[sessionIndex + 1]
+                                        }
+                                    }) {
+                                        Image(systemName: "chevron.right")
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(sessionIndex == numberOfSessions - 1)
+                                }
+                            }
+                        }
                     }
+                    
+                    // The data part
                     
                     if chargingData.chargingSessions.isEmpty {
                         HStack {
@@ -157,45 +222,84 @@ struct ChargingView: View {
                             Spacer()
                         }
                     } else {
-                        ChargingViewChart(chargingData: chargingData, onBarTap: { dateKey in
-                            let calendar = Calendar.current
-                            switch selectedResolution {
-                            case .yearly:
-                                // Switch to the month tapped and stored in dateKey as String (double-digit integer)
-                                let year = calendar.component(.year, from: selectedDate)
-                                let month = Int(dateKey) ?? calendar.component(.month, from: Date.now)
-                                if let newDate = DateComponents(
-                                    calendar: calendar,
-                                    year: year,
-                                    month: month,
-                                    day: 1
-                                ).date {
-                                    withAnimation {
-                                        selectedDate = newDate
-                                        selectedResolution = .monthly
+                        if let sessionToBeDisplayed = selectedSession {
+                            // Display the selected session
+                            ChargingSessionDetails(session: sessionToBeDisplayed)
+                        } else {
+                            ChargingViewChart(chargingData: chargingData, onBarTap: { dateKey in
+                                let calendar = Calendar.current
+                                switch selectedResolution {
+                                case .yearly:
+                                    // Switch to the month tapped and stored in dateKey as String (double-digit integer)
+                                    let year = calendar.component(.year, from: selectedDate)
+                                    let month = Int(dateKey) ?? calendar.component(.month, from: Date.now)
+                                    if let newDate = DateComponents(
+                                        calendar: calendar,
+                                        year: year,
+                                        month: month,
+                                        day: 1
+                                    ).date {
+                                        withAnimation {
+                                            selectedDate = newDate
+                                            selectedResolution = .monthly
+                                        }
                                     }
-                                }
-                            case .monthly:
-                                // Switch to the day tapped and stored in dateKey as String (double-digit integer)
-                                let year = calendar.component(.year, from: selectedDate)
-                                let month = calendar.component(.month, from: selectedDate)
-                                let day = Int(dateKey) ?? calendar.component(.day, from: Date.now)
-                                if let newDate = DateComponents(
-                                    calendar: calendar,
-                                    year: year,
-                                    month: month,
-                                    day: day
-                                ).date {
-                                    withAnimation {
-                                        selectedDate = newDate
-                                        selectedResolution = .daily
+                                case .monthly:
+                                    // Switch to the day tapped and stored in dateKey as String (double-digit integer)
+                                    let year = calendar.component(.year, from: selectedDate)
+                                    let month = calendar.component(.month, from: selectedDate)
+                                    let day = Int(dateKey) ?? calendar.component(.day, from: Date.now)
+                                    if let newDate = DateComponents(
+                                        calendar: calendar,
+                                        year: year,
+                                        month: month,
+                                        day: day
+                                    ).date {
+                                        withAnimation {
+                                            selectedDate = newDate
+                                            selectedResolution = .daily
+                                        }
                                     }
+                                case .daily:
+                                    // Try to identify session
+                                    if chargingData.chargingSessions.count == 1 {
+                                        // There is only one session
+                                        selectedSession = chargingData.chargingSessions.first!
+                                    } else {
+                                        // Create a date from the dateKey
+                                        if let time = DateFormatter.chartDisplayDateDaily.date(from: dateKey) {
+                                            let year = calendar.component(.year, from: selectedDate)
+                                            let month = calendar.component(.month, from: selectedDate)
+                                            let day = calendar.component(.day, from: selectedDate)
+                                            
+                                            // Add year, month and day to the time
+                                            if let date = DateComponents(
+                                                calendar: calendar,
+                                                year: year,
+                                                month: month,
+                                                day: day,
+                                                hour: calendar.component(.hour, from: time),
+                                                minute: calendar.component(.minute, from: time)
+                                            ).date {
+                                                // Try to match endTime
+                                                for session in chargingData.chargingSessions {
+                                                    if session.endTime == date {
+                                                        selectedSession = session
+                                                        break
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    withAnimation {
+                                        selectedResolution = .session
+                                    }
+                                case .session:
+                                    // Nothing to do here
+                                    let _ = 0
                                 }
-                            case .daily:
-                                // TODO implement session view
-                                let _ = 1
-                            }
-                        })
+                            })
+                        }
                     }
                 } else {
                     Picker("Vehicle", selection: $selectedCar) {
