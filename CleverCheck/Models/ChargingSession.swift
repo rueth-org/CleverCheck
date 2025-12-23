@@ -7,15 +7,34 @@
 
 import Foundation
 import SwiftData
+import SwiftUI
 
 @Model
 final class ChargingSession {
+    enum CostCalculationMethod: Codable {
+        case absolute
+        case specific
+        case both
+        case none
+        
+        func description() -> LocalizedStringKey {
+            switch self {
+            case .absolute: return "Absolut cost"
+            case .specific: return "Specific cost"
+            case .both: return "Absolut and specific cost"
+            case .none: return "No cost"
+            }
+        }
+    }
+    
     var id: UUID = UUID()
     var startTime: Date?
     var endTime: Date = Date.now
     var chargedEnergyKWh: Double = 0.0
     var chargingCostPlan: ChargingCostPlan?
     var chargingCost: Cost?
+    var specificChargingCost: Cost?
+    var costCalculationMethod: CostCalculationMethod = CostCalculationMethod.none
     var mileageKilometer: Double?
     var initialSOC: Double?
     var finalSOC: Double?
@@ -57,6 +76,8 @@ final class ChargingSession {
         chargedEnergy: Measurement<UnitEnergy>,
         chargingCostPlan: ChargingCostPlan,
         chargingCost: Cost? = nil,
+        specificChargingCost: Cost? = nil,
+        costCalculationMethod: CostCalculationMethod = .none,
         mileage: Measurement<UnitLength>? = nil,
         initialSOC: Double? = nil,
         finalSOC: Double? = nil,
@@ -68,6 +89,8 @@ final class ChargingSession {
         self.chargedEnergyKWh = chargedEnergy.converted(to: .kilowattHours).value
         self.chargingCostPlan = chargingCostPlan
         self.chargingCost = chargingCost
+        self.specificChargingCost = specificChargingCost
+        self.costCalculationMethod = costCalculationMethod
         self.mileageKilometer = mileage?.converted(to: .kilometers).value
         self.initialSOC = initialSOC
         if useDefaultFinalSOC, chargingCostPlan.car != nil {

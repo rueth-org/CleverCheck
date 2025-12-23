@@ -10,7 +10,7 @@ import SwiftData
 
 struct ChargingSessionEditor: View {
     private enum Field: Int, Hashable {
-        case mileage, initialSOC, finalSOC, cost
+        case mileage, initialSOC, finalSOC
     }
     
     static let dateFormatter: DateFormatter = {
@@ -33,8 +33,9 @@ struct ChargingSessionEditor: View {
     @State private var startTime: Date = Date.now.addingTimeInterval(-10800) // -3h
     @State private var endTime: Date = Date.now
     @State private var chargedEnergy: Measurement<UnitEnergy> = .init(value: 0, unit: .kilowattHours)
-    @State private var enterCost: Bool = false
+    @State private var enterCost: ChargingSession.CostCalculationMethod = .none
     @State private var cost: Cost = .init(amount: 0, currency: UserSettings.shared.currencyIdentifier)
+    @State private var specificCost: Cost = .init(amount: 0, currency: UserSettings.shared.currencyIdentifier)
     @State private var enterMileage: Bool = false
     @State private var mileage: Measurement<UnitLength> = .init(value: 0, unit: .kilometers)
     @State private var enterInitialSOC: Bool = false
@@ -140,34 +141,32 @@ struct ChargingSessionEditor: View {
                     Text(chargedEnergy.unit.symbol)
                 }
                 
-                // Cost (optional)
-                if enterCost {
+                // Cost
+                Picker("Cost", selection: $enterCost) {
+                    Text(ChargingSession.CostCalculationMethod.none.description()).tag(ChargingSession.CostCalculationMethod.none)
+                    Text(ChargingSession.CostCalculationMethod.absolute.description()).tag(ChargingSession.CostCalculationMethod.absolute)
+                    Text(ChargingSession.CostCalculationMethod.specific.description()).tag(ChargingSession.CostCalculationMethod.specific)
+                    Text(ChargingSession.CostCalculationMethod.both.description()).tag(ChargingSession.CostCalculationMethod.both)
+                }
+                
+                if enterCost == .absolute || enterCost == .both {
                     HStack {
                         Text("Cost")
                         Spacer()
                         TextField("", value: $cost.amount, format: .currency(code: cost.currency))
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
-                            .focused($focusedField, equals: .cost)
-                        Button {
-                            deleteCost()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.gray)
-                        }
                     }
-                } else {
-                    // Offer to enter cost
+                }
+                
+                // Specific Cost (optional)
+                if enterCost == .specific || enterCost == .both {
                     HStack {
-                        Text("Cost")
+                        Text("Specific cost")
                         Spacer()
-                        Button {
-                            focusedField = .cost
-                            enterCost = true
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .foregroundStyle(.gray)
-                        }
+                        TextField("", value: $specificCost.amount, format: .currency(code: cost.currency))
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
                     }
                 }
                 
@@ -306,8 +305,11 @@ struct ChargingSessionEditor: View {
                 self.chargedEnergy = chargingSession.chargedEnergy
                 if let cost = chargingSession.chargingCost {
                     self.cost = cost
-                    self.enterCost = true
                 }
+                if let specificChargingCost = chargingSession.specificChargingCost {
+                    self.specificCost = specificChargingCost
+                }
+                //self.enterCost = chargingSession.costCalculationMethod
                 if let mileage = chargingSession.mileage {
                     self.mileage = mileage
                     self.enterMileage = true
@@ -372,11 +374,6 @@ struct ChargingSessionEditor: View {
     
     private func deleteStartTime() {
         enterStartTime = false
-    }
-    
-    private func deleteCost() {
-        enterCost = false
-        cost = .init(amount: 0, currency: UserSettings.shared.currencyIdentifier)
     }
     
     private func deleteMileage() {
@@ -470,7 +467,8 @@ struct ChargingSessionEditor: View {
             chargingSession.endTime = self.endTime
             chargingSession.chargingCostPlan = selectedPlan
             chargingSession.chargedEnergy = self.chargedEnergy
-            chargingSession.chargingCost = enterCost ? self.cost : nil
+            chargingSession.chargingCost = enterCost == .absolute || enterCost == .both ? self.cost : nil
+            chargingSession.specificChargingCost = enterCost == .specific || enterCost == .both ? self.specificCost : nil
             chargingSession.mileage = enterMileage ? self.mileage : nil
             chargingSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
             chargingSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
@@ -479,7 +477,8 @@ struct ChargingSessionEditor: View {
             // Create new charging session
             let newSession = ChargingSession(endTime: self.endTime, chargedEnergy: self.chargedEnergy, chargingCostPlan: selectedPlan)
             newSession.startTime = enterStartTime ? self.startTime : nil
-            newSession.chargingCost = enterCost ? self.cost : nil
+            newSession.chargingCost = enterCost == .absolute || enterCost == .both ? self.cost : nil
+            newSession.specificChargingCost = enterCost == .specific || enterCost == .both ? self.specificCost : nil
             newSession.mileage = enterMileage ? self.mileage : nil
             newSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
             newSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
