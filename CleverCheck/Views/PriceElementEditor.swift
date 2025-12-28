@@ -47,6 +47,13 @@ struct PriceElementEditor: View {
             }
             HStack {
                 Text("Cost amount")
+                Button(action: {
+                    amount.amount = -amount.amount
+                }) {
+                    Text("+/-")
+                }
+                .foregroundColor(.accentColor)
+                .buttonStyle(.plain)
                 Spacer()
                 TextField("Cost amount", value: $amount.amount, format: .number)
                     .keyboardType(.decimalPad)

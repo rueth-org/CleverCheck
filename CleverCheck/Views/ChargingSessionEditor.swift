@@ -142,7 +142,7 @@ struct ChargingSessionEditor: View {
                 }
                 
                 // Cost
-                Picker("Cost", selection: $enterCost) {
+                Picker("Cost entry", selection: $enterCost) {
                     Text(ChargingSession.CostCalculationMethod.none.description()).tag(ChargingSession.CostCalculationMethod.none)
                     Text(ChargingSession.CostCalculationMethod.absolute.description()).tag(ChargingSession.CostCalculationMethod.absolute)
                     Text(ChargingSession.CostCalculationMethod.specific.description()).tag(ChargingSession.CostCalculationMethod.specific)
@@ -154,7 +154,7 @@ struct ChargingSessionEditor: View {
                         Text("Cost")
                         Spacer()
                         TextField("", value: $cost.amount, format: .currency(code: cost.currency))
-                            .keyboardType(.numberPad)
+                            .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                     }
                 }
@@ -165,7 +165,7 @@ struct ChargingSessionEditor: View {
                         Text("Specific cost")
                         Spacer()
                         TextField("", value: $specificCost.amount, format: .currency(code: cost.currency))
-                            .keyboardType(.numberPad)
+                            .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                     }
                 }
@@ -309,7 +309,7 @@ struct ChargingSessionEditor: View {
                 if let specificChargingCost = chargingSession.specificChargingCost {
                     self.specificCost = specificChargingCost
                 }
-                //self.enterCost = chargingSession.costCalculationMethod
+                self.enterCost = chargingSession.costCalculationMethod
                 if let mileage = chargingSession.mileage {
                     self.mileage = mileage
                     self.enterMileage = true
@@ -467,6 +467,7 @@ struct ChargingSessionEditor: View {
             chargingSession.endTime = self.endTime
             chargingSession.chargingCostPlan = selectedPlan
             chargingSession.chargedEnergy = self.chargedEnergy
+            chargingSession.costCalculationMethod = self.enterCost
             chargingSession.chargingCost = enterCost == .absolute || enterCost == .both ? self.cost : nil
             chargingSession.specificChargingCost = enterCost == .specific || enterCost == .both ? self.specificCost : nil
             chargingSession.mileage = enterMileage ? self.mileage : nil
@@ -477,6 +478,7 @@ struct ChargingSessionEditor: View {
             // Create new charging session
             let newSession = ChargingSession(endTime: self.endTime, chargedEnergy: self.chargedEnergy, chargingCostPlan: selectedPlan)
             newSession.startTime = enterStartTime ? self.startTime : nil
+            newSession.costCalculationMethod = self.enterCost
             newSession.chargingCost = enterCost == .absolute || enterCost == .both ? self.cost : nil
             newSession.specificChargingCost = enterCost == .specific || enterCost == .both ? self.specificCost : nil
             newSession.mileage = enterMileage ? self.mileage : nil
