@@ -119,7 +119,8 @@ struct CarEditor: View {
                 modelContext.insert(newCar)
             }
             
-            // Leave editor
+            // Save data and leave editor
+            try? modelContext.save()
             navigationPath.removeLast()
         }
     }

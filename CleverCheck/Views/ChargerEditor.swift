@@ -150,7 +150,8 @@ struct ChargerEditor: View {
                 modelContext.insert(newCharger)
             }
             
-            // Leave editor
+            // Save data and leave editor
+            try? modelContext.save()
             navigationPath.removeLast()
         }
     }

@@ -488,7 +488,8 @@ struct ChargingSessionEditor: View {
             modelContext.insert(newSession)
         }
 
-        // Leave edit mode
+        // Save data and leave editor
+        try? modelContext.save()
         navigationPath.removeLast()
     }
     

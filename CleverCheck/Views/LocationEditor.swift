@@ -85,7 +85,8 @@ struct LocationEditor: View {
                 modelContext.insert(newLocation)
             }
             
-            // Leave editor
+            // Save data and leave editor
+            try? modelContext.save()
             navigationPath.removeLast()
         }
     }

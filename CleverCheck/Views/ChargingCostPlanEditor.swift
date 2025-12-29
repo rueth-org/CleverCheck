@@ -236,7 +236,8 @@ struct ChargingCostPlanEditor: View {
             modelContext.insert(newPlan)
         }
         
-        // Leave editor
+        // Save data and leave editor
+        try? modelContext.save()
         navigationPath.removeLast()
     }
     

@@ -172,7 +172,8 @@ struct PriceElementEditor: View {
             }
         }
         
-        // Leave editor
+        // Save data and leave editor
+        try? modelContext.save()
         navigationPath.removeLast()
     }
     
