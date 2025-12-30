@@ -6,7 +6,18 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		1B3D7D832F03D4E300A9151C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1BBC69B32ED25D98007EDA05 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1BBC69BA2ED25D98007EDA05;
+			remoteInfo = CleverCheck;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		1B3D7D7F2F03D4E300A9151C /* CleverCheckTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CleverCheckTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1BBC69BB2ED25D98007EDA05 /* CleverCheck.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CleverCheck.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -21,6 +32,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		1B3D7D802F03D4E300A9151C /* CleverCheckTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CleverCheckTests;
+			sourceTree = "<group>";
+		};
 		1BDF14632ED35BD20052C4D9 /* CleverCheck */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -32,6 +48,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		1B3D7D7C2F03D4E300A9151C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		1BBC69B82ED25D98007EDA05 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -45,6 +68,7 @@
 		1BBC69B22ED25D98007EDA05 = {
 			isa = PBXGroup;
 			children = (
+				1B3D7D802F03D4E300A9151C /* CleverCheckTests */,
 				1BBC69BC2ED25D98007EDA05 /* Products */,
 				1BDF14632ED35BD20052C4D9 /* CleverCheck */,
 			);
@@ -54,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				1BBC69BB2ED25D98007EDA05 /* CleverCheck.app */,
+				1B3D7D7F2F03D4E300A9151C /* CleverCheckTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -61,6 +86,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		1B3D7D7E2F03D4E300A9151C /* CleverCheckTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1B3D7D872F03D4E300A9151C /* Build configuration list for PBXNativeTarget "CleverCheckTests" */;
+			buildPhases = (
+				1B3D7D7B2F03D4E300A9151C /* Sources */,
+				1B3D7D7C2F03D4E300A9151C /* Frameworks */,
+				1B3D7D7D2F03D4E300A9151C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1B3D7D842F03D4E300A9151C /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				1B3D7D802F03D4E300A9151C /* CleverCheckTests */,
+			);
+			name = CleverCheckTests;
+			packageProductDependencies = (
+			);
+			productName = CleverCheckTests;
+			productReference = 1B3D7D7F2F03D4E300A9151C /* CleverCheckTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		1BBC69BA2ED25D98007EDA05 /* CleverCheck */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 1BBC69C92ED25D99007EDA05 /* Build configuration list for PBXNativeTarget "CleverCheck" */;
@@ -90,9 +138,13 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1630;
+				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
+					1B3D7D7E2F03D4E300A9151C = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = 1BBC69BA2ED25D98007EDA05;
+					};
 					1BBC69BA2ED25D98007EDA05 = {
 						CreatedOnToolsVersion = 16.3;
 					};
@@ -115,11 +167,19 @@
 			projectRoot = "";
 			targets = (
 				1BBC69BA2ED25D98007EDA05 /* CleverCheck */,
+				1B3D7D7E2F03D4E300A9151C /* CleverCheckTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		1B3D7D7D2F03D4E300A9151C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		1BBC69B92ED25D98007EDA05 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -130,6 +190,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1B3D7D7B2F03D4E300A9151C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		1BBC69B72ED25D98007EDA05 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -139,7 +206,59 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		1B3D7D842F03D4E300A9151C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1BBC69BA2ED25D98007EDA05 /* CleverCheck */;
+			targetProxy = 1B3D7D832F03D4E300A9151C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		1B3D7D852F03D4E300A9151C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Q4HRNRLV9A;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = info.rueth.CleverCheckTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CleverCheck.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CleverCheck";
+			};
+			name = Debug;
+		};
+		1B3D7D862F03D4E300A9151C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Q4HRNRLV9A;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = info.rueth.CleverCheckTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CleverCheck.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CleverCheck";
+			};
+			name = Release;
+		};
 		1BBC69CA2ED25D99007EDA05 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -334,6 +453,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1B3D7D872F03D4E300A9151C /* Build configuration list for PBXNativeTarget "CleverCheckTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1B3D7D852F03D4E300A9151C /* Debug */,
+				1B3D7D862F03D4E300A9151C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		1BBC69B62ED25D98007EDA05 /* Build configuration list for PBXProject "CleverCheck" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

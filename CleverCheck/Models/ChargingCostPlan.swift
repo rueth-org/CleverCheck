@@ -10,31 +10,26 @@ import SwiftData
 
 @Model
 public final class ChargingCostPlan {
-    enum PlanType: Codable, CustomStringConvertible {
-        static var descriptionIndividual: String { NSLocalizedString("Individual", comment: "") }
-        static var descriptionFlatrate: String { NSLocalizedString("Flatrate", comment: "") }
-        static var descriptionHomeConsumption: String { NSLocalizedString("Home Consumption", comment: "") }
-        static var descriptionRefunded: String { NSLocalizedString("Refunded", comment: "") }
-        
-        case individual(defaultKWhPrice: Cost?)
-        case flatrate(monthlyRate: Cost)
-        case homeConsumption(atLocationWithId: UUID)
-        case refunded(atLocationWithId: UUID, byFlatrateWithID: UUID)
+    enum PlanType: String, Codable, CustomStringConvertible {
+        case individual = "Individual"
+        case flatrate = "Flatrate"
+        case homeConsumption = "Home Consumption"
+        case refunded = "Refunded"
         
         var description: String {
-            switch self {
-            case .individual: return PlanType.descriptionIndividual
-            case .flatrate: return PlanType.descriptionFlatrate
-            case .homeConsumption: return PlanType.descriptionHomeConsumption
-            case .refunded: return PlanType.descriptionRefunded
-            }
+            NSLocalizedString(self.rawValue, comment: "")
         }
     }
     
     public var id: UUID = UUID()
     var car: Car?
     var charger: Charger?
-    var planType: PlanType = PlanType.individual(defaultKWhPrice: Cost(amount: 0.0))
+    var planType: PlanType = PlanType.individual
+    var defaultEnergyPrice: Cost?
+    var energyUnitSymbol: String = UserSettings.shared.energyUnitSymbol
+    var monthlyRate: Cost?
+    var relatedLocation: Location?
+    var includedInOtherPlan: ChargingCostPlan?
     var isArchived: Bool = false
     
     @Relationship(deleteRule: .nullify, inverse: \ChargingSession.chargingCostPlan)
@@ -56,9 +51,22 @@ public final class ChargingCostPlan {
         "\(descriptionShort) (\(planType.description))"
     }
     
-    init(car: Car, charger: Charger, planType: PlanType) {
+    init(
+        car: Car,
+        charger: Charger,
+        planType: PlanType,
+        defaultEnergyPrice: Cost? = nil,
+        monthlyRate: Cost? = nil,
+        relatedLocation: Location? = nil,
+        includedInOtherPlan: ChargingCostPlan? = nil
+    ) {
         self.car = car
         self.charger = charger
         self.planType = planType
+        self.defaultEnergyPrice = defaultEnergyPrice
+        self.monthlyRate = monthlyRate
+        self.relatedLocation = relatedLocation
+        self.includedInOtherPlan = includedInOtherPlan
     }
 }
+

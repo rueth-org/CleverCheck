@@ -9,6 +9,68 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
+#if canImport(UIKit)
+import UIKit
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    let applicationActivities: [UIActivity]? = nil
+    let completion: ((Bool, Error?) -> Void)?
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
+        controller.completionWithItemsHandler = { activityType, completed, returnedItems, activityError in
+            completion?(completed, activityError)
+        }
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+#elseif canImport(AppKit)
+import AppKit
+
+struct MacSharePicker: NSViewRepresentable {
+    let items: [Any]
+    @Binding var isPresented: Bool
+    let completion: ((Bool, Error?) -> Void)?
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        DispatchQueue.main.async {
+            let picker = NSSharingServicePicker(items: items)
+            picker.delegate = context.coordinator
+            picker.show(relativeTo: view.bounds, of: view, preferredEdge: .minY)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    class Coordinator: NSObject, NSSharingServicePickerDelegate, NSSharingServiceDelegate {
+        let parent: MacSharePicker
+        init(_ parent: MacSharePicker) { self.parent = parent }
+
+        func sharingServicePicker(_ picker: NSSharingServicePicker, delegateFor item: Any) -> NSSharingServiceDelegate? {
+            return self
+        }
+
+        func sharingService(_ sharingService: NSSharingService, didShareItems items: [Any]) {
+            parent.completion?(true, nil)
+            DispatchQueue.main.async { parent.isPresented = false }
+        }
+
+        func sharingService(_ sharingService: NSSharingService, didFailToShareItems items: [Any], error: Error) {
+            parent.completion?(false, error)
+            DispatchQueue.main.async { parent.isPresented = false }
+        }
+    }
+}
+#endif
+
 struct SettingsView: View {
     enum NavigationDestination: Hashable {
         case Cars
@@ -31,6 +93,9 @@ struct SettingsView: View {
     @State private var showingCarPicker: Bool = false
     @State private var selectedImportCarIndex: Int? = nil
     @State private var selectedImportCar: Car? = nil
+    // Export/share state
+    @State private var isSharing: Bool = false
+    @State private var exportFileURL: URL? = nil
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -50,7 +115,11 @@ struct SettingsView: View {
                     }
                 }
                 
-                Section(header: Text("Import")) {
+                Section(header: Text("Import/Export")) {
+                    Button("Load sample master data") {
+                        SampleMasterData.masterSampleData(in: modelContext)
+                    }
+                    
                     Button("Import Charging Sessions (JSON)") {
                         // First ask the user which Car to assign imports to
                         // Reset selection to default (none)
@@ -85,6 +154,61 @@ struct SettingsView: View {
                         }
                     }
                     .foregroundColor(.blue)
+
+                    // Export button: create a backup JSON and present share sheet so user picks destination
+                    Button("Export all data (JSON)") {
+                        Task {
+                            do {
+                                let data = try DataEncoder.export(context: modelContext)
+                                let tmp = FileManager.default.temporaryDirectory
+                                let iso = ISO8601DateFormatter().string(from: Date())
+                                let fileURL = tmp.appendingPathComponent("clevercheck-backup-\(iso).json")
+                                try data.write(to: fileURL, options: .atomic)
+                                exportFileURL = fileURL
+                                isSharing = true
+                            } catch {
+                                importMessage = "Export failed: \(error)"
+                                showImportResult = true
+                            }
+                        }
+                    }
+                    .foregroundColor(.blue)
+                    .sheet(isPresented: $isSharing) {
+                        if let url = exportFileURL {
+                            #if canImport(UIKit)
+                            ShareSheet(activityItems: [url]) { completed, err in
+                                if completed {
+                                    // remove temp file after successful share
+                                    do { try FileManager.default.removeItem(at: url); exportFileURL = nil } catch { print("Failed to remove temp export file: \(error)") }
+                                    importMessage = "Export shared. Temporary file removed."
+                                } else if let err = err {
+                                    importMessage = "Share failed: \(err.localizedDescription)"
+                                } else {
+                                    importMessage = "Share cancelled."
+                                }
+                                showImportResult = true
+                                isSharing = false
+                            }
+                            #elseif canImport(AppKit)
+                            MacSharePicker(items: [url], isPresented: $isSharing) { completed, err in
+                                if completed {
+                                    do { try FileManager.default.removeItem(at: url); exportFileURL = nil } catch { print("Failed to remove temp export file: \(error)") }
+                                    importMessage = "Export shared. Temporary file removed."
+                                } else if let err = err {
+                                    importMessage = "Share failed: \(err.localizedDescription)"
+                                } else {
+                                    importMessage = "Share cancelled."
+                                }
+                                showImportResult = true
+                                isSharing = false
+                            }
+                            #else
+                            Text("Sharing not supported on this platform")
+                            #endif
+                        } else {
+                            Text("No file to share")
+                        }
+                    }
                 }
                 
                 // Car picker sheet
@@ -197,6 +321,7 @@ struct SettingsView: View {
     private func deleteAllData() {
         if confirmDeletion == "DELETE ALL" {
             modelContext.container.deleteAllData()
+            try? modelContext.save()
         }
     }
 }

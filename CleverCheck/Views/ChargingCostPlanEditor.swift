@@ -25,17 +25,17 @@ struct ChargingCostPlanEditor: View {
     
     @State var car: Car?
     @State private var charger: Charger?
-    @State private var planType: ChargingCostPlan.PlanType?
     
     @State private var selectedPlanType: String?
     private let planTypes = [
-        ChargingCostPlan.PlanType.descriptionIndividual,
-        ChargingCostPlan.PlanType.descriptionFlatrate,
-        ChargingCostPlan.PlanType.descriptionHomeConsumption,
-        ChargingCostPlan.PlanType.descriptionRefunded
+        ChargingCostPlan.PlanType.individual.description,
+        ChargingCostPlan.PlanType.flatrate.description,
+        ChargingCostPlan.PlanType.homeConsumption.description,
+        ChargingCostPlan.PlanType.refunded.description
     ]
     
     @State private var individualDefaultPrice: Cost = Cost(amount: 0.0)
+    @State private var energyUnitSymbol: String = "kWh"
     @State private var enterIndividualDefaultPrice: Bool = false
     @State private var flatratePrice: Cost = Cost(amount: 0.0)
     @State private var connectedLocation: Location?
@@ -111,32 +111,52 @@ struct ChargingCostPlanEditor: View {
                 // Edit the incoming plan.
                 car = plan.car
                 charger = plan.charger
-                planType = plan.planType
                 selectedPlanType = plan.planType.description
+                energyUnitSymbol = plan.energyUnitSymbol
                 isArchived = plan.isArchived
                 
                 switch plan.planType {
-                case .individual(defaultKWhPrice: let price):
-                    if price != nil {
-                        individualDefaultPrice = price!
+                case .individual:
+                    if let price = plan.defaultEnergyPrice {
+                        // Check if user has changed energy unit and convert if yes
+                        if plan.energyUnitSymbol == UserSettings.shared.energyUnitSymbol {
+                            // Use price without conversion
+                            individualDefaultPrice = price
+                        } else {
+                            // Convert to new unit
+                            if let defaultPrice = UserSettings.shared.convertEnergyPrice(amount: price.amount, from: plan.energyUnitSymbol, to: UserSettings.shared.energyUnitSymbol) {
+                                individualDefaultPrice = Cost(amount: defaultPrice, currency: price.currency)
+                                energyUnitSymbol = UserSettings.shared.energyUnitSymbol
+                            } else {
+                                // The energy unit symbol is unknown, assume default
+                                individualDefaultPrice = price
+                                energyUnitSymbol = UserSettings.shared.energyUnitSymbol
+                                
+                                // Inform the user
+                                activeAlert = .error(message: "Unknown energy unit: \(plan.energyUnitSymbol). Assuming default: \(UserSettings.shared.energyUnitSymbol). Please check your values.")
+                                showingAlert = true
+                            }
+                        }
                     }
                     enterIndividualDefaultPrice = true
-                case .flatrate(monthlyRate: let price):
-                    flatratePrice = price
-                case .homeConsumption(atLocationWithId: let locationId):
-                    if let location = getLocationById(locationId) {
+                case .flatrate:
+                    if let rate = plan.monthlyRate {
+                        flatratePrice = rate
+                    }
+                case .homeConsumption:
+                    if let location = plan.relatedLocation {
                         connectedLocation = location
                     } else {
                         activeAlert = .fatalError(message: "No location found.")
                     }
-                case .refunded(atLocationWithId: let locationId, byFlatrateWithID: let flatrateId):
-                    if let location = getLocationById(locationId) {
+                case .refunded:
+                    if let location = plan.relatedLocation {
                         connectedLocation = location
                     } else {
                         activeAlert = .fatalError(message: "No location found.")
                     }
-                    if let flatrate = allPlans.first(where: { $0.id == flatrateId }) {
-                        refundingPlan = flatrate
+                    if let includedInOtherPlan = plan.includedInOtherPlan {
+                        refundingPlan = includedInOtherPlan
                     } else {
                         activeAlert = .fatalError(message: "No refunding cost plan found.")
                     }
@@ -188,36 +208,46 @@ struct ChargingCostPlanEditor: View {
             return
         }
         
+        var tempPlanType: ChargingCostPlan.PlanType? = nil
+        var tempIndividualDefaultPrice: Cost? = nil
+        var tempFlatratePrice: Cost? = nil
+        var tempRelatedLocation: Location? = nil
+        var tempRefundingPlan: ChargingCostPlan? = nil
+        
         // Update plan type
         switch selectedPlanType! {
-        case ChargingCostPlan.PlanType.descriptionIndividual:
-            planType = .individual(defaultKWhPrice: individualDefaultPrice)
-        case ChargingCostPlan.PlanType.descriptionFlatrate:
-            planType = .flatrate(monthlyRate: flatratePrice)
-        case ChargingCostPlan.PlanType.descriptionHomeConsumption:
+        case ChargingCostPlan.PlanType.individual.description:
+            tempPlanType = .individual
+            tempIndividualDefaultPrice = enterIndividualDefaultPrice ? individualDefaultPrice : nil
+        case ChargingCostPlan.PlanType.flatrate.description:
+            tempPlanType = .flatrate
+            tempFlatratePrice = flatratePrice
+        case ChargingCostPlan.PlanType.homeConsumption.description:
             if let connectedLocation {
-                planType = .homeConsumption(atLocationWithId: connectedLocation.id)
+                tempPlanType = .homeConsumption
+                tempRelatedLocation = connectedLocation
             } else {
                 activeAlert = .warning(message: "Please select a location.")
                 showingAlert = true
             }
-        case ChargingCostPlan.PlanType.descriptionRefunded:
-            if connectedLocation == nil {
+        case ChargingCostPlan.PlanType.refunded.description:
+            tempPlanType = .refunded
+            
+            if let connectedLocation {
+                tempRelatedLocation = connectedLocation
+            } else {
                 activeAlert = .warning(message: "Please select a location.")
                 showingAlert = true
                 return
             }
             
-            if refundingPlan == nil {
+            if let refundingPlan {
+                tempRefundingPlan = refundingPlan
+            } else {
                 activeAlert = .warning(message: "Please select a refunding plan.")
                 showingAlert = true
                 return
             }
-            
-            planType = .refunded(
-                atLocationWithId: connectedLocation!.id,
-                byFlatrateWithID: refundingPlan!.id
-            )
         default:
             activeAlert = .fatalError(message: "Unsupported plan type: \(selectedPlanType!)")
             showingAlert = true
@@ -228,10 +258,24 @@ struct ChargingCostPlanEditor: View {
             // Edit the car
             plan.car = car!
             plan.charger = charger!
-            plan.planType = planType!
+            plan.planType = tempPlanType!
+            plan.energyUnitSymbol = energyUnitSymbol
+            plan.defaultEnergyPrice = tempIndividualDefaultPrice
+            plan.monthlyRate = tempFlatratePrice
+            plan.relatedLocation = tempRelatedLocation
+            plan.includedInOtherPlan = tempRefundingPlan
             plan.isArchived = isArchived
         } else {
-            let newPlan = ChargingCostPlan(car: car!, charger: charger!, planType: planType!)
+            let newPlan = ChargingCostPlan(
+                car: car!,
+                charger: charger!,
+                planType: tempPlanType!,
+                defaultEnergyPrice: tempIndividualDefaultPrice,
+                monthlyRate: tempFlatratePrice,
+                relatedLocation: tempRelatedLocation,
+                includedInOtherPlan: tempRefundingPlan
+            )
+            newPlan.energyUnitSymbol = energyUnitSymbol
             newPlan.isArchived = isArchived
             modelContext.insert(newPlan)
         }
@@ -244,7 +288,7 @@ struct ChargingCostPlanEditor: View {
     @ViewBuilder
     private func planDataView() -> some View {
         switch selectedPlanType {
-        case ChargingCostPlan.PlanType.descriptionIndividual:
+        case ChargingCostPlan.PlanType.individual.description:
             // Default cost
             if enterIndividualDefaultPrice {
                 HStack {
@@ -254,7 +298,7 @@ struct ChargingCostPlanEditor: View {
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .focused($focusedField, equals: .individualDefaultPrice)
-                    Text("\(individualDefaultPrice.currency)/kWh")
+                    Text("\(individualDefaultPrice.currency)/\(energyUnitSymbol)")
                     Button {
                         deleteIndividualDefaultPrice()
                     } label: {
@@ -276,23 +320,23 @@ struct ChargingCostPlanEditor: View {
                     }
                 }
             }
-        case ChargingCostPlan.PlanType.descriptionFlatrate:
+        case ChargingCostPlan.PlanType.flatrate.description:
             HStack {
                 Text("Monthly price")
                 Spacer()
                 TextField("", value: $flatratePrice.amount, format: .number)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                Text(individualDefaultPrice.currency)
+                Text(flatratePrice.currency)
             }
-        case ChargingCostPlan.PlanType.descriptionHomeConsumption:
+        case ChargingCostPlan.PlanType.homeConsumption.description:
             Picker("Location", selection: $connectedLocation) {
                 Text("- Select a location -").tag(nil as Location?)
                 ForEach(locations, id: \.id) { location in
                     Text(location.name).tag(location)
                 }
             }
-        case ChargingCostPlan.PlanType.descriptionRefunded:
+        case ChargingCostPlan.PlanType.refunded.description:
             Picker("Location", selection: $connectedLocation) {
                 Text("- Select a location -").tag(nil as Location?)
                 ForEach(locations, id: \.id) { location in

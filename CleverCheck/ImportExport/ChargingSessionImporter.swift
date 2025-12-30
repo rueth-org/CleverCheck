@@ -29,14 +29,20 @@ fileprivate struct ChargingSessionDTO: Codable {
     let chargingCostPlan: String?
     let chargedEnergyKWh: Double?
     let chargingCost: Double?
+    let specificChargingCost: Double?
     let mileageKilometer: Double?
+    let initialSOC: Double?
+    let finalSOC: Double?
 
     enum CodingKeys: String, CodingKey {
         case endTime
         case chargingCostPlan
         case chargedEnergyKWh
         case chargingCost
+        case specificChargingCost
         case mileageKilometer
+        case initialSOC
+        case finalSOC
     }
 
     init(from decoder: Decoder) throws {
@@ -57,10 +63,13 @@ fileprivate struct ChargingSessionDTO: Codable {
             }
             return nil
         }
-
+        
         self.chargedEnergyKWh = decodeDoubleFlexible(for: .chargedEnergyKWh)
         self.chargingCost = decodeDoubleFlexible(for: .chargingCost)
+        self.specificChargingCost = decodeDoubleFlexible(for: .specificChargingCost)
         self.mileageKilometer = decodeDoubleFlexible(for: .mileageKilometer)
+        self.initialSOC = decodeDoubleFlexible(for: .initialSOC)
+        self.finalSOC = decodeDoubleFlexible(for: .finalSOC)
     }
 }
 
@@ -75,9 +84,13 @@ public struct ChargingSessionImporter {
     fileprivate static func parseLocalizedDouble(_ raw: String) -> Double? {
         var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if s.isEmpty { return nil }
+        
+        // Check for percentage
+        var isPercentage = false
+        if s.contains("%") { isPercentage = true }
 
         // Remove currency symbols and letters: keep digits, separators, plus/minus
-        s = s.filter { "0123456789.,+-".contains($0) }
+        s = s.filter { "0123456789.,+-%".contains($0) }
 
         // Handle common grouping/decimal conventions
         if s.contains(".") && s.contains(",") {
@@ -88,8 +101,13 @@ public struct ChargingSessionImporter {
             // assume "," is decimal separator
             s = s.replacingOccurrences(of: ",", with: ".")
         }
-
-        return Double(s)
+        
+        let doubleValue = Double(s)
+        if isPercentage, let doubleValue = doubleValue {
+            return doubleValue / 100.0
+        } else {
+            return doubleValue
+        }
     }
 
     /// Import from raw JSON Data.
@@ -165,6 +183,33 @@ public struct ChargingSessionImporter {
                     let currency = Locale.current.currency?.identifier ?? "EUR"
                     let chargingCostObject = Cost(amount: chargingCost, currency: currency)
                     newSession.chargingCost = chargingCostObject
+                }
+
+                // store specific charging cost in currency of Locale.current
+                if let specificChargingCost = dto.specificChargingCost {
+                    let currency = Locale.current.currency?.identifier ?? "EUR"
+                    let chargingCostObject = Cost(amount: specificChargingCost, currency: currency)
+                    newSession.specificChargingCost = chargingCostObject
+                }
+                
+                if dto.chargingCost != nil && dto.specificChargingCost != nil {
+                    newSession.costCalculationMethod = .both
+                } else if dto.chargingCost != nil {
+                    newSession.costCalculationMethod = .absolute
+                } else if dto.specificChargingCost != nil {
+                    newSession.costCalculationMethod = .specific
+                } else {
+                    newSession.costCalculationMethod = .none
+                }
+                
+                // initial SOC
+                if let initialSOC = dto.initialSOC {
+                    newSession.initialSOC = initialSOC
+                }
+                
+                // final SOC
+                if let finalSOC = dto.finalSOC {
+                    newSession.finalSOC = finalSOC
                 }
 
                 modelContext.insert(newSession)
