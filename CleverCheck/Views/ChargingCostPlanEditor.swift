@@ -137,8 +137,10 @@ struct ChargingCostPlanEditor: View {
                                 showingAlert = true
                             }
                         }
+                        enterIndividualDefaultPrice = true
+                    } else {
+                        enterIndividualDefaultPrice = false
                     }
-                    enterIndividualDefaultPrice = true
                 case .flatrate:
                     if let rate = plan.monthlyRate {
                         flatratePrice = rate

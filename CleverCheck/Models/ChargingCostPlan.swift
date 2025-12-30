@@ -35,6 +35,9 @@ public final class ChargingCostPlan {
     @Relationship(deleteRule: .nullify, inverse: \ChargingSession.chargingCostPlan)
     var chargingSessions: [ChargingSession]?
     
+    @Relationship(deleteRule: .nullify, inverse: \ChargingCostPlan.includedInOtherPlan)
+    var childCostPlans: [ChargingCostPlan]?
+    
     var descriptionShortNoCar: String {
         "\(charger?.description ?? "Unknown charger")"
     }

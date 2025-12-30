@@ -90,7 +90,7 @@ public struct ChargingSessionImporter {
         if s.contains("%") { isPercentage = true }
 
         // Remove currency symbols and letters: keep digits, separators, plus/minus
-        s = s.filter { "0123456789.,+-%".contains($0) }
+        s = s.filter { "0123456789.,+-".contains($0) }
 
         // Handle common grouping/decimal conventions
         if s.contains(".") && s.contains(",") {

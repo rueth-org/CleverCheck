@@ -17,6 +17,9 @@ final class Location {
     @Relationship(deleteRule: .nullify, inverse: \HomeConsumption.associatedLocation)
     var associatedHomeConsumptions: [HomeConsumption]?
     
+    @Relationship(deleteRule: .nullify, inverse: \ChargingCostPlan.relatedLocation)
+    var associatedChargingCostPlans: [ChargingCostPlan]?
+    
     @Relationship(deleteRule: .nullify, inverse: \Charger.location)
     var chargers: [Charger]?
     
