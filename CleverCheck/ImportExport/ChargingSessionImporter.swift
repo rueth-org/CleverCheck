@@ -81,7 +81,7 @@ public struct ChargingSessionImporter {
     }()
 
     // Parse localized numeric string into Double
-    fileprivate static func parseLocalizedDouble(_ raw: String) -> Double? {
+    static func parseLocalizedDouble(_ raw: String) -> Double? {
         var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if s.isEmpty { return nil }
         
@@ -236,7 +236,7 @@ public struct ChargingSessionImporter {
 
     // MARK: - Helpers
 
-    private static func parseDate(_ string: String) -> Date? {
+    static func parseDate(_ string: String) -> Date? {
         // Try ISO8601 first
         if let d = isoFormatter.date(from: string) {
             return d

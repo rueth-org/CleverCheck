@@ -1391,6 +1391,22 @@
         }
       }
     },
+    "Import Home Consumptions (JSON)" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importér hjemmeforbruger (JSON)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heimverbräuche importieren (JSON)"
+          }
+        }
+      }
+    },
     "Import/Export" : {
       "localizations" : {
         "da" : {
@@ -1403,23 +1419,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Import/Export"
-          }
-        }
-      }
-    },
-    "Individual" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Individuelt"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Individuell"
           }
         }
       }
@@ -2547,23 +2546,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Preisbestandteile"
-          }
-        }
-      }
-    },
-    "Refunded" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tilbagebetaling"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erstattung"
           }
         }
       }

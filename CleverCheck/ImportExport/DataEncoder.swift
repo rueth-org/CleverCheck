@@ -54,6 +54,7 @@ struct DataEncoder {
         var name: String
         var isArchived: Bool
         var associatedHomeConsumptionIds: [UUID]
+        var associatedChargingCostPlanIds: [UUID]
         var chargerIds: [UUID]
     }
 
@@ -72,6 +73,7 @@ struct DataEncoder {
         var includedInOtherPlan: UUID?
         var isArchived: Bool
         var chargingSessionIds: [UUID]
+        var childCostPlanIds: [UUID]
     }
 
     struct ChargingSessionDTO: Codable {
@@ -200,6 +202,7 @@ struct DataEncoder {
                 name: location.name,
                 isArchived: location.isArchived,
                 associatedHomeConsumptionIds: location.associatedHomeConsumptions?.map { $0.id } ?? [],
+                associatedChargingCostPlanIds: location.associatedChargingCostPlans?.map { $0.id } ?? [],
                 chargerIds: location.chargers?.map { $0.id } ?? []
             )
         }
@@ -234,7 +237,8 @@ struct DataEncoder {
                 relatedLocation: plan.relatedLocation?.id,
                 includedInOtherPlan: plan.includedInOtherPlan?.id,
                 isArchived: plan.isArchived,
-                chargingSessionIds: plan.chargingSessions?.map { $0.id } ?? []
+                chargingSessionIds: plan.chargingSessions?.map { $0.id } ?? [],
+                childCostPlanIds: plan.childCostPlans?.map { $0.id } ?? []
             )
         }
 

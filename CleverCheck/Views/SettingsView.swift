@@ -87,7 +87,8 @@ struct SettingsView: View {
     @State private var confirmDeletion = ""
     
     // Import states
-    @State private var isImportingFile: Bool = false
+    @State private var isImportingChargingSessionFile: Bool = false
+    @State private var isImportingHomeConsumptionFile: Bool = false
     @State private var importMessage: String = ""
     @State private var showImportResult: Bool = false
     @State private var showingCarPicker: Bool = false
@@ -127,7 +128,7 @@ struct SettingsView: View {
                         selectedImportCar = nil
                         showingCarPicker = true
                     }
-                    .fileImporter(isPresented: $isImportingFile, allowedContentTypes: [UTType.json], allowsMultipleSelection: false) { result in
+                    .fileImporter(isPresented: $isImportingChargingSessionFile, allowedContentTypes: [UTType.json], allowsMultipleSelection: false) { result in
                         switch result {
                         case .success(let urls):
                             guard let url = urls.first else { return }
@@ -137,6 +138,37 @@ struct SettingsView: View {
                                     var msg = "Imported \(report.imported)/\(report.total) sessions."
                                     if report.skippedNoPlan > 0 || report.skippedDuplicate > 0 || report.failed > 0 {
                                         msg += " Skipped: \(report.skippedNoPlan) (no plan), \(report.skippedDuplicate) (duplicates), \(report.failed) (failed)."
+                                    }
+                                    if !report.errors.isEmpty {
+                                        msg += " Errors: " + report.errors.joined(separator: "; ")
+                                    }
+                                    importMessage = msg
+                                    showImportResult = true
+                                } catch {
+                                    importMessage = "Import failed: \(error)"
+                                    showImportResult = true
+                                }
+                            }
+                        case .failure(let error):
+                            importMessage = "File selection failed: \(error.localizedDescription)"
+                            showImportResult = true
+                        }
+                    }
+                    .foregroundColor(.blue)
+
+                    Button("Import Home Consumptions (JSON)") {
+                        isImportingHomeConsumptionFile = true
+                    }
+                    .fileImporter(isPresented: $isImportingHomeConsumptionFile, allowedContentTypes: [UTType.json], allowsMultipleSelection: false) { result in
+                        switch result {
+                        case .success(let urls):
+                            guard let url = urls.first else { return }
+                            Task {
+                                do {
+                                    let report = try HomeConsumptionImporter.importFromFile(url: url, into: modelContext)
+                                    var msg = "Imported \(report.imported)/\(report.total) home consumptions."
+                                    if report.skippedDuplicate > 0 || report.failed > 0 {
+                                        msg += " Skipped: \(report.skippedDuplicate) (duplicates), \(report.failed) (failed)."
                                     }
                                     if !report.errors.isEmpty {
                                         msg += " Errors: " + report.errors.joined(separator: "; ")
@@ -240,7 +272,7 @@ struct SettingsView: View {
                                     }
                                     showingCarPicker = false
                                     // Trigger file importer
-                                    isImportingFile = true
+                                    isImportingChargingSessionFile = true
                                 }
                             }
                         }
