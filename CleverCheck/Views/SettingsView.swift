@@ -89,6 +89,7 @@ struct SettingsView: View {
     // Import states
     @State private var isImportingChargingSessionFile: Bool = false
     @State private var isImportingHomeConsumptionFile: Bool = false
+    @State private var isImportingPriceElementFile: Bool = false
     @State private var importMessage: String = ""
     @State private var showImportResult: Bool = false
     @State private var showingCarPicker: Bool = false
@@ -169,6 +170,37 @@ struct SettingsView: View {
                                     var msg = "Imported \(report.imported)/\(report.total) home consumptions."
                                     if report.skippedDuplicate > 0 || report.failed > 0 {
                                         msg += " Skipped: \(report.skippedDuplicate) (duplicates), \(report.failed) (failed)."
+                                    }
+                                    if !report.errors.isEmpty {
+                                        msg += " Errors: " + report.errors.joined(separator: "; ")
+                                    }
+                                    importMessage = msg
+                                    showImportResult = true
+                                } catch {
+                                    importMessage = "Import failed: \(error)"
+                                    showImportResult = true
+                                }
+                            }
+                        case .failure(let error):
+                            importMessage = "File selection failed: \(error.localizedDescription)"
+                            showImportResult = true
+                        }
+                    }
+                    .foregroundColor(.blue)
+                    
+                    Button("Import Price Elements (JSON)") {
+                        isImportingPriceElementFile = true
+                    }
+                    .fileImporter(isPresented: $isImportingPriceElementFile, allowedContentTypes: [UTType.json], allowsMultipleSelection: false) { result in
+                        switch result {
+                        case .success(let urls):
+                            guard let url = urls.first else { return }
+                            Task {
+                                do {
+                                    let report = try PriceElementImporter.importFromFile(url: url, into: modelContext)
+                                    var msg = "Imported \(report.imported)/\(report.total) price elements."
+                                    if report.skippedNoHomeConsumption > 0 || report.skippedDuplicate > 0 || report.failed > 0 {
+                                        msg += " Skipped: \(report.skippedNoHomeConsumption) (no home consumption), \(report.skippedDuplicate) (duplicates), \(report.failed) (failed)."
                                     }
                                     if !report.errors.isEmpty {
                                         msg += " Errors: " + report.errors.joined(separator: "; ")

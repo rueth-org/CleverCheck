@@ -1407,6 +1407,22 @@
         }
       }
     },
+    "Import Price Elements (JSON)" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importér prisbestanddele (JSON)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preisbestandteile importieren (JSON)"
+          }
+        }
+      }
+    },
     "Import/Export" : {
       "localizations" : {
         "da" : {
