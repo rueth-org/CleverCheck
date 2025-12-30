@@ -1296,16 +1296,21 @@
       }
     },
     "Flatrate" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flatrate"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Flatrate"
           }
         }
-      },
-      "shouldTranslate" : false
+      }
     },
     "Home" : {
       "localizations" : {
@@ -1435,6 +1440,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Import/Export"
+          }
+        }
+      }
+    },
+    "Individual" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Individuel"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Individuell"
           }
         }
       }
@@ -2562,6 +2584,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Preisbestandteile"
+          }
+        }
+      }
+    },
+    "Refunded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilbagebetaling"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rückzahlung"
           }
         }
       }
