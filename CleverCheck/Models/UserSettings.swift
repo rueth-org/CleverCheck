@@ -18,6 +18,7 @@ final class UserSettings {
     @AppStorage("powerUnitSymbol") var powerUnitSymbol: String = "kW"
     @AppStorage("vatRate") var vatRate: Double = 0.25
     @AppStorage("displayGrossPrices") var displayGrossPrices: Bool = true
+    @AppStorage("referenceSOC") var referenceSOC: Double = 0.8
     
     var distanceUnit: UnitLength {
         switch measurementSystem {

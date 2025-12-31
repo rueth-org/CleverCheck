@@ -6,3 +6,7 @@
 //
 
 import Foundation
+
+struct DataError: Error {
+    let message: String
+}

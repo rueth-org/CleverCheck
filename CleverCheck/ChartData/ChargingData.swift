@@ -15,9 +15,9 @@ struct ChargingData: Identifiable {
         case daily(date: Date)
     }
 
-    var id = UUID()
-    var resolution: Resolution
-    var chargingSessions: [ChargingSession]
+    let id = UUID()
+    let resolution: Resolution
+    let chargingSessions: [ChargingSession]
     
     var chargedEnergy: [String: Double] {
         switch resolution {
