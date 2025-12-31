@@ -299,6 +299,9 @@ struct ChargingView: View {
                                     let _ = 0
                                 }
                             })
+                            
+                            // The summary data
+                            ChargingViewSummary(chargingData: chargingData)
                         }
                     }
                 } else {

@@ -25,7 +25,7 @@ struct ChargingData: Identifiable {
             var result = [String: Double]()
             for session in chargingSessions {
                 let monthKey = DateFormatter.chartDisplayDateYearly.string(from: session.endTime)
-                let energy = session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value
+                let energy = session.chargedEnergy(in: UserSettings.shared.energyUnit).value
                 result[monthKey, default: 0] += energy
             }
             return result
@@ -33,7 +33,7 @@ struct ChargingData: Identifiable {
             var result = [String: Double]()
             for session in chargingSessions {
                 let dayKey = DateFormatter.chartDisplayDateMonthly.string(from: session.endTime)
-                let energy = session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value
+                let energy = session.chargedEnergy(in: UserSettings.shared.energyUnit).value
                 result[dayKey, default: 0] += energy
             }
             return result
@@ -44,13 +44,55 @@ struct ChargingData: Identifiable {
             for session in chargingSessions {
                 // Use the localized short time string as key (matches .shortened)
                 let dayKey = DateFormatter.chartDisplayDateDaily.string(from: session.endTime)
-                let energy = session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value
+                let energy = session.chargedEnergy(in: UserSettings.shared.energyUnit).value
                 result[dayKey, default: 0] += energy
             }
             return result
         }
     }
+    
+    var totalChargedEnergy: Measurement<UnitEnergy> {
+        let totalEnergy = chargingSessions.map({ $0.chargedEnergy(in: UserSettings.shared.energyUnit).value }).reduce(0, +)
+        return .init(value: totalEnergy, unit: UserSettings.shared.energyUnit)
+    }
+    
+    var chargingCost: [String: Double] {
+        switch resolution {
+        case .yearly(_):
+            var result = [String: Double]()
+            for session in chargingSessions {
+                let monthKey = DateFormatter.chartDisplayDateYearly.string(from: session.endTime)
+                let cost = session.totalChargingCost
+                result[monthKey, default: 0] += cost.amount
+            }
+            return result
+        case .monthly(_):
+            var result = [String: Double]()
+            for session in chargingSessions {
+                let dayKey = DateFormatter.chartDisplayDateMonthly.string(from: session.endTime)
+                let cost = session.totalChargingCost
+                result[dayKey, default: 0] += cost.amount
+            }
+            return result
+        case .daily(_):
+            var result = [String: Double]()
+            // The exact localized date format string used by this formatter (e.g. "h:mm a" or localized variant)
+            // This matches how `endTime.formatted(date: .omitted, time: .shortened)` would display the time.
+            for session in chargingSessions {
+                // Use the localized short time string as key (matches .shortened)
+                let dayKey = DateFormatter.chartDisplayDateDaily.string(from: session.endTime)
+                let cost = session.totalChargingCost
+                result[dayKey, default: 0] += cost.amount
+            }
+            return result
+        }
+    }
 
+    var totalChargingCost: Cost {
+        let totalCost = chargingSessions.map({ $0.totalChargingCost.amount }).reduce(0, +)
+        return .init(amount: totalCost)
+    }
+    
     init(modelContext: ModelContext, vehicle: Car, resolution: Resolution) throws {
         self.resolution = resolution
         

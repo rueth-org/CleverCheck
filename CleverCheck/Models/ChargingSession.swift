@@ -70,6 +70,28 @@ final class ChargingSession {
         String(format: "%.1f \(UserSettings.shared.energyUnit.symbol)", chargedEnergy.converted(to: UserSettings.shared.energyUnit).value)
     }
     
+    var totalChargingCost: Cost {
+        switch costCalculationMethod {
+        case .none: return .init(amount: 0.0)
+        case .absolute: return self.chargingCost ?? .init(amount: 0.0)
+        case .specific:
+            var totalCost = 0.0
+            if let specificChargingCost {
+                totalCost += specificChargingCost.amount * chargedEnergy(in: UserSettings.shared.energyUnit).value
+            }
+            return .init(amount: totalCost)
+        case .both:
+            var totalCost = 0.0
+            if let specificChargingCost {
+                totalCost += specificChargingCost.amount * chargedEnergy(in: UserSettings.shared.energyUnit).value
+            }
+            if let chargingCost {
+                totalCost += chargingCost.amount
+            }
+            return .init(amount: totalCost)
+        }
+    }
+    
     init(
         startTime: Date? = nil,
         endTime: Date,
@@ -99,5 +121,9 @@ final class ChargingSession {
             self.finalSOC = finalSOC
         }
         self.comment = comment
+    }
+    
+    func chargedEnergy(in unitEnergy: UnitEnergy) -> Measurement<UnitEnergy> {
+        chargedEnergy.converted(to: unitEnergy)
     }
 }

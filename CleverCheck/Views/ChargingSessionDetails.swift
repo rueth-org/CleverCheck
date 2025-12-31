@@ -24,6 +24,10 @@ struct ChargingSessionDetails: View {
         if let chargingCost = session.chargingCost {
             Text("Cost: \(chargingCost.formatted())")
         }
+        if let specificCost = session.specificChargingCost {
+            Text("Cost per \(UserSettings.shared.energyUnitSymbol): \(specificCost.formatted())")
+        }
+        Text("Total cost: \(session.totalChargingCost.formatted())")
         if let mileage = session.mileage {
             Text("Mileage: \(mileage.formatted())")
         }

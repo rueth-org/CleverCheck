@@ -18,3 +18,13 @@ struct Cost: Codable {
         return formatter.string(from: NSNumber(value: amount)) ?? "–"
     }
 }
+
+extension Measurement<UnitEnergy> {
+    func formatted() -> String {
+        let formatter = NumberFormatter()
+        let precision = UserSettings.shared.precision(for: self.value)
+        formatter.maximumFractionDigits = precision
+        let value = formatter.string(from: NSNumber(value: self.value)) ?? "–"
+        return "\(value) \(self.unit.symbol)"
+    }
+}
