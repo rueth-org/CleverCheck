@@ -21,17 +21,7 @@ struct ChargingViewChart: View {
                     y: .value("Charged Energy", pair.value)
                 )
                 .annotation(position: .top) {
-                    let fractionLength: Int = {
-                        switch chargingData.resolution {
-                        case .yearly(_):
-                            return 0
-                        case .monthly(_):
-                            return 1
-                        case .daily(_):
-                            return 2
-                        }
-                    }()
-                    Text(pair.value.formatted(.number.precision(.fractionLength(fractionLength))))
+                    Text(UserSettings.shared.format(pair.value, withSignificantDigits: 3))
                         .font(.caption)
                         .foregroundColor(.black)
                         .padding(5)
@@ -40,6 +30,7 @@ struct ChargingViewChart: View {
                 }
             }
         }
+        .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
         .chartOverlay { proxy in
             GeometryReader { geometry in
                 // Invisible layer that captures taps over the chart's plot area

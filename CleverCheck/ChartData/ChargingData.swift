@@ -16,15 +16,21 @@ struct ChargingData: Identifiable {
     }
 
     let id = UUID()
+    let modelContext: ModelContext
+    let relatedPlans: [ChargingCostPlan]
     let resolution: Resolution
     let chargingSessions: [ChargingSession]
+    
+    var consumptionData: ConsumptionData? {
+        try? ConsumptionData(modelContext: modelContext, resolution: resolution, relatedPlans: relatedPlans, sessions: chargingSessions)
+    }
     
     var chargedEnergy: [String: Double] {
         switch resolution {
         case .yearly(_):
             var result = [String: Double]()
             for session in chargingSessions {
-                let monthKey = DateFormatter.chartDisplayDateYearly.string(from: session.endTime)
+                let monthKey = ChargingData.dateKey(for: session.endTime, with: resolution)
                 let energy = session.chargedEnergy(in: UserSettings.shared.energyUnit).value
                 result[monthKey, default: 0] += energy
             }
@@ -32,7 +38,7 @@ struct ChargingData: Identifiable {
         case .monthly(_):
             var result = [String: Double]()
             for session in chargingSessions {
-                let dayKey = DateFormatter.chartDisplayDateMonthly.string(from: session.endTime)
+                let dayKey = ChargingData.dateKey(for: session.endTime, with: resolution)
                 let energy = session.chargedEnergy(in: UserSettings.shared.energyUnit).value
                 result[dayKey, default: 0] += energy
             }
@@ -43,7 +49,7 @@ struct ChargingData: Identifiable {
             // This matches how `endTime.formatted(date: .omitted, time: .shortened)` would display the time.
             for session in chargingSessions {
                 // Use the localized short time string as key (matches .shortened)
-                let dayKey = DateFormatter.chartDisplayDateDaily.string(from: session.endTime)
+                let dayKey = ChargingData.dateKey(for: session.endTime, with: resolution)
                 let energy = session.chargedEnergy(in: UserSettings.shared.energyUnit).value
                 result[dayKey, default: 0] += energy
             }
@@ -94,6 +100,7 @@ struct ChargingData: Identifiable {
     }
     
     init(modelContext: ModelContext, vehicle: Car, resolution: Resolution) throws {
+        self.modelContext = modelContext
         self.resolution = resolution
         
         // Get the id of the vehicle
@@ -105,7 +112,7 @@ struct ChargingData: Identifiable {
                 plan.car?.persistentModelID == vehicleID
             }
         )
-        let relatedPlans = try modelContext.fetch(planDescriptor)
+        self.relatedPlans = try modelContext.fetch(planDescriptor)
         
         if !relatedPlans.isEmpty {
             // Compute concrete date range outside the predicate so it can be captured.
@@ -147,9 +154,19 @@ struct ChargingData: Identifiable {
             
             // Filter by charging cost plans related to the vehicle
             let relatedPlanIDs = Set(relatedPlans.map { $0.persistentModelID })
-            self.chargingSessions = allSessionsInPeriod.filter({ $0.chargingCostPlan != nil && relatedPlanIDs.contains($0.chargingCostPlan!.persistentModelID) })
+            self.chargingSessions = allSessionsInPeriod.filter({
+                $0.chargingCostPlan != nil && relatedPlanIDs.contains($0.chargingCostPlan!.persistentModelID)
+            })
         } else {
             self.chargingSessions = []
+        }
+    }
+    
+    static func dateKey(for time: Date, with resolution: ChargingData.Resolution) -> String {
+        switch resolution {
+        case .yearly(_): DateFormatter.chartDisplayDateYearly.string(from: time)
+        case .monthly(_): DateFormatter.chartDisplayDateMonthly.string(from: time)
+        case .daily(_): DateFormatter.chartDisplayDateDaily.string(from: time)
         }
     }
 }

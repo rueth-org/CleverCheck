@@ -640,6 +640,22 @@
         }
       }
     },
+    "Charging data" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opladningsdata"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ladedaten"
+          }
+        }
+      }
+    },
     "Charging Session %lld of %lld" : {
       "localizations" : {
         "da" : {
@@ -674,6 +690,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ladevorgänge"
+          }
+        }
+      }
+    },
+    "Choose data set" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vælg datasæt"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datensatz wählen"
           }
         }
       }
@@ -3007,6 +3039,9 @@
           }
         }
       }
+    },
+    "Unable to load consumption data" : {
+
     },
     "Unknown energy unit: %@. Assuming default: %@. Please check your values." : {
       "comment" : "Error message shown to the user when the energy unit symbol in a charging cost plan is unknown, and a default value is assumed. The argument is the unknown energy unit symbol.",

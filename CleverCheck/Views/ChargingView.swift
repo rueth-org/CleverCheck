@@ -27,6 +27,11 @@ struct ChargingView: View {
     @State private var selectedDate: Date = Date.now.startDateOfMonth
     @State private var selectedSession: ChargingSession? = nil
     
+    enum Screen {
+        case charging, consumption
+    }
+    @State private var selectedScreen: Screen = .charging
+    
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var vehicles: [Car]
     
     var chargingData: ChargingData? {
@@ -77,7 +82,7 @@ struct ChargingView: View {
             List {
                 if let chargingData = chargingData {
                     
-                    // The date info part
+                    // The date selection part
                     
                     Text(selectedCar?.description ?? "No car selected")
                         .font(Font.title.bold())
@@ -226,79 +231,96 @@ struct ChargingView: View {
                             // Display the selected session
                             ChargingSessionDetails(session: sessionToBeDisplayed)
                         } else {
-                            ChargingViewChart(chargingData: chargingData, onBarTap: { dateKey in
-                                let calendar = Calendar.current
-                                switch selectedResolution {
-                                case .yearly:
-                                    // Switch to the month tapped and stored in dateKey as String (double-digit integer)
-                                    let year = calendar.component(.year, from: selectedDate)
-                                    let month = Int(dateKey) ?? calendar.component(.month, from: Date.now)
-                                    if let newDate = DateComponents(
-                                        calendar: calendar,
-                                        year: year,
-                                        month: month,
-                                        day: 1
-                                    ).date {
-                                        withAnimation {
-                                            selectedDate = newDate
-                                            selectedResolution = .monthly
+                            // The picker to choose which data to display
+                            Picker("Choose data set", selection: $selectedScreen) {
+                                Text("Charging data").tag(Screen.charging)
+                                Text("Consumption").tag(Screen.consumption)
+                            }
+                            .pickerStyle(.palette)
+                            
+                            switch selectedScreen {
+                            case .charging:
+                                ChargingViewChart(chargingData: chargingData, onBarTap: { dateKey in
+                                    let calendar = Calendar.current
+                                    switch selectedResolution {
+                                    case .yearly:
+                                        // Switch to the month tapped and stored in dateKey as String (double-digit integer)
+                                        let year = calendar.component(.year, from: selectedDate)
+                                        let month = Int(dateKey) ?? calendar.component(.month, from: Date.now)
+                                        if let newDate = DateComponents(
+                                            calendar: calendar,
+                                            year: year,
+                                            month: month,
+                                            day: 1
+                                        ).date {
+                                            withAnimation {
+                                                selectedDate = newDate
+                                                selectedResolution = .monthly
+                                            }
                                         }
-                                    }
-                                case .monthly:
-                                    // Switch to the day tapped and stored in dateKey as String (double-digit integer)
-                                    let year = calendar.component(.year, from: selectedDate)
-                                    let month = calendar.component(.month, from: selectedDate)
-                                    let day = Int(dateKey) ?? calendar.component(.day, from: Date.now)
-                                    if let newDate = DateComponents(
-                                        calendar: calendar,
-                                        year: year,
-                                        month: month,
-                                        day: day
-                                    ).date {
-                                        withAnimation {
-                                            selectedDate = newDate
-                                            selectedResolution = .daily
+                                    case .monthly:
+                                        // Switch to the day tapped and stored in dateKey as String (double-digit integer)
+                                        let year = calendar.component(.year, from: selectedDate)
+                                        let month = calendar.component(.month, from: selectedDate)
+                                        let day = Int(dateKey) ?? calendar.component(.day, from: Date.now)
+                                        if let newDate = DateComponents(
+                                            calendar: calendar,
+                                            year: year,
+                                            month: month,
+                                            day: day
+                                        ).date {
+                                            withAnimation {
+                                                selectedDate = newDate
+                                                selectedResolution = .daily
+                                            }
                                         }
-                                    }
-                                case .daily:
-                                    // Try to identify session
-                                    if chargingData.chargingSessions.count == 1 {
-                                        // There is only one session
-                                        selectedSession = chargingData.chargingSessions.first!
-                                    } else {
-                                        // Create a date from the dateKey
-                                        if let time = DateFormatter.chartDisplayDateDaily.date(from: dateKey) {
-                                            let year = calendar.component(.year, from: selectedDate)
-                                            let month = calendar.component(.month, from: selectedDate)
-                                            let day = calendar.component(.day, from: selectedDate)
-                                            
-                                            // Add year, month and day to the time
-                                            if let date = DateComponents(
-                                                calendar: calendar,
-                                                year: year,
-                                                month: month,
-                                                day: day,
-                                                hour: calendar.component(.hour, from: time),
-                                                minute: calendar.component(.minute, from: time)
-                                            ).date {
-                                                // Try to match endTime
-                                                for session in chargingData.chargingSessions {
-                                                    if session.endTime == date {
-                                                        selectedSession = session
-                                                        break
+                                    case .daily:
+                                        // Try to identify session
+                                        if chargingData.chargingSessions.count == 1 {
+                                            // There is only one session
+                                            selectedSession = chargingData.chargingSessions.first!
+                                        } else {
+                                            // Create a date from the dateKey
+                                            if let time = DateFormatter.chartDisplayDateDaily.date(from: dateKey) {
+                                                let year = calendar.component(.year, from: selectedDate)
+                                                let month = calendar.component(.month, from: selectedDate)
+                                                let day = calendar.component(.day, from: selectedDate)
+                                                
+                                                // Add year, month and day to the time
+                                                if let date = DateComponents(
+                                                    calendar: calendar,
+                                                    year: year,
+                                                    month: month,
+                                                    day: day,
+                                                    hour: calendar.component(.hour, from: time),
+                                                    minute: calendar.component(.minute, from: time)
+                                                ).date {
+                                                    // Try to match endTime
+                                                    for session in chargingData.chargingSessions {
+                                                        if session.endTime == date {
+                                                            selectedSession = session
+                                                            break
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
+                                        withAnimation {
+                                            selectedResolution = .session
+                                        }
+                                    case .session:
+                                        // Nothing to do here
+                                        let _ = 0
                                     }
-                                    withAnimation {
-                                        selectedResolution = .session
-                                    }
-                                case .session:
-                                    // Nothing to do here
-                                    let _ = 0
+                                })
+                                
+                            case .consumption:
+                                if let consumptionData = chargingData.consumptionData {
+                                    ConsumptionChart(consumptionData: consumptionData)
+                                } else {
+                                    Text("Unable to load consumption data")
                                 }
-                            })
+                            }
                             
                             // The summary data
                             ChargingViewSummary(chargingData: chargingData)

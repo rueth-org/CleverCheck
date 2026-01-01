@@ -16,9 +16,15 @@ final class UserSettings {
     @AppStorage("currencyIdentifier") var currencyIdentifier: String = Locale.current.currency?.identifier ?? "EUR"
     @AppStorage("energyUnitSymbol") var energyUnitSymbol: String = "kWh"
     @AppStorage("powerUnitSymbol") var powerUnitSymbol: String = "kW"
+    @AppStorage("energyOverDistance") var energyOverDistance: Bool = true
+    @AppStorage("distanceMultiplier") var distanceMultiplier: Int = 100
     @AppStorage("vatRate") var vatRate: Double = 0.25
     @AppStorage("displayGrossPrices") var displayGrossPrices: Bool = true
     @AppStorage("referenceSOC") var referenceSOC: Double = 0.8
+    
+    var consumptionUnitSymbol: String {
+        energyOverDistance ? "\(energyUnit.symbol)/\(distanceMultiplier != 1 ? String(distanceMultiplier) : "")\(distanceUnit.symbol)" : "\(distanceUnit.symbol)/\(energyUnit.symbol)"
+    }
     
     var distanceUnit: UnitLength {
         switch measurementSystem {
@@ -77,6 +83,7 @@ final class UserSettings {
         // Empty on purpose
     }
     
+    // TODO replace with format function below
     func precision(for amount: Double) -> Int {
         if amount < 1 {
             return 4
@@ -89,6 +96,13 @@ final class UserSettings {
         } else {
             return 0
         }
+    }
+    
+    func format(_ value: Double, withSignificantDigits: Int) -> String {
+        let style = Decimal.FormatStyle(locale: Locale.current)
+            .rounded(rule: .toNearestOrAwayFromZero)
+            .precision(.significantDigits(1...withSignificantDigits))
+        return style.format(Decimal(value))
     }
     
     func energyUnit(for symbol: String) -> UnitEnergy? {
