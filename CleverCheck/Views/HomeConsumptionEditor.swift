@@ -161,6 +161,7 @@ struct HomeConsumptionEditor: View {
             withAnimation {
                 modelContext.delete(priceElement)
             }
+            try? modelContext.save()
         }
     }
     

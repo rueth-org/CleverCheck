@@ -138,6 +138,7 @@ struct HomeConsumptionsList: View {
             withAnimation {
                 modelContext.delete(homeConsumption)
             }
+            try? modelContext.save()
         }
     }
     

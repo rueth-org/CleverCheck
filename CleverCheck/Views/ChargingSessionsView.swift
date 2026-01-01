@@ -144,5 +144,6 @@ struct ChargingSessionsView: View {
         withAnimation {
             modelContext.delete(session)
         }
+        try? modelContext.save()
     }
 }

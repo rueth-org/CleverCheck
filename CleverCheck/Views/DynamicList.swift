@@ -77,6 +77,7 @@ struct DynamicList<T: PersistentModel, Content: View>: View {
                 withAnimation {
                     modelContext.delete(item)
                 }
+                try? modelContext.save()
             } else {
                 activeAlert = .warning(
                     message: "Cannot delete this item."

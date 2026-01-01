@@ -79,6 +79,7 @@ struct CarsView: View {
         withAnimation {
             modelContext.delete(car)
         }
+        try? modelContext.save()
     }
     
     private func canDelete(_ car: Car) -> Bool {

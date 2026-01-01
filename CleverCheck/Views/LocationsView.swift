@@ -77,6 +77,7 @@ struct LocationsView: View {
         withAnimation {
             modelContext.delete(location)
         }
+        try? modelContext.save()
     }
     
     private func canDelete(_ location: Location) -> Bool {

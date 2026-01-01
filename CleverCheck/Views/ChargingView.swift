@@ -310,6 +310,13 @@ struct ChargingView: View {
             }
             .onAppear {
                 if !vehicles.isEmpty {
+                    // First check if selectedVehicle still is available (could have been deleted)
+                    if let selectedCar {
+                        if !vehicles.contains(selectedCar) {
+                            self.selectedCar = nil
+                        }
+                    }
+                    
                     if let selectedCarId = UserSettings.shared.selectedCarId {
                         if let selectedCar = vehicles.first(where: { $0.id.uuidString == selectedCarId }) {
                             self.selectedCar = selectedCar

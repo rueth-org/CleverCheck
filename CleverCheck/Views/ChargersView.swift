@@ -84,6 +84,7 @@ struct ChargersView: View {
         withAnimation {
             modelContext.delete(charger)
         }
+        try? modelContext.save()
     }
     
     private func canDelete(_ charger: Charger) -> Bool {

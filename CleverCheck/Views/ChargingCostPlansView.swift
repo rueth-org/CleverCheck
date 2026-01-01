@@ -92,6 +92,7 @@ struct ChargingCostPlansView: View {
         withAnimation {
             modelContext.delete(plan)
         }
+        try? modelContext.save()
     }
     
     private func canDelete(_ plan: ChargingCostPlan) -> Bool {
