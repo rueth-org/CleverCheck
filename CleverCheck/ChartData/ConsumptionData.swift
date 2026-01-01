@@ -10,17 +10,10 @@ import SwiftData
 
 struct ConsumptionData: Identifiable {
     struct Consumption {
-        enum Quality: String {
-            case precise = "Precise"
-            case previousValue = "Previous value"
-            case estimated = "Estimated"
-        }
-        
-        private let distanceKilometers: Double
-        private let consumedEnergyKWh: Double
+        let distanceKilometers: Double
+        let consumedEnergyKWh: Double
         let since: Date
         let until: Date
-        let quality: Quality
         
         var duration: TimeInterval {
             until.timeIntervalSince(since)
@@ -34,14 +27,19 @@ struct ConsumptionData: Identifiable {
             distance: Measurement<UnitLength>,
             energy: Measurement<UnitEnergy>,
             since: Date,
-            until: Date,
-            quality: Quality = .precise
+            until: Date
         ) {
             self.distanceKilometers = distance.converted(to: .kilometers).value
             self.consumedEnergyKWh = energy.converted(to: .kilowattHours).value
             self.since = since
             self.until = until
-            self.quality = quality
+        }
+        
+        init(distanceKilometers: Double, consumedEnergyKWh: Double, since: Date, until: Date) {
+            self.distanceKilometers = distanceKilometers
+            self.consumedEnergyKWh = consumedEnergyKWh
+            self.since = since
+            self.until = until
         }
         
         /// Calculates the consumption from the energy and distance.
@@ -64,6 +62,10 @@ struct ConsumptionData: Identifiable {
             let unitString = energyOverDistance ? "\(energyUnit.symbol)/\(distanceMultiplier != 1 ? String(distanceMultiplier) : "")\(distanceUnit.symbol)" : "\(distanceUnit.symbol)/\(energyUnit.symbol)"
             
             return (value, UserSettings.shared.format(value, withSignificantDigits: 3), unitString)
+        }
+        
+        static prefix func + (rhs: Consumption) -> Consumption {
+            return rhs
         }
     }
     
@@ -102,12 +104,13 @@ struct ConsumptionData: Identifiable {
                 if let lastMileage, let lastDate {
                     let distanceConsumed: Double = mileage - lastMileage
                     let dateKey = ChargingData.dateKey(for: session.endTime, with: resolution)
-                    result[dateKey] = Consumption(
+                    let consumption = Consumption(
                         distance: .init(value: distanceConsumed, unit: UserSettings.shared.distanceUnit),
                         energy: .init(value: consumedEnergy, unit: UserSettings.shared.energyUnit),
                         since: lastDate,
                         until: session.endTime
                     )
+                    result[dateKey] = calculateAverageConsumption(consumption, result[dateKey])
                 }
                 
                 // Set lastMileage and lastDate to current values
@@ -168,6 +171,24 @@ struct ConsumptionData: Identifiable {
         
         for session in self.previousSessions ?? [] {
             debugPrint(session.endTime)
+        }
+    }
+    
+    func calculateAverageConsumption(_ newConsumption: Consumption, _ existingConsumption: Consumption?) -> Consumption {
+        if let existingConsumption {
+            let newSince = existingConsumption.since
+            let newUntil = newConsumption.until
+            let newDistanceKilometers = existingConsumption.distanceKilometers + newConsumption.distanceKilometers
+            let newEnergyConsumedkWh = existingConsumption.consumedEnergyKWh + newConsumption.consumedEnergyKWh
+            
+            return Consumption(
+                distanceKilometers: newDistanceKilometers,
+                consumedEnergyKWh: newEnergyConsumedkWh,
+                since: newSince,
+                until: newUntil
+            )
+        } else {
+            return newConsumption
         }
     }
 }

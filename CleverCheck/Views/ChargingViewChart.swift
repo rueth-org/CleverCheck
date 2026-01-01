@@ -10,27 +10,65 @@ import Charts
 
 struct ChargingViewChart: View {
     var chargingData: ChargingData
+    @Binding var selectedChart: ChargingView.Chart
+    
+    var yAxisLabel: String {
+        switch selectedChart {
+        case .charging:
+            UserSettings.shared.energyUnitSymbol
+        case .consumption:
+            UserSettings.shared.consumptionUnitSymbol
+        }
+    }
+    
     // Optional callback invoked when a bar is tapped; receives the x-axis key (End Time) as String
     var onBarTap: ((String) -> Void)? = nil
     
     var body: some View {
         Chart {
-            ForEach(chargingData.chargedEnergy.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
-                BarMark(
-                    x: .value("End Time", pair.key),
-                    y: .value("Charged Energy", pair.value)
-                )
-                .annotation(position: .top) {
-                    Text(UserSettings.shared.format(pair.value, withSignificantDigits: 3))
-                        .font(.caption)
-                        .foregroundColor(.black)
-                        .padding(5)
-                        .background(Color.white.opacity(0.8))
-                        .cornerRadius(5)
+            switch selectedChart {
+            case .charging:
+                ForEach(chargingData.chargedEnergy.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
+                    BarMark(
+                        x: .value("End Time", pair.key),
+                        y: .value("Charged Energy", pair.value)
+                    )
+                    .annotation(position: .top) {
+                        Text(UserSettings.shared.format(pair.value, withSignificantDigits: 3))
+                            .font(.caption)
+                            .foregroundColor(.black)
+                            .padding(5)
+                            .background(Color.white.opacity(0.8))
+                            .cornerRadius(5)
+                    }
+                }
+            case .consumption:
+                if let consumptionData = chargingData.consumptionData {
+                    ForEach(consumptionData.consumptions.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
+                        let consumption = pair.value.consumption(
+                            energyUnit: UserSettings.shared.energyUnit,
+                            distanceUnit: UserSettings.shared.distanceUnit,
+                            distanceMultiplier: UserSettings.shared.distanceMultiplier,
+                            energyOverDistance: UserSettings.shared.energyOverDistance
+                        )
+                        BarMark(
+                            x: .value("End Time", pair.key),
+                            y: .value("Consumption", consumption.0)
+                        )
+                        .annotation(position: .top) {
+                            Text(consumption.1)
+                                .font(.caption)
+                                .foregroundColor(.black)
+                                .padding(5)
+                                .background(Color.white.opacity(0.8))
+                                .cornerRadius(5)
+                        }
+                    }
                 }
             }
+            
         }
-        .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
+        .chartYAxisLabel(yAxisLabel)
         .chartOverlay { proxy in
             GeometryReader { geometry in
                 // Invisible layer that captures taps over the chart's plot area
