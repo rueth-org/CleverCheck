@@ -102,14 +102,7 @@ struct ChargingSessionsView: View {
             // New filter menu in the toolbar to replace the inline Picker
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button(action: { selectedCar = nil }) {
-                        Text("All vehicles")
-                    }
-                    ForEach(vehicles, id: \.self) { car in
-                        Button(action: { selectedCar = car }) {
-                            Text(car.description)
-                        }
-                    }
+                    MenuCarSelector(selectedCar: $selectedCar, allCars: vehicles)
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                         .foregroundColor(selectedCar == nil ? .primary : .blue)

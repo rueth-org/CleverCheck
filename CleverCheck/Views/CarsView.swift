@@ -72,6 +72,10 @@ struct CarsView: View {
     }
     
     private func deleteCar(for car: Car) {
+        // Check if car is selected in app storage, unselect if yes
+        if UserSettings.shared.selectedCarId == car.id.uuidString {
+            UserSettings.shared.selectedCarId = nil
+        }
         withAnimation {
             modelContext.delete(car)
         }

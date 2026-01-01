@@ -262,12 +262,7 @@ struct ChargingView: View {
                         ChargingViewSummary(chargingData: chargingData)
                     }
                 } else {
-                    Picker("Vehicle", selection: $selectedCar) {
-                        Text("Select vehicle to show data").tag(nil as Car?).italic()
-                        ForEach(vehicles) { vehicle in
-                            Text(vehicle.description).tag(vehicle)
-                        }
-                    }
+                    Text("Select vehicle to show data").italic()
                 }
                 
                 // The charging sessions button
@@ -295,14 +290,7 @@ struct ChargingView: View {
                 // Filter menu
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button(action: { selectedCar = nil }) {
-                            Text("All vehicles")
-                        }
-                        ForEach(vehicles, id: \.self) { car in
-                            Button(action: { selectedCar = car }) {
-                                Text(car.description)
-                            }
-                        }
+                        MenuCarSelector(selectedCar: $selectedCar, allCars: vehicles)
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .foregroundColor(selectedCar == nil ? .primary : .blue)
@@ -322,7 +310,17 @@ struct ChargingView: View {
             }
             .onAppear {
                 if !vehicles.isEmpty {
-                    selectedCar = vehicles.first!
+                    if let selectedCarId = UserSettings.shared.selectedCarId {
+                        if let selectedCar = vehicles.first(where: { $0.id.uuidString == selectedCarId }) {
+                            self.selectedCar = selectedCar
+                        }
+                    }
+                    
+                    // If still no vehicle selected and there's only one available, select it
+                    if selectedCar == nil && vehicles.count == 1 {
+                        selectedCar = vehicles.first
+                        UserSettings.shared.selectedCarId = vehicles.first?.id.uuidString
+                    }
                 }
             }
             .navigationDestination(for: NavigationDestination.self) { screen in
