@@ -23,6 +23,11 @@ struct ConsumptionData: Identifiable {
             UserSettings.shared.format(duration / 86_400, withSignificantDigits: 3)
         }
         
+        var consumptionDescription: String {
+            let consumption = consumption()
+            return "\(consumption.1) \(consumption.2)"
+        }
+        
         init(
             distance: Measurement<UnitLength>,
             energy: Measurement<UnitEnergy>,
@@ -49,7 +54,12 @@ struct ConsumptionData: Identifiable {
         ///   - distanceMultiplier: If the consumption shall be calculated over, e.g., 100km, this value needs to be 100.
         ///   - energyOverDistance: If true, consumption is calculated as energy over distance, if false, as distance over energy.
         /// - Returns: A triple with (0) the calculcated consumption as double, (1) as string and (2) the unit (e.g., kWh/100km) as string
-        func consumption(energyUnit: UnitEnergy, distanceUnit: UnitLength, distanceMultiplier: Int = 1, energyOverDistance: Bool = true) -> (Double, String, String) {
+        func consumption(
+            energyUnit: UnitEnergy = UserSettings.shared.energyUnit,
+            distanceUnit: UnitLength = UserSettings.shared.distanceUnit,
+            distanceMultiplier: Int = UserSettings.shared.distanceMultiplier,
+            energyOverDistance: Bool = UserSettings.shared.energyOverDistance
+        ) -> (Double, String, String) {
             let consumptionKWhPerKm = Measurement<UnitEnergy>(value: consumedEnergyKWh / distanceKilometers, unit: .kilowattHours)
             let consumptionEnergyUnitPerKm = consumptionKWhPerKm.converted(to: energyUnit)
             
@@ -127,6 +137,14 @@ struct ConsumptionData: Identifiable {
         return result
     }
     
+    var totalConsumption: Consumption? {
+        var result: Consumption? = nil
+        for consumption in consumptions.values {
+            result = calculateAverageConsumption(consumption, result)
+        }
+        return result
+    }
+    
     init(modelContext: ModelContext, resolution: ChargingData.Resolution, relatedPlans: [ChargingCostPlan], sessions: [ChargingSession]) throws {
         if sessions.isEmpty {
             throw DataError(message: "No sessions available")
@@ -167,10 +185,6 @@ struct ConsumptionData: Identifiable {
             self.previousSessions = previousSessions.filter({
                 $0.chargingCostPlan != nil && relatedPlanIDs.contains($0.chargingCostPlan!.persistentModelID)
             })
-        }
-        
-        for session in self.previousSessions ?? [] {
-            debugPrint(session.endTime)
         }
     }
     

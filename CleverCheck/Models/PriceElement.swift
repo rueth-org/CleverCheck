@@ -72,8 +72,7 @@ final class PriceElement: Identifiable, Equatable {
     }
     
     var amountDescription: String {
-        let precision = UserSettings.shared.precision(for: self.amount.amount)
-        return "\(self.amount.amount.formatted(.number.precision(.fractionLength(precision)))) \(unitDescription)"
+        return "\(UserSettings.shared.format(self.amount.amount, withSignificantDigits: 4)) \(unitDescription)"
     }
     
     var netGrossDescription: String {

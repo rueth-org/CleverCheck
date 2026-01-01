@@ -22,5 +22,20 @@ struct ChargingViewSummary: View {
             Spacer()
             Text(chargingData.totalChargingCost.formatted())
         }
+        
+        if let totalConsumption = chargingData.consumptionData?.totalConsumption {
+            HStack {
+                Text("Average consumption")
+                Spacer()
+                Text(totalConsumption.consumptionDescription)
+            }
+        } else {
+            HStack {
+                Text("Average consumption")
+                Spacer()
+                Text("No data")
+                    .italic()
+            }
+        }
     }
 }

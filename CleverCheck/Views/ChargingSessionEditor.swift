@@ -425,9 +425,7 @@ struct ChargingSessionEditor: View {
                         // If there's no previous session, we're earlier than the earliest; compare to nextSession
                         if prevSession == nil, let next = nextSession, let nextMileage = next.mileage {
                             if mileageKilometer > nextMileage.converted(to: .kilometers) {
-                                let m = nextMileage.value
-                                let precision = UserSettings.shared.precision(for: m)
-                                activeAlert = .error(message: "Mileage must be less or equal than \(m.formatted(.number.precision(.fractionLength(precision)))) \(nextMileage.unit.symbol).")
+                                activeAlert = .error(message: "Mileage must be less or equal than \(UserSettings.shared.format(nextMileage.value, withSignificantDigits: 4)) \(nextMileage.unit.symbol).")
                                 showingAlert = true
                                 return
                             }
@@ -436,9 +434,7 @@ struct ChargingSessionEditor: View {
                         // If there's no next session, we're later than the latest; compare to prevSession
                         if nextSession == nil, let prev = prevSession, let prevMileage = prev.mileage {
                             if mileageKilometer < prevMileage.converted(to: .kilometers) {
-                                let m = prevMileage.value
-                                let precision = UserSettings.shared.precision(for: m)
-                                activeAlert = .error(message: "Mileage must be greater or equal than \(m.formatted(.number.precision(.fractionLength(precision)))) \(prevMileage.unit.symbol).")
+                                activeAlert = .error(message: "Mileage must be greater or equal than \(UserSettings.shared.format(prevMileage.value, withSignificantDigits: 4)) \(prevMileage.unit.symbol).")
                                 showingAlert = true
                                 return
                             }
@@ -447,10 +443,7 @@ struct ChargingSessionEditor: View {
                         // If both exist, ensure the new mileage lies between them
                         if let prev = prevSession, let prevMileage = prev.mileage, let next = nextSession, let nextMileage = next.mileage {
                             if mileageKilometer < prevMileage.converted(to: .kilometers) || mileageKilometer > nextMileage.converted(to: .kilometers) {
-                                let m = prevMileage.value
-                                let n = nextMileage.value
-                                let precision = UserSettings.shared.precision(for: m)
-                                activeAlert = .error(message: "Mileage must be between \(m.formatted(.number.precision(.fractionLength(precision)))) \(prevMileage.unit.symbol) and \(n.formatted(.number.precision(.fractionLength(precision)))) \(nextMileage.unit.symbol).")
+                                activeAlert = .error(message: "Mileage must be between \(UserSettings.shared.format(prevMileage.value, withSignificantDigits: 4)) \(prevMileage.unit.symbol) and \(UserSettings.shared.format(nextMileage.value, withSignificantDigits: 4)) \(nextMileage.unit.symbol).")
                                 showingAlert = true
                                 return
                             }

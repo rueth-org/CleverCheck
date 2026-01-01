@@ -83,21 +83,6 @@ final class UserSettings {
         // Empty on purpose
     }
     
-    // TODO replace with format function below
-    func precision(for amount: Double) -> Int {
-        if amount < 1 {
-            return 4
-        } else if amount < 10 {
-            return 3
-        } else if amount < 100 {
-            return 2
-        } else if amount < 1000 {
-            return 1
-        } else {
-            return 0
-        }
-    }
-    
     func format(_ value: Double, withSignificantDigits: Int) -> String {
         let style = Decimal.FormatStyle(locale: Locale.current)
             .rounded(rule: .toNearestOrAwayFromZero)

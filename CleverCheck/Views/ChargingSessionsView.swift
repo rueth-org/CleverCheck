@@ -17,6 +17,7 @@ struct ChargingSessionsView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     @Binding var selectedCar: Car?
+    var preselectedSessions: [ChargingSession]? = nil
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var vehicles: [Car]
     
@@ -25,7 +26,10 @@ struct ChargingSessionsView: View {
     
     private var groupedSessions: [String: [ChargingSession]] {
         var result: [String: [ChargingSession]] = [:]
-        if selectedCar == nil {
+        if let preselectedSessions, !preselectedSessions.isEmpty {
+            let vehicleDescription = preselectedSessions.first!.chargingCostPlan?.car?.description ?? "Unknown car"
+            result[vehicleDescription] = preselectedSessions
+        } else if selectedCar == nil {
             // Display all vehicles
             for vehicle in vehicles {
                 var chargingSessions: [ChargingSession] = []

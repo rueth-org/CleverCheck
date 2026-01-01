@@ -21,10 +21,7 @@ struct Cost: Codable {
 
 extension Measurement<UnitEnergy> {
     func formatted() -> String {
-        let formatter = NumberFormatter()
-        let precision = UserSettings.shared.precision(for: self.value)
-        formatter.maximumFractionDigits = precision
-        let value = formatter.string(from: NSNumber(value: self.value)) ?? "–"
+        let value = UserSettings.shared.format(self.value, withSignificantDigits: 4)
         return "\(value) \(self.unit.symbol)"
     }
 }
