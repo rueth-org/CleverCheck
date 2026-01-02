@@ -10,6 +10,7 @@ import Charts
 
 struct HomeViewChart: View {
     var homeData: HomeData
+    var selectedChart: HomeView.Chart
     
     // Optional callback invoked when a bar is tapped; receives the x-axis key (month) as String
     var onBarTap: ((String) -> Void)? = nil

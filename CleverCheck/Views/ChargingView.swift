@@ -189,7 +189,7 @@ struct ChargingView: View {
                         }
                         .pickerStyle(.palette)
                         
-                        ChargingViewChart(chargingData: chargingData, selectedChart: $selectedChart, onBarTap: { dateKey in
+                        ChargingViewChart(chargingData: chargingData, selectedChart: selectedChart, onBarTap: { dateKey in
                             let calendar = Calendar.current
                             switch selectedResolution {
                             case .yearly:

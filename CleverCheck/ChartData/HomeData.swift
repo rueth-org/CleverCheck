@@ -17,6 +17,10 @@ struct HomeData: Identifiable {
         var grossMinusNetConsumption: Measurement<UnitEnergy> {
             homeConsumptionGross.converted(to: .kilowattHours) - homeConsumptionNet.converted(to: .kilowattHours)
         }
+        
+        var specificEnergyCost: Cost {
+            .init(amount: homeConsumptionNet.value / energyCost.amount)
+        }
     }
     
     var id = UUID()

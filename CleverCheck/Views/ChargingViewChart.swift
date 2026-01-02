@@ -10,7 +10,7 @@ import Charts
 
 struct ChargingViewChart: View {
     var chargingData: ChargingData
-    @Binding var selectedChart: ChargingView.Chart
+    var selectedChart: ChargingView.Chart
     
     var yAxisLabel: String {
         switch selectedChart {

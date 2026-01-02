@@ -19,6 +19,11 @@ struct HomeView: View {
     @State private var selectedDate: Date = Date.now.startDateOfYear
     @State private var selectedConsumption: HomeConsumption? = nil
     
+    enum Chart {
+        case energy, cost
+    }
+    @State private var selectedChart: Chart = .energy
+    
     @Query(filter: #Predicate<Location> { location in
         location.isArchived == false
     }, sort: \Location.name) private var locations: [Location]
@@ -57,8 +62,15 @@ struct HomeView: View {
                         .buttonStyle(.plain)
                     }
                     
+                    // The picker to choose which data to display
+                    Picker("Choose data set", selection: $selectedChart) {
+                        Text("Energy").tag(Chart.energy)
+                        Text("Cost").tag(Chart.cost)
+                    }
+                    .pickerStyle(.palette)
+                    
                     // The data part
-                    HomeViewChart(homeData: homeData)
+                    HomeViewChart(homeData: homeData, selectedChart: selectedChart)
                 } else {
                     Text("Select location").italic()
                 }
