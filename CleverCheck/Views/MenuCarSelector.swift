@@ -18,7 +18,7 @@ struct MenuCarSelector: View {
         }) {
             Text("All vehicles")
         }
-        ForEach(allCars, id: \.self) { car in
+        ForEach(allCars, id: \.id) { car in
             Button(action: {
                 selectedCar = car
                 UserSettings.shared.selectedCarId = car.id.uuidString

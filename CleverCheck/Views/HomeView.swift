@@ -13,8 +13,16 @@ struct HomeView: View {
         case HomeConsumptions
     }
     
+    enum Resolution {
+        case yearly
+        case monthly
+    }
+    
     @State private var navigationPath = NavigationPath()
     @State private var selectedLocation: Location? = nil
+    @State private var selectedResolution: Resolution = .monthly
+    @State private var selectedDate: Date = Date.now.startDateOfMonth
+    @State private var selectedConsumption: HomeConsumption? = nil
     
     @Query(sort: \Location.name) private var locations: [Location]
     
@@ -45,14 +53,7 @@ struct HomeView: View {
                 // Filter menu
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button(action: { selectedLocation = nil }) {
-                            Text("All locations")
-                        }
-                        ForEach(locations, id: \.self) { location in
-                            Button(action: { selectedLocation = location }) {
-                                Text(location.name)
-                            }
-                        }
+                        MenuHomeSelector(selectedHome: $selectedLocation, allHomes: locations)
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .foregroundColor(selectedLocation == nil ? .primary : .blue)
@@ -62,6 +63,28 @@ struct HomeView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: locations.isEmpty ? addLocation : addHomeConsumption) {
                         Image(systemName: "plus")
+                    }
+                }
+            }
+            .onAppear {
+                if !locations.isEmpty {
+                    // First check if selectedLocation still is available (could have been deleted)
+                    if let selectedLocation {
+                        if !locations.contains(selectedLocation) {
+                            self.selectedLocation = nil
+                        }
+                    }
+                    
+                    if let selectedLocationId = UserSettings.shared.selectedLocationId {
+                        if let selectedLocation = locations.first(where: { $0.id.uuidString == selectedLocationId }) {
+                            self.selectedLocation = selectedLocation
+                        }
+                    }
+                    
+                    // If still no location selected and there's only one available, select it
+                    if selectedLocation == nil && locations.count == 1 {
+                        selectedLocation = locations.first
+                        UserSettings.shared.selectedLocationId = locations.first?.id.uuidString
                     }
                 }
             }

@@ -36,14 +36,7 @@ struct HomeConsumptionsView: View {
             // Filter menu
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button(action: { selectedLocation = nil }) {
-                        Text("All locations")
-                    }
-                    ForEach(locations, id: \.self) { location in
-                        Button(action: { selectedLocation = location }) {
-                            Text(location.name)
-                        }
-                    }
+                    MenuHomeSelector(selectedHome: $selectedLocation, allHomes: locations)
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                         .foregroundColor(selectedLocation == nil ? .primary : .blue)

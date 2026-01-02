@@ -295,6 +295,22 @@
         }
       }
     },
+    "All homes" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle steder"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Orte"
+          }
+        }
+      }
+    },
     "All locations" : {
       "localizations" : {
         "da" : {

@@ -22,6 +22,7 @@ final class UserSettings {
     @AppStorage("displayGrossPrices") var displayGrossPrices: Bool = true
     @AppStorage("referenceSOC") var referenceSOC: Double = 0.8
     @AppStorage("selectedCarId") var selectedCarId: String?
+    @AppStorage("selectedLocationId") var selectedLocationId: String?
     
     var consumptionUnitSymbol: String {
         energyOverDistance ? "\(energyUnit.symbol)/\(distanceMultiplier != 1 ? String(distanceMultiplier) : "")\(distanceUnit.symbol)" : "\(distanceUnit.symbol)/\(energyUnit.symbol)"
