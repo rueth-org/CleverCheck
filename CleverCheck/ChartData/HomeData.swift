@@ -9,37 +9,78 @@ import Foundation
 import SwiftData
 
 struct HomeData: Identifiable {
-    enum Resolution: Equatable {
-        case yearly(date: Date)
-        case monthly(date: Date)
+    struct Data {
+        let homeConsumptionGross: Measurement<UnitEnergy>
+        let homeConsumptionNet: Measurement<UnitEnergy>
+        let energyCost: Cost
+        
+        var grossMinusNetConsumption: Measurement<UnitEnergy> {
+            homeConsumptionGross.converted(to: .kilowattHours) - homeConsumptionNet.converted(to: .kilowattHours)
+        }
     }
     
     var id = UUID()
     let homeConsumptions: [HomeConsumption]
+    let relatedChargingCostPlans: [ChargingCostPlan]
+    let startDate: Date
+    let endDate: Date
     
-    init(modelContext: ModelContext, location: Location, resolution: Resolution) throws {
+    var data: [String: Data] {
+        var result = [String: Data]()
+        
+        // Step through the months
+        let calendar = Calendar.current
+        var currentDate = startDate
+        while currentDate < endDate {
+            // Get the monthly contributions from each home consumption (one may span several months)
+            let monthKeyDisplay = HomeData.dateKey(for: currentDate)
+            let monthKeyGrouping = UserSettings.shared.groupingDateFormatter.string(from: currentDate)
+            
+            // Gross consumption
+            let grossConsumption = homeConsumptions.reduce(0) { partialResult, consumption in
+                partialResult + consumption.consumptionForMonth(monthKey: monthKeyGrouping, includeIfIncludedElsewhere: false)
+            }
+            
+            // Net consumption
+            let netConsumption = homeConsumptions.reduce(0) { partialResult, consumption in
+                partialResult + consumption.netConsumptionForMonth(monthKey: monthKeyGrouping)
+            }
+            
+            // Cost
+            let cost = homeConsumptions.reduce(0) { partialResult, consumption in
+                partialResult + consumption.totalCostForMonth(monthKey: monthKeyGrouping, isGross: UserSettings.shared.displayGrossPrices)
+            }
+            
+            // Create data set
+            result[monthKeyDisplay] = Data(
+                homeConsumptionGross: .init(value: grossConsumption, unit: UserSettings.shared.energyUnit),
+                homeConsumptionNet: .init(value: netConsumption, unit: UserSettings.shared.energyUnit),
+                energyCost: Cost(amount: cost)
+            )
+            
+            // Increase current date by one month
+            currentDate = calendar.date(byAdding: .month, value: 1, to: currentDate)!
+        }
+        
+        return result
+    }
+    
+    init(modelContext: ModelContext, location: Location, date: Date) throws {
+        // Get related charing cost plans
+        let allPlans: [ChargingCostPlan] = try modelContext.fetch(FetchDescriptor<ChargingCostPlan>())
+        self.relatedChargingCostPlans = allPlans.filter({ $0.relatedLocation != nil && $0.relatedLocation!.id == location.id })
+        
         // Compute concrete date range outside the predicate so it can be captured.
         let calendar = Calendar.current
-        let start: Date
-        let end: Date
-
-        switch resolution {
-        case .monthly(let date):
-            // Start of the given month
-            let startOfMonth = date.startDateOfMonth
-            // Start of next month
-            let endOfMonth = calendar.date(byAdding: DateComponents(month: 1), to: startOfMonth)!
-            start = startOfMonth
-            end = endOfMonth
-        case .yearly(let date):
-            // Start of the given year
-            let year = calendar.component(.year, from: date)
-            let startOfYear = calendar.startOfDay(for: calendar.date(from: DateComponents(year: year, month: 1, day: 1))!)
-            // Start of next year
-            let endOfYear = calendar.date(byAdding: DateComponents(year: 1), to: startOfYear)!
-            start = startOfYear
-            end = endOfYear
-        }
+        
+        // Start of the given year
+        let year = calendar.component(.year, from: date)
+        let start = calendar.startOfDay(for: calendar.date(from: DateComponents(year: year, month: 1, day: 1))!)
+        // Start of next year
+        let end = calendar.date(byAdding: DateComponents(year: 1), to: start)!
+        
+        self.startDate = start
+        self.endDate = end
 
         // Get all consumptions ending in time period and belonging to the location
         let descriptor = FetchDescriptor<HomeConsumption>(
@@ -58,10 +99,7 @@ struct HomeData: Identifiable {
         })
     }
     
-    static func dateKey(for time: Date, with resolution: HomeData.Resolution) -> String {
-        switch resolution {
-        case .yearly(_): DateFormatter.chartDisplayDateYearly.string(from: time)
-        case .monthly(_): DateFormatter.chartDisplayDateMonthly.string(from: time)
-        }
+    static func dateKey(for time: Date) -> String {
+        DateFormatter.chartDisplayDateYearly.string(from: time)
     }
 }

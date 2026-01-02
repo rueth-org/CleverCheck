@@ -13,22 +13,54 @@ struct HomeView: View {
         case HomeConsumptions
     }
     
-    enum Resolution {
-        case yearly
-        case monthly
-    }
-    
+    @Environment(\.modelContext) private var modelContext
     @State private var navigationPath = NavigationPath()
     @State private var selectedLocation: Location? = nil
-    @State private var selectedResolution: Resolution = .monthly
-    @State private var selectedDate: Date = Date.now.startDateOfMonth
+    @State private var selectedDate: Date = Date.now.startDateOfYear
     @State private var selectedConsumption: HomeConsumption? = nil
     
     @Query(sort: \Location.name) private var locations: [Location]
     
+    var homeData: HomeData? {
+        if let selectedLocation = selectedLocation {
+            return try? HomeData(modelContext: modelContext, location: selectedLocation, date: selectedDate)
+        } else {
+            return nil
+        }
+    }
+    
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            VStack {
+            List {
+                if let homeData = homeData {
+                    // The date selection part
+                    Text(selectedLocation?.name ?? "No location selected")
+                        .font(Font.title.bold())
+                    
+                    HStack(alignment: .center) {
+                        Button(action: decreaseYear) {
+                            Image(systemName: "chevron.left")
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Spacer()
+                        
+                        Text(verbatim: "\(Calendar.current.component(.year, from: selectedDate))")
+                        
+                        Spacer()
+                        
+                        Button(action: increaseYear) {
+                            Image(systemName: "chevron.right")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    // The data part
+                    HomeViewChart(homeData: homeData)
+                } else {
+                    Text("Select location").italic()
+                }
+                
                 Button(action: {
                     navigationPath.append(NavigationDestination.HomeConsumptions)
                 }) {
@@ -127,5 +159,17 @@ struct HomeView: View {
     
     private func addHomeConsumption() {
         navigationPath.append(HomeConsumptionsView.NavigationDestination.NewConsumption(location: selectedLocation))
+    }
+    
+    private func decreaseYear() {
+        withAnimation {
+            selectedDate = Calendar.current.date(byAdding: .year, value: -1, to: selectedDate)!
+        }
+    }
+    
+    private func increaseYear() {
+        withAnimation {
+            selectedDate = Calendar.current.date(byAdding: .year, value: 1, to: selectedDate)!
+        }
     }
 }
