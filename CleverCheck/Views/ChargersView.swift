@@ -16,50 +16,53 @@ struct ChargersView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    @Query(sort: \Charger.name) private var chargers: [Charger]
-    @Query private var chargingCostPlans: [ChargingCostPlan]
-    @State private var selectedCharger: Charger? = nil
     
-    private var groupedChargers: [String: [Charger]] {
-        Dictionary(grouping: chargers) { $0.location?.name ?? NSLocalizedString("No location", comment: "") }
+    @Query private var chargingCostPlans: [ChargingCostPlan]
+    
+    @State private var selectedCharger: Charger? = nil
+    @State private var isShowingArchived: Bool = false
+    
+    var predicate: Predicate<Charger> {
+        var predicate: Predicate<Charger>
+        if !isShowingArchived {
+            predicate = #Predicate<Charger> { charger in
+                charger.isArchived == false
+            }
+        } else {
+            predicate = .true
+        }
+        return predicate
     }
     
     var body: some View {
-        VStack {
-            if chargers.isEmpty {
-                Spacer()
-                Image(systemName: "ev.charger")
-                    .font(.largeTitle)
-                    .foregroundColor(.secondary)
-                Text("No chargers found.")
-                Spacer()
-            } else {
-                List {
-                    ForEach(groupedChargers.keys.sorted(), id: \.self) { location in
-                        Section(header: Text(location)) {
-                            ForEach(groupedChargers[location]!, id: \.self) { charger in
-                                NavigationLink(value: NavigationDestination.EditCharger(charger: charger)) {
-                                    Text(charger.name)
-                                }
-                                .swipeActions {
-                                    if canDelete(charger) {
-                                        Button(role: .destructive) {
-                                            deleteCharger(charger)
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                    } else {
-                                        Button(role: .destructive) {
-                                            // no action
-                                        } label: {
-                                            Label("Cannot delete", systemImage: "trash")
-                                        }
-                                        .tint(.secondary)
-                                        .disabled(true)
-                                    }
-                                }
-                            }
+        List {
+            DynamicList(
+                predicate: predicate,
+                sorting: [SortDescriptor(\Charger.name)],
+                groupBy: { charger in
+                    charger.location?.name ?? NSLocalizedString("No location", comment: "")
+                },
+                emptyStateMessage: "No chargers found.",
+                emptyStateSystemImage: "ev.charger"
+            ) { charger in
+                NavigationLink(value: NavigationDestination.EditCharger(charger: charger)) {
+                    Text(charger.name)
+                }
+                .swipeActions {
+                    if canDelete(charger) {
+                        Button(role: .destructive) {
+                            deleteCharger(charger)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
+                    } else {
+                        Button(role: .destructive) {
+                            // no action
+                        } label: {
+                            Label("Cannot delete", systemImage: "trash")
+                        }
+                        .tint(.secondary)
+                        .disabled(true)
                     }
                 }
             }
@@ -68,7 +71,15 @@ struct ChargersView: View {
             ToolbarItem(placement: .principal) {
                 Text("Chargers")
             }
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button(action: {
+                    withAnimation {
+                        isShowingArchived.toggle()
+                    }
+                }) {
+                    Image(systemName: isShowingArchived ? "archivebox.circle.fill" : "archivebox.circle")
+                        .foregroundStyle(isShowingArchived ? .blue : .primary)
+                }
                 Button(action: newCharger) {
                     Image(systemName: "plus")
                 }
@@ -91,3 +102,4 @@ struct ChargersView: View {
         !chargingCostPlans.contains { $0.charger == charger }
     }
 }
+

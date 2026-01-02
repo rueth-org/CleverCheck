@@ -16,41 +16,49 @@ struct CarsView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
+    
     @Query private var chargingCostPlans: [ChargingCostPlan]
     
+    @State private var isShowingArchived: Bool = false
+    
+    var predicate: Predicate<Car> {
+        var predicate: Predicate<Car>
+        if !isShowingArchived {
+            predicate = #Predicate<Car> { car in
+                car.isArchived == false
+            }
+        } else {
+            predicate = .true
+        }
+        return predicate
+    }
+    
     var body: some View {
-        VStack {
-            if cars.isEmpty {
-                Spacer()
-                Image(systemName: "bolt.car")
-                    .font(.largeTitle)
-                    .foregroundColor(.secondary)
-                Text("No cars found.")
-                Spacer()
-            } else {
-                List {
-                    ForEach(cars, id: \.self) { car in
-                        NavigationLink(value: NavigationDestination.EditCar(car: car)) {
-                            Text(car.description)
+        List {
+            DynamicList(
+                predicate: predicate,
+                sorting: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)],
+                emptyStateMessage: "No cars found.",
+                emptyStateSystemImage: "bolt.car"
+            ) { car in
+                NavigationLink(value: NavigationDestination.EditCar(car: car)) {
+                    Text(car.description)
+                }
+                .swipeActions {
+                    if canDelete(car) {
+                        Button(role: .destructive) {
+                            deleteCar(car)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
-                        .swipeActions {
-                            if canDelete(car) {
-                                Button(role: .destructive) {
-                                    deleteCar(for: car)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            } else {
-                                Button(role: .destructive) {
-                                    // no action
-                                } label: {
-                                    Label("Cannot delete", systemImage: "trash")
-                                }
-                                .tint(.secondary)
-                                .disabled(true)
-                            }
+                    } else {
+                        Button(role: .destructive) {
+                            // no action
+                        } label: {
+                            Label("Cannot delete", systemImage: "trash")
                         }
+                        .tint(.secondary)
+                        .disabled(true)
                     }
                 }
             }
@@ -59,7 +67,15 @@ struct CarsView: View {
             ToolbarItem(placement: .principal) {
                 Text("Cars")
             }
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button(action: {
+                    withAnimation {
+                        isShowingArchived.toggle()
+                    }
+                }) {
+                    Image(systemName: isShowingArchived ? "archivebox.circle.fill" : "archivebox.circle")
+                        .foregroundStyle(isShowingArchived ? .blue : .primary)
+                }
                 Button(action: newCar) {
                     Image(systemName: "plus")
                 }
@@ -71,7 +87,7 @@ struct CarsView: View {
         navigationPath.append(NavigationDestination.NewCar)
     }
     
-    private func deleteCar(for car: Car) {
+    private func deleteCar(_ car: Car) {
         // Check if car is selected in app storage, unselect if yes
         if UserSettings.shared.selectedCarId == car.id.uuidString {
             UserSettings.shared.selectedCarId = nil

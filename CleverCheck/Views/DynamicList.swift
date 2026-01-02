@@ -11,13 +11,15 @@ import SwiftData
 struct DynamicList<T: PersistentModel, Content: View>: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var fetchedData: [T]
+    let groupBy: ((T) -> String)?
     let content: (T) -> Content
-    let canDelete: (T) -> Bool
-    let emptyStateMessage: String
+    let emptyStateMessage: LocalizedStringKey
     let emptyStateSystemImage: String?
     
-    @Binding var showingAlert: Bool
-    @Binding var activeAlert: SimpleAlertType?
+    private var grouping: [String: [T]]? {
+        guard let groupBy else { return nil }
+        return Dictionary(grouping: fetchedData, by: groupBy)
+    }
     
     var body: some View {
         // Empty state view
@@ -32,26 +34,31 @@ struct DynamicList<T: PersistentModel, Content: View>: View {
                 Spacer()
             }
         } else {
-            ForEach(fetchedData, id: \.self) { item in
-                self.content(item)
+            if let groupedItems = grouping {
+                ForEach(groupedItems.keys.sorted(), id: \.self) { groupingKey in
+                    Section(header: Text(groupingKey)) {
+                        ForEach(groupedItems[groupingKey] ?? [], id: \.id) { item in
+                            self.content(item)
+                        }
+                    }
+                }
+            } else {
+                ForEach(fetchedData, id: \.id) { item in
+                    self.content(item)
+                }
             }
-            .onDelete(perform: delete)
         }
     }
     
     init(
         predicate: Predicate<T>?,
-        sorting: [SortDescriptor<T>]?,
-        emptyStateMessage: String = "No items found",
+        sorting: [SortDescriptor<T>]? = nil,
+        groupBy: ((T) -> String)? = nil,
+        emptyStateMessage: LocalizedStringKey = "No data",
         emptyStateSystemImage: String? = nil,
-        activeAlert: Binding<SimpleAlertType?>,
-        showingAlert: Binding<Bool>,
-        canDelete: @escaping (T) -> Bool,
         @ViewBuilder content: @escaping (T) -> Content
     ) {
-        self.canDelete = canDelete
-        self._activeAlert = activeAlert
-        self._showingAlert = showingAlert
+        self.groupBy = groupBy
         
         if let sorting {
             _fetchedData = Query(filter: predicate, sort: sorting)
@@ -66,24 +73,5 @@ struct DynamicList<T: PersistentModel, Content: View>: View {
         self.emptyStateMessage = emptyStateMessage
         self.emptyStateSystemImage = emptyStateSystemImage
     }
-    
-    private func delete(at offsets: IndexSet) {
-        for offset in offsets {
-            // Find item in our query
-            let item = fetchedData[offset]
-
-            // Delete it from the context if possible
-            if canDelete(item) {
-                withAnimation {
-                    modelContext.delete(item)
-                }
-                try? modelContext.save()
-            } else {
-                activeAlert = .warning(
-                    message: "Cannot delete this item."
-                )
-                showingAlert = true
-            }
-        }
-    }
 }
+

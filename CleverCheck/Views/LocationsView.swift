@@ -16,43 +16,51 @@ struct LocationsView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    @Query(sort: \Location.name) private var locations: [Location]
+    
     @Query private var chargers: [Charger]
     @Query private var homeConsumptions: [HomeConsumption]
+    
     @State private var selectedLocation: Location? = nil
+    @State private var isShowingArchived: Bool = false
+    
+    var predicate: Predicate<Location> {
+        var predicate: Predicate<Location>
+        if !isShowingArchived {
+            predicate = #Predicate<Location> { location in
+                location.isArchived == false
+            }
+        } else {
+            predicate = .true
+        }
+        return predicate
+    }
     
     var body: some View {
-        VStack {
-            if locations.isEmpty {
-                Spacer()
-                Image(systemName: "mappin.and.ellipse")
-                    .font(.largeTitle)
-                    .foregroundColor(.secondary)
-                Text("No locations found.")
-                Spacer()
-            } else {
-                List {
-                    ForEach(locations, id: \.self) { location in
-                        NavigationLink(value: NavigationDestination.EditLocation(location: location)) {
-                            Text(location.name)
+        List {
+            DynamicList(
+                predicate: predicate,
+                sorting: [SortDescriptor(\Location.name)],
+                emptyStateMessage: "No locations found.",
+                emptyStateSystemImage: "mappin.and.ellipse"
+            ) { location in
+                NavigationLink(value: NavigationDestination.EditLocation(location: location)) {
+                    Text(location.name)
+                }
+                .swipeActions {
+                    if canDelete(location) {
+                        Button(role: .destructive) {
+                            deleteLocation(location)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
-                        .swipeActions {
-                            if canDelete(location) {
-                                Button(role: .destructive) {
-                                    deleteLocation(location)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            } else {
-                                Button(role: .destructive) {
-                                    // no action
-                                } label: {
-                                    Label("Cannot delete", systemImage: "trash")
-                                }
-                                .tint(.secondary)
-                                .disabled(true)
-                            }
+                    } else {
+                        Button(role: .destructive) {
+                            // no action
+                        } label: {
+                            Label("Cannot delete", systemImage: "trash")
                         }
+                        .tint(.secondary)
+                        .disabled(true)
                     }
                 }
             }
@@ -61,7 +69,15 @@ struct LocationsView: View {
             ToolbarItem(placement: .principal) {
                 Text("Locations")
             }
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button(action: {
+                    withAnimation {
+                        isShowingArchived.toggle()
+                    }
+                }) {
+                    Image(systemName: isShowingArchived ? "archivebox.circle.fill" : "archivebox.circle")
+                        .foregroundStyle(isShowingArchived ? .blue : .primary)
+                }
                 Button(action: newLocation) {
                     Image(systemName: "plus")
                 }

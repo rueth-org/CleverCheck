@@ -17,57 +17,55 @@ struct ChargingCostPlansView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     
-    @Query private var allPlans: [ChargingCostPlan]
     @Query private var chargingSessions: [ChargingSession]
     
     @State private var selectedPlan: ChargingCostPlan? = nil
+    @State private var isShowingArchived: Bool = false
     
-    private var groupedPlans: [String: [ChargingCostPlan]] {
-        Dictionary(grouping: allPlans) {
-            if $0.car == nil {
-                return "Unknown car"
-            } else {
-                return $0.car!.make + " " + $0.car!.model
+    var predicate: Predicate<ChargingCostPlan> {
+        var predicate: Predicate<ChargingCostPlan>
+        if !isShowingArchived {
+            predicate = #Predicate<ChargingCostPlan> { plan in
+                plan.isArchived == false
             }
+        } else {
+            predicate = .true
         }
+        return predicate
     }
     
     var body: some View {
-        VStack {
-            if allPlans.isEmpty {
-                Spacer()
-                Image(systemName: "banknote")
-                    .font(.largeTitle)
-                    .foregroundColor(.secondary)
-                Text("No plans found.")
-                Spacer()
-            } else {
-                List {
-                    ForEach(groupedPlans.keys.sorted(), id: \.self) { carDescription in
-                        Section(header: Text(carDescription)) {
-                            ForEach(groupedPlans[carDescription]!, id: \.self) { chargingCostPlan in
-                                NavigationLink(value: NavigationDestination.EditPlan(plan: chargingCostPlan)) {
-                                    Text(chargingCostPlan.descriptionLongNoCar)
-                                }
-                                .swipeActions {
-                                    if canDelete(chargingCostPlan) {
-                                        Button(role: .destructive) {
-                                            deletePlan(chargingCostPlan)
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                    } else {
-                                        Button(role: .destructive) {
-                                            // no action
-                                        } label: {
-                                            Label("Cannot delete", systemImage: "trash")
-                                        }
-                                        .tint(.secondary)
-                                        .disabled(true)
-                                    }
-                                }
-                            }
+        List {
+            DynamicList(
+                predicate: predicate,
+                groupBy: { plan in
+                    if let car = plan.car {
+                        return "\(car.make) \(car.model)"
+                    } else {
+                        return "Unknown car"
+                    }
+                },
+                emptyStateMessage: "No plans found.",
+                emptyStateSystemImage: "banknote"
+            ) { chargingCostPlan in
+                NavigationLink(value: NavigationDestination.EditPlan(plan: chargingCostPlan)) {
+                    Text(chargingCostPlan.descriptionLongNoCar)
+                }
+                .swipeActions {
+                    if canDelete(chargingCostPlan) {
+                        Button(role: .destructive) {
+                            deletePlan(chargingCostPlan)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
+                    } else {
+                        Button(role: .destructive) {
+                            // no action
+                        } label: {
+                            Label("Cannot delete", systemImage: "trash")
+                        }
+                        .tint(.secondary)
+                        .disabled(true)
                     }
                 }
             }
@@ -76,7 +74,15 @@ struct ChargingCostPlansView: View {
             ToolbarItem(placement: .principal) {
                 Text("Charging Cost Plans")
             }
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button(action: {
+                    withAnimation {
+                        isShowingArchived.toggle()
+                    }
+                }) {
+                    Image(systemName: isShowingArchived ? "archivebox.circle.fill" : "archivebox.circle")
+                        .foregroundStyle(isShowingArchived ? .blue : .primary)
+                }
                 Button(action: newPlan) {
                     Image(systemName: "plus")
                 }
