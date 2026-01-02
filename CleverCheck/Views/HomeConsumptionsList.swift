@@ -30,7 +30,7 @@ struct HomeConsumptionsList: View {
             Spacer()
         } else {
             List {
-                ForEach(groupedByMonths.keys.sorted(), id: \.self) { month in
+                ForEach(groupedByMonths.keys.sorted(by: { $0 > $1 }), id: \.self) { month in
                     Section(header: Text(month, format: UserSettings.shared.displayDateFormatInSection)) {
                         // The total cost for the month
                         NavigationLink(value: groupedByMonths[month]!) {

@@ -17,7 +17,9 @@ struct ChargerEditor: View {
     @Binding var navigationPath: NavigationPath
     let charger: Charger?
     
-    @Query private var locations: [Location]
+    @Query(filter: #Predicate<Location> { location in
+        location.isArchived == false
+    }, sort: \Location.name) private var locations: [Location]
     
     @State private var name: String = ""
     @State private var location: Location? = nil

@@ -18,10 +18,19 @@ struct ChargingCostPlanEditor: View {
     
     let plan: ChargingCostPlan?
     
-    @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
-    @Query(sort: \Charger.name) private var chargers: [Charger]
-    @Query(sort: \Location.name) private var locations: [Location]
-    @Query private var allPlans: [ChargingCostPlan]
+    @Query private var cars: [Car]
+    
+    @Query(filter: #Predicate<Charger> { charger in
+        charger.isArchived == false
+    }, sort: \Charger.name) private var chargers: [Charger]
+    
+    @Query(filter: #Predicate<Location> { location in
+        location.isArchived == false
+    }, sort: \Location.name) private var locations: [Location]
+    
+    @Query(filter: #Predicate<ChargingCostPlan> { plan in
+        plan.isArchived == false
+    }) private var allPlans: [ChargingCostPlan]
     
     @State var car: Car?
     @State private var charger: Charger?
@@ -174,6 +183,25 @@ struct ChargingCostPlanEditor: View {
         } message: { activeAlert in
             activeAlert.message()
         }
+    }
+    
+    init(
+        navigationPath: Binding<NavigationPath>,
+        plan: ChargingCostPlan?,
+        car: Car? = nil
+    ) {
+        self._navigationPath = navigationPath
+        self.plan = plan
+        self._car = State(initialValue: car)
+        
+        let predicate = #Predicate<Car> { car in
+            car.isArchived == false
+        }
+        
+        _cars = Query(
+            filter: predicate,
+            sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]
+        )
     }
     
     private func deleteIndividualDefaultPrice() {

@@ -356,20 +356,24 @@ struct ChargingSessionEditor: View {
         self.chargingSession = chargingSession
         self._selectedCar = State(initialValue: selectedCar)
         
+        var predicate: Predicate<ChargingCostPlan>
         if let selectedCar {
             // Filter charging cost plan query by car
             let id = selectedCar.persistentModelID
-            let predicate = #Predicate<ChargingCostPlan> { chargingCostPlan in
+            predicate = #Predicate<ChargingCostPlan> { chargingCostPlan in
                 if let car = chargingCostPlan.car {
-                    return car.persistentModelID == id
+                    return chargingCostPlan.isArchived == false && car.persistentModelID == id
                 } else {
-                    return true // Display all plans
+                    return chargingCostPlan.isArchived == false // Display all non-archived plans
                 }
             }
-            _chargingCostPlans = Query(filter: predicate)
         } else {
-            _chargingCostPlans = Query()
+            predicate = #Predicate<ChargingCostPlan> { plan in
+                plan.isArchived == false
+            }
         }
+        
+        _chargingCostPlans = Query(filter: predicate)
     }
     
     private func deleteStartTime() {

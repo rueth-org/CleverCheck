@@ -31,7 +31,7 @@ struct ChargingView: View {
     }
     @State private var selectedChart: Chart = .charging
     
-    @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var vehicles: [Car]
+    @Query private var vehicles: [Car]
     
     var chargingData: ChargingData? {
         if let selectedCar = selectedCar {
@@ -353,6 +353,17 @@ struct ChargingView: View {
                 }
             }
         }
+    }
+    
+    init() {
+        let predicate = #Predicate<Car> { car in
+            car.isArchived == false
+        }
+        
+        _vehicles = Query(
+            filter: predicate,
+            sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]
+        )
     }
     
     private func addSession() {

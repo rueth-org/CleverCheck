@@ -19,7 +19,7 @@ struct ChargingSessionsView: View {
     @Binding var selectedCar: Car?
     var preselectedSessions: [ChargingSession]? = nil
     
-    @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var vehicles: [Car]
+    @Query private var vehicles: [Car]
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
@@ -123,6 +123,25 @@ struct ChargingSessionsView: View {
         } message: { activeAlert in
             activeAlert.message()
         }
+    }
+    
+    init(
+        navigationPath: Binding<NavigationPath>,
+        selectedCar: Binding<Car?>,
+        preselectedSessions: [ChargingSession]? = nil
+    ) {
+        self._navigationPath = navigationPath
+        self._selectedCar = selectedCar
+        self.preselectedSessions = preselectedSessions
+        
+        let predicate = #Predicate<Car> { car in
+            car.isArchived == false
+        }
+        
+        _vehicles = Query(
+            filter: predicate,
+            sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]
+        )
     }
     
     private func addSession() {

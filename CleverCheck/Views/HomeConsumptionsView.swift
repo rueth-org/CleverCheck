@@ -18,7 +18,10 @@ struct HomeConsumptionsView: View {
     @Binding var navigationPath: NavigationPath
     @Binding var selectedLocation: Location?
     
-    @Query private var locations: [Location]
+    @Query(filter: #Predicate<Location> { location in
+        location.isArchived == false
+    }, sort: \Location.name) private var locations: [Location]
+    
     @Query(sort: [SortDescriptor(\HomeConsumption.validUntil), SortDescriptor(\HomeConsumption.name)]) private var homeConsumptions: [HomeConsumption]
     
     @State private var showingAlert: Bool = false
@@ -34,16 +37,18 @@ struct HomeConsumptionsView: View {
                 Text("Home Consumptions")
             }
             // Filter menu
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                // TODO: Sorting of months
+                
+                // Filter by location
                 Menu {
                     MenuHomeSelector(selectedHome: $selectedLocation, allHomes: locations)
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                         .foregroundColor(selectedLocation == nil ? .primary : .blue)
                 }
-            }
-            // Add home consumption (or location if none available)
-            ToolbarItem(placement: .topBarTrailing) {
+                
+                // Add home consumption (or location if none available)
                 Button(action: locations.isEmpty ? addLocation : addHomeConsumption) {
                     Image(systemName: "plus")
                 }

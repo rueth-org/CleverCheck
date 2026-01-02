@@ -19,7 +19,9 @@ struct HomeView: View {
     @State private var selectedDate: Date = Date.now.startDateOfYear
     @State private var selectedConsumption: HomeConsumption? = nil
     
-    @Query(sort: \Location.name) private var locations: [Location]
+    @Query(filter: #Predicate<Location> { location in
+        location.isArchived == false
+    }, sort: \Location.name) private var locations: [Location]
     
     var homeData: HomeData? {
         if let selectedLocation = selectedLocation {

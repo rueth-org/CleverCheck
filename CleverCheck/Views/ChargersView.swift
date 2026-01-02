@@ -17,7 +17,9 @@ struct ChargersView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     
-    @Query private var chargingCostPlans: [ChargingCostPlan]
+    @Query(filter: #Predicate<ChargingCostPlan> { plan in
+        plan.isArchived == false
+    }) private var chargingCostPlans: [ChargingCostPlan]
     
     @State private var selectedCharger: Charger? = nil
     @State private var isShowingArchived: Bool = false
