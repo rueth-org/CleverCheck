@@ -22,6 +22,9 @@ final class HomeConsumption {
     @Relationship(deleteRule: .cascade, inverse: \PriceElement.homeConsumption)
     var priceElements: [PriceElement]?
     
+    @Relationship(deleteRule: .nullify, inverse: \ChargingSession.relatedHomeConsumption)
+    var chargingSessions: [ChargingSession]?
+    
     @Transient var consumption: Measurement<UnitEnergy> {
         get {
             return Measurement<UnitEnergy>(value: consumptionKWh, unit: .kilowattHours)
@@ -81,6 +84,11 @@ final class HomeConsumption {
         } else {
             return "\(name)"
         }
+    }
+    
+    var descriptionWithDate: String {
+        let dateFormatter = DateFormatter().shortMonthYear
+        return "\(description) (\(dateFormatter.string(from: validUntil)))"
     }
     
     var numberOfDays: Int {

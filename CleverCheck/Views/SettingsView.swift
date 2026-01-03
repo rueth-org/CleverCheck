@@ -81,10 +81,14 @@ struct SettingsView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
+    @Query private var chargingSessions: [ChargingSession]
     @State private var navigationPath = NavigationPath()
 
-    @State private var showingAlert = false
+    @State private var showingDeleteAllAlert = false
     @State private var confirmDeletion = ""
+    
+    @State private var showingUpdateChargingSessionsAlert: Bool = false
+    @State private var updatedChargingSessions: [String] = []
     
     // Import states
     @State private var isImportingChargingSessionFile: Bool = false
@@ -95,6 +99,7 @@ struct SettingsView: View {
     @State private var showingCarPicker: Bool = false
     @State private var selectedImportCarIndex: Int? = nil
     @State private var selectedImportCar: Car? = nil
+    
     // Export/share state
     @State private var isSharing: Bool = false
     @State private var exportFileURL: URL? = nil
@@ -114,6 +119,18 @@ struct SettingsView: View {
                     }
                     Button("Charging Cost Plans") {
                         navigationPath.append(NavigationDestination.ChargingCostPlans)
+                    }
+                }
+                
+                Section(header: Text("Maintenance")) {
+                    Button("Check for missing refunding home consumptions") {
+                        checkForMissingHomeConsumptions()
+                    }
+                    .alert("Notice", isPresented: $showingUpdateChargingSessionsAlert) {
+                        Button("OK", role: .cancel) { }
+                    } message: {
+                        let message = "The following sessions have been assigned a home consumption:\n\(updatedChargingSessions.joined(separator: "\n"))"
+                        Text(message)
                     }
                 }
                 
@@ -313,10 +330,10 @@ struct SettingsView: View {
                 
                 Section(header: Text("Danger Zone")) {
                     Button("Delete all data") {
-                        showingAlert = true
+                        showingDeleteAllAlert = true
                     }
                     .foregroundColor(.red)
-                    .alert("DANGER", isPresented: $showingAlert) {
+                    .alert("DANGER", isPresented: $showingDeleteAllAlert) {
                         TextField("DELETE ALL", text: $confirmDeletion)
                         Button("OK", action: deleteAllData)
                         Button("Cancel", role: .cancel) { }
@@ -379,6 +396,25 @@ struct SettingsView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(importMessage)
+        }
+    }
+    
+    private func checkForMissingHomeConsumptions() {
+        for session in chargingSessions {
+            if session.chargingCostPlan?.planType == .refunded, session.relatedHomeConsumption == nil {
+                let candidates = session.possibleHomeConsumptions(modelContext: modelContext, ignorePlan: false, ignoreDate: false)
+                if let candidates, candidates.count == 1 {
+                    session.relatedHomeConsumption = candidates.first!
+                    updatedChargingSessions.append(session.description)
+                }
+            }
+        }
+        
+        if !updatedChargingSessions.isEmpty {
+            try? modelContext.save()
+            showingUpdateChargingSessionsAlert = true
+        } else {
+            
         }
     }
     

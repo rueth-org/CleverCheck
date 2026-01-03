@@ -29,3 +29,11 @@ extension Date {
         return date
     }
 }
+
+extension DateFormatter {
+    var shortMonthYear: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM/yy"
+        return formatter
+    }
+}

@@ -43,7 +43,6 @@ struct SampleMasterData {
     static func chargingCostPlans() -> [ChargingCostPlan] {
         let cars = cars()
         let chargers = chargers()
-        let locations = locations()
         
         var plans: [ChargingCostPlan] = [
             // 0: Audi - Clever netværk - flatrate

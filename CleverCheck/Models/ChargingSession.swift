@@ -35,6 +35,7 @@ final class ChargingSession {
     var chargingCost: Cost?
     var specificChargingCost: Cost?
     var costCalculationMethod: CostCalculationMethod = CostCalculationMethod.none
+    var relatedHomeConsumption: HomeConsumption?
     var mileageKilometer: Double?
     var initialSOC: Double?
     var finalSOC: Double?
@@ -125,5 +126,43 @@ final class ChargingSession {
     
     func chargedEnergy(in unitEnergy: UnitEnergy) -> Measurement<UnitEnergy> {
         chargedEnergy.converted(to: unitEnergy)
+    }
+    
+    func possibleHomeConsumptions(modelContext: ModelContext, ignorePlan: Bool, ignoreDate: Bool) -> [HomeConsumption]? {
+        if let homeConsumptions = try? modelContext.fetch(FetchDescriptor<HomeConsumption>()) {
+            if homeConsumptions.isEmpty {
+                return nil
+            } else {
+                var candidates: [HomeConsumption]? = nil
+                
+                // First try to identify matching plans
+                if let chargingCostPlan, !ignorePlan {
+                    // Find the refunding plan, which should be available, as we only deal with refunded plan type
+                    if let refundingPlan = chargingCostPlan.includedInOtherPlan {
+                        // Now locate the charger
+                        if let location = refundingPlan.charger?.location {
+                            // This location should match the location of home consumption
+                            candidates = homeConsumptions.filter { consumption in
+                                consumption.associatedLocation != nil && consumption.associatedLocation!.id == location.id
+                            }
+                        }
+                    }
+                }
+                
+                // If we have candidates, try applying time filter to them, otherwise to all home consumptions
+                if candidates == nil || candidates!.isEmpty {
+                    candidates = homeConsumptions
+                }
+                if !ignoreDate {
+                    candidates = candidates!.filter { consumption in
+                        consumption.validFrom <= endTime && endTime <= consumption.validUntil
+                    }
+                }
+                
+                return candidates
+            }
+        } else {
+            return nil
+        }
     }
 }

@@ -27,6 +27,11 @@ struct ChargingSessionEditor: View {
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
     @Query private var chargingCostPlans: [ChargingCostPlan]
     
+    @Query(sort: [SortDescriptor(\HomeConsumption.name)]) private var homeConsumptions: [HomeConsumption]
+    var possibleHomeConsumptions: [HomeConsumption]? {
+        chargingSession?.possibleHomeConsumptions(modelContext: modelContext, ignorePlan: ignorePlan, ignoreDate: ignoreDate)
+    }
+    
     @State private var selectedCar: Car?
     @State private var chargingCostPlan: ChargingCostPlan?
     @State private var enterStartTime: Bool = false
@@ -42,8 +47,14 @@ struct ChargingSessionEditor: View {
     @State private var initialSOC: Double = 0.2
     @State private var enterFinalSOC: Bool = false
     @State private var finalSOC: Double = 0.8
+    @State private var relatedHomeConsumption: HomeConsumption?
     @State private var comment: String = ""
     @State private var isArchived: Bool = false
+    
+    @State private var ignorePlan: Bool = false
+    @State private var ignoreDate: Bool = false
+    
+    @State private var isShowingHomeConsumptionPickerSheet: Bool = false
     
     @FocusState private var focusedField: Field?
     @State private var showingAlert = false
@@ -100,6 +111,20 @@ struct ChargingSessionEditor: View {
                         .onChange(of: chargingCostPlan) { _oldValue, newValue in
                             // Update selectedCar to the plan's car (or nil) without force-unwrapping
                             self.selectedCar = newValue?.car
+                        }
+                    }
+                }
+                
+                if chargingCostPlan?.planType == .refunded {
+                    // Ask for a home consumption
+                    HStack {
+                        Text("Home Consumption for refunding: \(relatedHomeConsumption?.descriptionWithDate ?? "-")")
+                        Spacer()
+                        Button(action: {
+                            isShowingHomeConsumptionPickerSheet = true
+                        }) {
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.gray)
                         }
                     }
                 }
@@ -289,6 +314,15 @@ struct ChargingSessionEditor: View {
                 }
             }
         }
+        .sheet(isPresented: $isShowingHomeConsumptionPickerSheet) {
+            HomeConsumptionPicker(
+                isShowing: $isShowingHomeConsumptionPickerSheet,
+                possibleHomeConsumptions: possibleHomeConsumptions,
+                selectedHomeConsumption: $relatedHomeConsumption,
+                ignorePlan: $ignorePlan,
+                ignoreDate: $ignoreDate
+            )
+        }
         .onAppear {
             if let chargingSession {
                 // Edit the incoming charging session
@@ -331,8 +365,20 @@ struct ChargingSessionEditor: View {
                     self.finalSOC = 0.8
                     self.enterFinalSOC = false
                 }
+                if let relatedHomeConsumption = chargingSession.relatedHomeConsumption {
+                    self.relatedHomeConsumption = relatedHomeConsumption
+                }
                 if let comment = chargingSession.comment {
                     self.comment = comment
+                }
+                if chargingSession.chargingCostPlan?.planType == .refunded, relatedHomeConsumption == nil {
+                    if let possibleHomeConsumptions, possibleHomeConsumptions.count == 1 {
+                        if let relatedHomeConsumption = possibleHomeConsumptions.first {
+                            self.relatedHomeConsumption = relatedHomeConsumption
+                            activeAlert = .notice(message: "Automatically determined related home consumption \(relatedHomeConsumption.descriptionWithDate). Please save this session or correct.")
+                            showingAlert = true
+                        }
+                    }
                 }
             }
         }
@@ -456,7 +502,13 @@ struct ChargingSessionEditor: View {
                 }
             }
         }
-
+        
+        // Data check: Home consumption is recommended if charging cost plan type is refunded
+        if selectedPlan.planType == .refunded, relatedHomeConsumption == nil {
+            activeAlert = .notice(message: "A home consumption entry is recommended for a refunded charging cost plan.")
+            showingAlert = true
+        }
+        
         // Save data
         if let chargingSession {
             // Updating an existing charging session
@@ -470,6 +522,7 @@ struct ChargingSessionEditor: View {
             chargingSession.mileage = enterMileage ? self.mileage : nil
             chargingSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
             chargingSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
+            chargingSession.relatedHomeConsumption = relatedHomeConsumption
             chargingSession.comment = self.comment
         } else {
             // Create new charging session
@@ -481,6 +534,7 @@ struct ChargingSessionEditor: View {
             newSession.mileage = enterMileage ? self.mileage : nil
             newSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
             newSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
+            newSession.relatedHomeConsumption = relatedHomeConsumption
             newSession.comment = self.comment
             modelContext.insert(newSession)
         }

@@ -236,17 +236,16 @@ struct ChargingCostPlanEditor: View {
             tempPlanType = .flatrate
             tempFlatratePrice = flatratePrice
         case ChargingCostPlan.PlanType.homeConsumption.description:
-            if let location = charger?.location {
-                tempPlanType = .homeConsumption
-            } else {
+            guard charger?.location != nil else {
                 activeAlert = .error(message: "Please select a charger with a known location.")
                 showingAlert = true
                 return
             }
+            tempPlanType = .homeConsumption
         case ChargingCostPlan.PlanType.refunded.description:
             tempPlanType = .refunded
             
-            guard let location = charger?.location else {
+            guard charger?.location != nil else {
                 activeAlert = .error(message: "Please select a charger with a known location.")
                 showingAlert = true
                 return

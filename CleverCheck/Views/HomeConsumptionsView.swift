@@ -27,7 +27,6 @@ struct HomeConsumptionsView: View {
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
 
-    
     var body: some View {
         VStack {
             Text(selectedLocation?.name ?? NSLocalizedString("All locations", comment: ""))

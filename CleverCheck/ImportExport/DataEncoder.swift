@@ -88,6 +88,7 @@ struct DataEncoder {
         var chargingCost: Cost?
         var specificChargingCost: Cost?
         var costCalculationMethod: CostCalculationMethodDTO
+        var relatedHomeConsumptionId: UUID?
         var mileageKilometer: Double?
         var initialSOC: Double?
         var finalSOC: Double?
@@ -104,6 +105,7 @@ struct DataEncoder {
         var associatedLocationId: UUID?
         var comment: String
         var priceElementIds: [UUID]
+        var chargingSessionIds: [UUID]
     }
 
     struct PriceElementDTO: Codable {
@@ -258,6 +260,7 @@ struct DataEncoder {
                 chargingCost: session.chargingCost,
                 specificChargingCost: session.specificChargingCost,
                 costCalculationMethod: calcMethod,
+                relatedHomeConsumptionId: session.relatedHomeConsumption?.id,
                 mileageKilometer: session.mileageKilometer,
                 initialSOC: session.initialSOC,
                 finalSOC: session.finalSOC,
@@ -275,7 +278,8 @@ struct DataEncoder {
                 consumptionIncludedElsewhere: home.consumptionIncludedElsewhere,
                 associatedLocationId: home.associatedLocation?.id,
                 comment: home.comment,
-                priceElementIds: home.priceElements?.map { $0.id } ?? []
+                priceElementIds: home.priceElements?.map { $0.id } ?? [],
+                chargingSessionIds: home.chargingSessions?.map { $0.id } ?? []
             )
         }
 
