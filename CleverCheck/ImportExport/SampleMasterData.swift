@@ -51,7 +51,7 @@ struct SampleMasterData {
             // 1: Audi - Andre lader - individual
             ChargingCostPlan(car: cars[0], charger: chargers[3], planType: .individual),
             // 2: VW - Verdo Irisvej 33 - home consumption
-            ChargingCostPlan(car: cars[1], charger: chargers[0], planType: .homeConsumption, relatedLocation: locations[0]),
+            ChargingCostPlan(car: cars[1], charger: chargers[0], planType: .homeConsumption),
             // 3: VW - Clever netværk - individual
             ChargingCostPlan(car: cars[1], charger: chargers[2], planType: .individual, defaultEnergyPrice: Cost(amount: 4.99, currency: "DKK")),
             // 4: VW - Andre lader - individual
@@ -59,7 +59,7 @@ struct SampleMasterData {
         ]
         
         // 5: Audi - Clever Irisvej 33 - refunded via 0
-        plans.append(ChargingCostPlan(car: cars[0], charger: chargers[1], planType: .refunded, relatedLocation: locations[0], includedInOtherPlan: plans[0]))
+        plans.append(ChargingCostPlan(car: cars[0], charger: chargers[1], planType: .refunded, includedInOtherPlan: plans[0]))
         
         return plans
     }

@@ -54,7 +54,6 @@ struct DataEncoder {
         var name: String
         var isArchived: Bool
         var associatedHomeConsumptionIds: [UUID]
-        var associatedChargingCostPlanIds: [UUID]
         var chargerIds: [UUID]
     }
 
@@ -202,7 +201,6 @@ struct DataEncoder {
                 name: location.name,
                 isArchived: location.isArchived,
                 associatedHomeConsumptionIds: location.associatedHomeConsumptions?.map { $0.id } ?? [],
-                associatedChargingCostPlanIds: location.associatedChargingCostPlans?.map { $0.id } ?? [],
                 chargerIds: location.chargers?.map { $0.id } ?? []
             )
         }
@@ -234,7 +232,6 @@ struct DataEncoder {
                 planType: planTypeDTO,
                 defaultKWhPrice: defaultKWhPrice,
                 monthlyRate: plan.monthlyRate,
-                relatedLocation: plan.relatedLocation?.id,
                 includedInOtherPlan: plan.includedInOtherPlan?.id,
                 isArchived: plan.isArchived,
                 chargingSessionIds: plan.chargingSessions?.map { $0.id } ?? [],

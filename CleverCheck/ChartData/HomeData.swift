@@ -13,6 +13,7 @@ struct HomeData: Identifiable {
         let homeConsumptionGross: Measurement<UnitEnergy>
         let homeConsumptionNet: Measurement<UnitEnergy>
         let energyCost: Cost
+        var refundedCost: Cost? = nil
         
         var grossMinusNetConsumption: Measurement<UnitEnergy> {
             homeConsumptionGross.converted(to: .kilowattHours) - homeConsumptionNet.converted(to: .kilowattHours)
@@ -24,8 +25,10 @@ struct HomeData: Identifiable {
     }
     
     var id = UUID()
+    let modelContext: ModelContext
     let homeConsumptions: [HomeConsumption]
     let relatedChargingCostPlans: [ChargingCostPlan]
+    let refundedChargingCostPlans: [ChargingCostPlan]
     let startDate: Date
     let endDate: Date
     
@@ -62,6 +65,30 @@ struct HomeData: Identifiable {
                 energyCost: Cost(amount: cost)
             )
             
+            // Get cost refunded by this home consumption if available
+            if !refundedChargingCostPlans.isEmpty {
+                let startOfMonth = currentDate.startDateOfMonth
+                let endOfMonth = currentDate.endDateOfMonth
+                let descriptor = FetchDescriptor<ChargingSession>(
+                    predicate: #Predicate { session in
+                        session.endTime >= startOfMonth && session.endTime <= endOfMonth
+                    }
+                )
+                if let allRefundedSessions = try? modelContext.fetch(descriptor) {
+                    let refundedChargingCostPlanIds = Set(refundedChargingCostPlans.map(\.persistentModelID))
+                    let refundedSessions = allRefundedSessions.filter({
+                        $0.chargingCostPlan != nil && refundedChargingCostPlanIds.contains($0.chargingCostPlan!.persistentModelID)
+                    })
+                    if !refundedSessions.isEmpty {
+                        let totalChargingCost = refundedSessions.reduce(0.0) {
+                            $0 + $1.totalChargingCost.amount
+                        }
+                        let currency = refundedSessions.first!.totalChargingCost.currency
+                        result[monthKeyDisplay]?.refundedCost = .init(amount: totalChargingCost, currency: currency)
+                    }
+                }
+            }
+            
             // Increase current date by one month
             currentDate = calendar.date(byAdding: .month, value: 1, to: currentDate)!
         }
@@ -70,9 +97,15 @@ struct HomeData: Identifiable {
     }
     
     init(modelContext: ModelContext, location: Location, date: Date) throws {
+        self.modelContext = modelContext
+        
         // Get related charing cost plans
         let allPlans: [ChargingCostPlan] = try modelContext.fetch(FetchDescriptor<ChargingCostPlan>())
-        self.relatedChargingCostPlans = allPlans.filter({ $0.relatedLocation != nil && $0.relatedLocation!.id == location.id })
+        self.relatedChargingCostPlans = allPlans.filter({ $0.charger?.location != nil && $0.charger?.location?.persistentModelID == location.persistentModelID })
+        
+        // Determine all plans refunded by on of the related plans
+        let relatedChargingCostPlanIds = Set(relatedChargingCostPlans.map(\.id))
+        self.refundedChargingCostPlans = allPlans.filter({ $0.includedInOtherPlan != nil && relatedChargingCostPlanIds.contains($0.includedInOtherPlan!.id) })
         
         // Compute concrete date range outside the predicate so it can be captured.
         let calendar = Calendar.current

@@ -28,7 +28,6 @@ public final class ChargingCostPlan {
     var defaultEnergyPrice: Cost?
     var energyUnitSymbol: String = UserSettings.shared.energyUnitSymbol
     var monthlyRate: Cost?
-    var relatedLocation: Location?
     var includedInOtherPlan: ChargingCostPlan?
     var isArchived: Bool = false
     
@@ -60,7 +59,6 @@ public final class ChargingCostPlan {
         planType: PlanType,
         defaultEnergyPrice: Cost? = nil,
         monthlyRate: Cost? = nil,
-        relatedLocation: Location? = nil,
         includedInOtherPlan: ChargingCostPlan? = nil
     ) {
         self.car = car
@@ -68,7 +66,6 @@ public final class ChargingCostPlan {
         self.planType = planType
         self.defaultEnergyPrice = defaultEnergyPrice
         self.monthlyRate = monthlyRate
-        self.relatedLocation = relatedLocation
         self.includedInOtherPlan = includedInOtherPlan
     }
 }

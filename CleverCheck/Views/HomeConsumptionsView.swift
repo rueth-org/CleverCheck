@@ -30,6 +30,8 @@ struct HomeConsumptionsView: View {
     
     var body: some View {
         VStack {
+            Text(selectedLocation?.name ?? NSLocalizedString("All locations", comment: ""))
+                .font(.headline)
             HomeConsumptionsList(navigationPath: $navigationPath, associatedLocation: selectedLocation)
         }
         .toolbar {

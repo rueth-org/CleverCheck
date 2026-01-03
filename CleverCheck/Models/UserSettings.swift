@@ -24,6 +24,8 @@ final class UserSettings {
     @AppStorage("selectedCarId") var selectedCarId: String?
     @AppStorage("selectedLocationId") var selectedLocationId: String?
     
+    // TODO make Show Archived Cars/Plans... persistent
+    
     var consumptionUnitSymbol: String {
         energyOverDistance ? "\(energyUnit.symbol)/\(distanceMultiplier != 1 ? String(distanceMultiplier) : "")\(distanceUnit.symbol)" : "\(distanceUnit.symbol)/\(energyUnit.symbol)"
     }
@@ -90,6 +92,14 @@ final class UserSettings {
             .rounded(rule: .toNearestOrAwayFromZero)
             .precision(.significantDigits(1...withSignificantDigits))
         return style.format(Decimal(value))
+    }
+    
+    func formatAsCurrencyNoSymbol(_ value: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.locale = .current
+        formatter.minimumFractionDigits = value < 10 ? 2 : 0
+        formatter.maximumFractionDigits = value < 10 ? 2 : 0
+        return formatter.string(from: NSNumber(value: value)) ?? "-"
     }
     
     func energyUnit(for symbol: String) -> UnitEnergy? {

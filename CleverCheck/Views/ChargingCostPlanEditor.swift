@@ -24,10 +24,6 @@ struct ChargingCostPlanEditor: View {
         charger.isArchived == false
     }, sort: \Charger.name) private var chargers: [Charger]
     
-    @Query(filter: #Predicate<Location> { location in
-        location.isArchived == false
-    }, sort: \Location.name) private var locations: [Location]
-    
     @Query(filter: #Predicate<ChargingCostPlan> { plan in
         plan.isArchived == false
     }) private var allPlans: [ChargingCostPlan]
@@ -47,7 +43,6 @@ struct ChargingCostPlanEditor: View {
     @State private var energyUnitSymbol: String = "kWh"
     @State private var enterIndividualDefaultPrice: Bool = false
     @State private var flatratePrice: Cost = Cost(amount: 0.0)
-    @State private var connectedLocation: Location?
     @State private var refundingPlan: ChargingCostPlan?
     @State private var isArchived: Bool = false
     
@@ -74,13 +69,6 @@ struct ChargingCostPlanEditor: View {
                 Text("- Select a charger -").tag(nil as Charger?)
                 ForEach(chargers) { charger in
                     Text("\(charger.description)").tag(charger)
-                }
-            }
-            .onChange(of: charger) {
-                if let charger, let location = charger.location {
-                    self.connectedLocation = location
-                } else {
-                    self.connectedLocation = nil
                 }
             }
             
@@ -155,16 +143,16 @@ struct ChargingCostPlanEditor: View {
                         flatratePrice = rate
                     }
                 case .homeConsumption:
-                    if let location = plan.relatedLocation {
-                        connectedLocation = location
-                    } else {
-                        activeAlert = .fatalError(message: "No location found.")
+                    guard (plan.charger?.location) != nil else {
+                        activeAlert = .fatalError(message: "Related charger has no location.")
+                        showingAlert = true
+                        return
                     }
                 case .refunded:
-                    if let location = plan.relatedLocation {
-                        connectedLocation = location
-                    } else {
-                        activeAlert = .fatalError(message: "No location found.")
+                    guard (plan.charger?.location) != nil else {
+                        activeAlert = .fatalError(message: "Related charger has no location.")
+                        showingAlert = true
+                        return
                     }
                     if let includedInOtherPlan = plan.includedInOtherPlan {
                         refundingPlan = includedInOtherPlan
@@ -208,10 +196,6 @@ struct ChargingCostPlanEditor: View {
         enterIndividualDefaultPrice = false
     }
     
-    private func getLocationById(_ id: UUID) -> Location? {
-        locations.first(where: { $0.id == id })
-    }
-    
     private func cancelAndExit() {
         navigationPath.removeLast()
     }
@@ -241,7 +225,6 @@ struct ChargingCostPlanEditor: View {
         var tempPlanType: ChargingCostPlan.PlanType? = nil
         var tempIndividualDefaultPrice: Cost? = nil
         var tempFlatratePrice: Cost? = nil
-        var tempRelatedLocation: Location? = nil
         var tempRefundingPlan: ChargingCostPlan? = nil
         
         // Update plan type
@@ -253,20 +236,18 @@ struct ChargingCostPlanEditor: View {
             tempPlanType = .flatrate
             tempFlatratePrice = flatratePrice
         case ChargingCostPlan.PlanType.homeConsumption.description:
-            if let connectedLocation {
+            if let location = charger?.location {
                 tempPlanType = .homeConsumption
-                tempRelatedLocation = connectedLocation
             } else {
-                activeAlert = .warning(message: "Please select a location.")
+                activeAlert = .error(message: "Please select a charger with a known location.")
                 showingAlert = true
+                return
             }
         case ChargingCostPlan.PlanType.refunded.description:
             tempPlanType = .refunded
             
-            if let connectedLocation {
-                tempRelatedLocation = connectedLocation
-            } else {
-                activeAlert = .warning(message: "Please select a location.")
+            guard let location = charger?.location else {
+                activeAlert = .error(message: "Please select a charger with a known location.")
                 showingAlert = true
                 return
             }
@@ -292,7 +273,6 @@ struct ChargingCostPlanEditor: View {
             plan.energyUnitSymbol = energyUnitSymbol
             plan.defaultEnergyPrice = tempIndividualDefaultPrice
             plan.monthlyRate = tempFlatratePrice
-            plan.relatedLocation = tempRelatedLocation
             plan.includedInOtherPlan = tempRefundingPlan
             plan.isArchived = isArchived
         } else {
@@ -302,7 +282,6 @@ struct ChargingCostPlanEditor: View {
                 planType: tempPlanType!,
                 defaultEnergyPrice: tempIndividualDefaultPrice,
                 monthlyRate: tempFlatratePrice,
-                relatedLocation: tempRelatedLocation,
                 includedInOtherPlan: tempRefundingPlan
             )
             newPlan.energyUnitSymbol = energyUnitSymbol
@@ -360,18 +339,16 @@ struct ChargingCostPlanEditor: View {
                 Text(flatratePrice.currency)
             }
         case ChargingCostPlan.PlanType.homeConsumption.description:
-            Picker("Location", selection: $connectedLocation) {
-                Text("- Select a location -").tag(nil as Location?)
-                ForEach(locations, id: \.id) { location in
-                    Text(location.name).tag(location)
-                }
+            HStack {
+                Text("Location:")
+                Spacer()
+                Text(charger?.location?.name ?? "-")
             }
         case ChargingCostPlan.PlanType.refunded.description:
-            Picker("Location", selection: $connectedLocation) {
-                Text("- Select a location -").tag(nil as Location?)
-                ForEach(locations, id: \.id) { location in
-                    Text(location.name).tag(location)
-                }
+            HStack {
+                Text("Location:")
+                Spacer()
+                Text(charger?.location?.name ?? "-")
             }
             
             Picker("Refunding Plan", selection: $refundingPlan) {
