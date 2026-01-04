@@ -43,11 +43,21 @@ struct HomeConsumptionEditor: View {
         homeConsumption.consumption.unit.symbol
     }
     
+    private var consumptionFromRelatedSessions: Measurement<UnitEnergy> {
+        homeConsumption.consumptionFromRelatedChargingSessions ?? .init(value: 0.0, unit: UserSettings.shared.energyUnit)
+    }
+    
     var body: some View {
         Form {
             TextField("Name", text: $homeConsumption.name)
             DatePicker("Valid from", selection: $homeConsumption.validFrom, displayedComponents: .date)
             DatePicker("Valid until", selection: $homeConsumption.validUntil, displayedComponents: .date)
+            Picker("Location", selection: $homeConsumption.associatedLocation) {
+                Text("- none -").tag(nil as Location?)
+                ForEach(locations, id: \.id) { location in
+                    Text(location.name).tag(location as Location?)
+                }
+            }
             HStack {
                 Text("Consumption")
                 TextField("", value: $homeConsumption.consumption.value, format: .number)
@@ -56,14 +66,8 @@ struct HomeConsumptionEditor: View {
                 Text(homeConsumption.consumption.unit.symbol)
             }
             Toggle("Consumption included elsewhere", isOn: $homeConsumption.consumptionIncludedElsewhere)
-            Picker("Location", selection: $homeConsumption.associatedLocation) {
-                Text("- none -").tag(nil as Location?)
-                ForEach(locations, id: \.id) { location in
-                    Text(location.name).tag(location as Location?)
-                }
-            }
             HStack {
-                Text("Related charging sessions: \(homeConsumption.chargingSessions?.count ?? 0)")
+                Text("\(homeConsumption.chargingSessions?.count ?? 0) related charging sessions: \(consumptionFromRelatedSessions.formatted())")
                 Spacer()
                 Button(action: {
                     showingChargingSessionPicker = true
