@@ -71,7 +71,7 @@ final class UserSettings {
     
     var shortDateFormatter: DateFormatter {
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy/MM/dd"
+        dateFormatter.setLocalizedDateFormatFromTemplate("yyyy/MM/dd")
         return dateFormatter
     }
     

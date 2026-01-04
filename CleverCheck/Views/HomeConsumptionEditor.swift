@@ -28,6 +28,8 @@ struct HomeConsumptionEditor: View {
 
     @Query private var priceElements: [PriceElement]
     
+    @State private var showingChargingSessionPicker: Bool = false
+    
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
     
@@ -60,9 +62,22 @@ struct HomeConsumptionEditor: View {
                     Text(location.name).tag(location as Location?)
                 }
             }
+            HStack {
+                Text("Related charging sessions: \(homeConsumption.chargingSessions?.count ?? 0)")
+                Spacer()
+                Button(action: {
+                    showingChargingSessionPicker = true
+                }) {
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.gray)
+                }
+            }
+            .sheet(isPresented: $showingChargingSessionPicker) {
+                ChargingSessionPicker(isShowing: $showingChargingSessionPicker, homeConsumption: homeConsumption)
+            }
             TextField("Comments", text: $homeConsumption.comment, axis: .vertical)
                 .lineLimit(3)
-
+            
             Section(header: Text("Results")) {
                 HStack {
                     Text("Price")

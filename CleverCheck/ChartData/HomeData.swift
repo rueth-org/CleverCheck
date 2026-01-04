@@ -13,7 +13,6 @@ struct HomeData: Identifiable {
         let homeConsumptionGross: Measurement<UnitEnergy>
         let homeConsumptionNet: Measurement<UnitEnergy>
         let energyCost: Cost
-        var refundedCost: Cost? = nil
         
         var grossMinusNetConsumption: Measurement<UnitEnergy> {
             homeConsumptionGross.converted(to: .kilowattHours) - homeConsumptionNet.converted(to: .kilowattHours)
@@ -55,7 +54,7 @@ struct HomeData: Identifiable {
             
             // Cost
             let cost = homeConsumptions.reduce(0) { partialResult, consumption in
-                partialResult + consumption.totalCostForMonth(monthKey: monthKeyGrouping, isGross: UserSettings.shared.displayGrossPrices)
+                partialResult + consumption.totalCostForMonth(monthKey: monthKeyGrouping, isGross: UserSettings.shared.displayGrossPrices, useConsumptionFromRelatedChargingSessions: true)
             }
             
             // Create data set
@@ -64,30 +63,6 @@ struct HomeData: Identifiable {
                 homeConsumptionNet: .init(value: netConsumption, unit: UserSettings.shared.energyUnit),
                 energyCost: Cost(amount: cost)
             )
-            
-            // Get cost refunded by this home consumption if available
-            if !refundedChargingCostPlans.isEmpty {
-                let startOfMonth = currentDate.startDateOfMonth
-                let endOfMonth = currentDate.endDateOfMonth
-                let descriptor = FetchDescriptor<ChargingSession>(
-                    predicate: #Predicate { session in
-                        session.endTime >= startOfMonth && session.endTime <= endOfMonth
-                    }
-                )
-                if let allRefundedSessions = try? modelContext.fetch(descriptor) {
-                    let refundedChargingCostPlanIds = Set(refundedChargingCostPlans.map(\.persistentModelID))
-                    let refundedSessions = allRefundedSessions.filter({
-                        $0.chargingCostPlan != nil && refundedChargingCostPlanIds.contains($0.chargingCostPlan!.persistentModelID)
-                    })
-                    if !refundedSessions.isEmpty {
-                        let totalChargingCost = refundedSessions.reduce(0.0) {
-                            $0 + $1.totalChargingCost.amount
-                        }
-                        let currency = refundedSessions.first!.totalChargingCost.currency
-                        result[monthKeyDisplay]?.refundedCost = .init(amount: totalChargingCost, currency: currency)
-                    }
-                }
-            }
             
             // Increase current date by one month
             currentDate = calendar.date(byAdding: .month, value: 1, to: currentDate)!

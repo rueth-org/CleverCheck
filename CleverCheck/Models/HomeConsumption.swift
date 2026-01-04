@@ -25,6 +25,16 @@ final class HomeConsumption {
     @Relationship(deleteRule: .nullify, inverse: \ChargingSession.relatedHomeConsumption)
     var chargingSessions: [ChargingSession]?
     
+    var consumptionFromRelatedChargingSessions: Measurement<UnitEnergy>? {
+        if let chargingSessions, !chargingSessions.isEmpty {
+            let consumptions = chargingSessions.compactMap { $0.chargedEnergyKWh }
+            let totalConsumption = consumptions.reduce(0.0, +)
+            return Measurement<UnitEnergy>(value: totalConsumption, unit: .kilowattHours)
+        } else {
+            return nil
+        }
+    }
+    
     @Transient var consumption: Measurement<UnitEnergy> {
         get {
             return Measurement<UnitEnergy>(value: consumptionKWh, unit: .kilowattHours)
@@ -168,8 +178,9 @@ final class HomeConsumption {
     
     /// Calculates the total cost for the home consumption over its entire duration, adding up all price elements.
     /// - Parameter isGross: Indicates whether to calculate gross or net costs. Default is true (gross).
+    /// - Parameter useConsumptionFromRelatedChargingSessions: If true, the consumption from related charging sessions is used instead of the entered consumption. If no charging sessions are availale, the entered consumption is used. Default is false.
     /// - Returns: The total cost as a Double.
-    func totalCost(isGross: Bool = true) -> Double {
+    func totalCost(isGross: Bool = true, useConsumptionFromRelatedChargingSessions: Bool = false) -> Double {
         if priceElements == nil {
             return 0.0
         }
@@ -184,6 +195,7 @@ final class HomeConsumption {
                 guard let energyUnit = UserSettings.shared.energyUnit(for: energyUnitSymbol) else {
                     fatalError("Unknown energy unit symbol: \(energyUnitSymbol)")
                 }
+                let consumption = useConsumptionFromRelatedChargingSessions ? (consumptionFromRelatedChargingSessions ?? self.consumption) : self.consumption
                 let convertedConsumption = consumption.converted(to: energyUnit).value
                 return $0 + ($1.grossAmount * convertedConsumption)
             }
@@ -193,8 +205,8 @@ final class HomeConsumption {
     /// Calculates the total cost per month for the duration of the home consumption.
     /// - Parameter isGross: Indicates whether to calculate gross or net costs. Default is true (gross).
     /// - Returns: A dictionary where keys are month identifiers in "yyyy-MM" format and values are the corresponding costs for that month.
-    func totalCostPerMonth(isGross: Bool = true) -> [String: Double] {
-        let totalCost = totalCost(isGross: isGross)
+    func totalCostPerMonth(isGross: Bool = true, useConsumptionFromRelatedChargingSessions: Bool = false) -> [String: Double] {
+        let totalCost = totalCost(isGross: isGross, useConsumptionFromRelatedChargingSessions: useConsumptionFromRelatedChargingSessions)
         
         // Determine the number of days for each of the covered months, calculate each month's cost portion, and store them in a dictionary
         var costPerMonth: [String: Double] = [:]
@@ -220,14 +232,34 @@ final class HomeConsumption {
     ///   - monthKey: The month identifier in "yyyy-MM" format.
     ///   - isGross: Indicates whether to calculate gross or net costs. Default is true (gross).
     /// - Returns: The total cost for the specified month as a Double.
-    func totalCostForMonth(monthKey: String, isGross: Bool = true) -> Double {
-        return totalCostPerMonth(isGross: isGross)[monthKey] ?? 0.0
+    func totalCostForMonth(monthKey: String, isGross: Bool = true, useConsumptionFromRelatedChargingSessions: Bool = false) -> Double {
+        return totalCostPerMonth(isGross: isGross, useConsumptionFromRelatedChargingSessions: useConsumptionFromRelatedChargingSessions)[monthKey] ?? 0.0
     }
     
     /// Calculates the specific cost per unit of energy consumed.
     /// - Parameter isGross: Indicates whether to calculate gross or net costs. Default is true (gross).
     /// - Returns: The specific cost as a Double.
-    func specificCost(isGross: Bool = true) -> Double {
-        totalCost(isGross: isGross) / consumption.converted(to: UserSettings.shared.energyUnit).value
+    func specificCost(isGross: Bool = true, useConsumptionFromRelatedChargingSessions: Bool = false) -> Double {
+        totalCost(isGross: isGross, useConsumptionFromRelatedChargingSessions: useConsumptionFromRelatedChargingSessions) / consumption.converted(to: UserSettings.shared.energyUnit).value
+    }
+    
+    func possibleChargingSessions(modelContext: ModelContext) -> [ChargingSession]? {
+        if let chargingSessions = try? modelContext.fetch(FetchDescriptor<ChargingSession>(
+            predicate: #Predicate { session in
+                validFrom <= session.endTime && session.endTime <= validUntil
+            }
+        )) {
+            if chargingSessions.isEmpty {
+                return nil
+            } else {
+                let candidates = chargingSessions.filter({ session in
+                    session.chargingCostPlan?.planType == .refunded &&
+                    session.chargingCostPlan?.includedInOtherPlan?.charger?.location?.id == self.associatedLocation?.id
+                })
+                return candidates.sorted(by: { $0.endTime < $1.endTime })
+            }
+        } else {
+            return nil
+        }
     }
 }
