@@ -88,6 +88,36 @@ final class HomeConsumption {
         return grossConsumptionPerMonth
     }
     
+    var sumOfPriceElementsByConsumption: Double {
+        if let priceElements {
+            let specificPriceElements = priceElements.filter {
+                if case .byConsumption(_) = $0.type { return true } else { return false }
+            }
+            return sumOfPriceElements(specificPriceElements)
+        }
+        return 0.0
+    }
+    
+    var sumOfPriceElementsDaily: Double {
+        if let priceElements {
+            let specificPriceElements = priceElements.filter {
+                if case .daily = $0.type { return true } else { return false }
+            }
+            return sumOfPriceElements(specificPriceElements)
+        }
+        return 0.0
+    }
+    
+    var sumOfPriceElementsOnce: Double {
+        if let priceElements {
+            let specificPriceElements = priceElements.filter {
+                if case .once = $0.type { return true } else { return false }
+            }
+            return sumOfPriceElements(specificPriceElements)
+        }
+        return 0.0
+    }
+    
     var description: String {
         if associatedLocation != nil {
             return "\(name) (\(associatedLocation!.name))"
@@ -262,4 +292,9 @@ final class HomeConsumption {
             return nil
         }
     }
+    
+    private func sumOfPriceElements(_ priceElements: [PriceElement]) -> Double {
+        priceElements.reduce(0.0) { $0 + $1.getAmount(isGross: UserSettings.shared.displayGrossPrices) }
+    }
 }
+

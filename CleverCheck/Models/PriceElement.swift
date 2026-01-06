@@ -48,7 +48,7 @@ final class PriceElement: Identifiable, Equatable {
     var label: String = ""
     var amount: Cost = Cost(amount: 0.0)
     var isGross: Bool = true
-    var type: PriceElementType = PriceElementType.byConsumption(energyUnitSymbol: "kWh")
+    var type: PriceElementType = PriceElementType.byConsumption(energyUnitSymbol: UserSettings.shared.energyUnitSymbol)
     var vatRate: Double = 0.25
     
     var netAmount: Double {

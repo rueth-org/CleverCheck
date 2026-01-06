@@ -31,7 +31,6 @@ struct HomeConsumptionPicker: View {
                         Text(consumption.descriptionWithDate)
                             .onTapGesture {
                                 selectedHomeConsumption = consumption
-                                debugPrint("Selected consumption: \(consumption.descriptionWithDate)")
                                 isShowing = false
                             }
                     }
