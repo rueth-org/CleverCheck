@@ -10,7 +10,7 @@ import SwiftData
 import SwiftUI
 
 @Model
-final class ChargingSession {
+final class ChargingSession: Comparable {
     enum CostCalculationMethod: Codable {
         case absolute
         case specific
@@ -164,5 +164,9 @@ final class ChargingSession {
         } else {
             return nil
         }
+    }
+    
+    static func < (lhs: ChargingSession, rhs: ChargingSession) -> Bool {
+        lhs.endTime < rhs.endTime
     }
 }

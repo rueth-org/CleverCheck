@@ -99,7 +99,7 @@ struct HomeView: View {
                 // Filter menu
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        MenuHomeSelector(selectedHome: $selectedLocation, allHomes: locations)
+                        MenuHomeSelector(selectedHome: $selectedLocation, preselectedConsumptions: .constant(nil), allHomes: locations)
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .foregroundColor(selectedLocation == nil ? .primary : .blue)
@@ -137,7 +137,7 @@ struct HomeView: View {
             .navigationDestination(for: NavigationDestination.self) { screen in
                 switch screen {
                 case .HomeConsumptions:
-                    HomeConsumptionsView(navigationPath: $navigationPath, selectedLocation: $selectedLocation)
+                    HomeConsumptionsView(navigationPath: $navigationPath, selectedLocation: $selectedLocation, preselectedConsumptions: homeData?.homeConsumptions)
                 }
             }
             .navigationDestination(for: HomeConsumptionsView.NavigationDestination.self) { screen in

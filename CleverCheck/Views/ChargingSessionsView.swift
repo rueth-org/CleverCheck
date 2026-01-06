@@ -17,7 +17,8 @@ struct ChargingSessionsView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     @Binding var selectedCar: Car?
-    var preselectedSessions: [ChargingSession]? = nil
+    
+    @State private var preselectedSessions: [ChargingSession]? = nil
     
     @Query private var vehicles: [Car]
     
@@ -65,7 +66,7 @@ struct ChargingSessionsView: View {
                     }
                     .foregroundColor(.gray)
                 } else {
-                    ForEach(groupedSessions[carDescription]!, id: \.self) { chargingSession in
+                    ForEach(groupedSessions[carDescription]!.sorted(by: { $0 > $1 }), id: \.self) { chargingSession in
                         NavigationLink(value: ChargingSessionsView.NavigationDestination.EditSession(chargingSession: chargingSession, selectedCar: chargingSession.chargingCostPlan?.car)) {
                             VStack {
                                 HStack {
@@ -102,7 +103,7 @@ struct ChargingSessionsView: View {
             // New filter menu in the toolbar to replace the inline Picker
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    MenuCarSelector(selectedCar: $selectedCar, allCars: vehicles)
+                    MenuCarSelector(selectedCar: $selectedCar, preselectedSessions: $preselectedSessions, allCars: vehicles)
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                         .foregroundColor(selectedCar == nil ? .primary : .blue)
@@ -132,7 +133,7 @@ struct ChargingSessionsView: View {
     ) {
         self._navigationPath = navigationPath
         self._selectedCar = selectedCar
-        self.preselectedSessions = preselectedSessions
+        self._preselectedSessions = State(initialValue: preselectedSessions)
         
         let predicate = #Predicate<Car> { car in
             car.isArchived == false

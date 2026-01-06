@@ -9,7 +9,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class HomeConsumption {
+final class HomeConsumption: Comparable {
     var id: UUID = UUID()
     var name: String = ""
     var validFrom: Date = Date.now.startDateOfMonth
@@ -295,6 +295,10 @@ final class HomeConsumption {
     
     private func sumOfPriceElements(_ priceElements: [PriceElement]) -> Double {
         priceElements.reduce(0.0) { $0 + $1.getAmount(isGross: UserSettings.shared.displayGrossPrices) }
+    }
+    
+    static func < (lhs: HomeConsumption, rhs: HomeConsumption) -> Bool {
+        lhs.validUntil < rhs.validUntil
     }
 }
 

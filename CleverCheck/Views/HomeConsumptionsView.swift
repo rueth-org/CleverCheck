@@ -18,6 +18,8 @@ struct HomeConsumptionsView: View {
     @Binding var navigationPath: NavigationPath
     @Binding var selectedLocation: Location?
     
+    @State private var preselectedConsumptions: [HomeConsumption]? = nil
+    
     @Query(filter: #Predicate<Location> { location in
         location.isArchived == false
     }, sort: \Location.name) private var locations: [Location]
@@ -31,7 +33,7 @@ struct HomeConsumptionsView: View {
         VStack {
             Text(selectedLocation?.name ?? NSLocalizedString("All locations", comment: ""))
                 .font(.headline)
-            HomeConsumptionsList(navigationPath: $navigationPath, associatedLocation: selectedLocation)
+            HomeConsumptionsList(navigationPath: $navigationPath, preselectedConsumptions: $preselectedConsumptions, associatedLocation: selectedLocation)
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -43,7 +45,7 @@ struct HomeConsumptionsView: View {
                 
                 // Filter by location
                 Menu {
-                    MenuHomeSelector(selectedHome: $selectedLocation, allHomes: locations)
+                    MenuHomeSelector(selectedHome: $selectedLocation, preselectedConsumptions: $preselectedConsumptions, allHomes: locations)
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                         .foregroundColor(selectedLocation == nil ? .primary : .blue)
@@ -69,6 +71,16 @@ struct HomeConsumptionsView: View {
         } message: { activeAlert in
             activeAlert.message()
         }
+    }
+    
+    init(
+        navigationPath: Binding<NavigationPath>,
+        selectedLocation: Binding<Location?>,
+        preselectedConsumptions: [HomeConsumption]? = nil
+    ) {
+        self._navigationPath = navigationPath
+        self._selectedLocation = selectedLocation
+        self._preselectedConsumptions = State(initialValue: preselectedConsumptions)
     }
     
     private func addHomeConsumption() {

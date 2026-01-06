@@ -11,17 +11,18 @@ import SwiftData
 struct HomeConsumptionsList: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
+    @Binding var preselectedConsumptions: [HomeConsumption]?
     @Query private var homeConsumptions: [HomeConsumption]
     
     private var groupedByMonths: [Date: [HomeConsumption]] {
-        Dictionary(grouping: homeConsumptions) { consumption in
+        Dictionary(grouping: preselectedConsumptions ?? homeConsumptions) { consumption in
             let components = Calendar.current.dateComponents([.year, .month], from: consumption.validUntil)
             return Calendar.current.date(from: components)!
         }
     }
     
     var body: some View {
-        if homeConsumptions.isEmpty {
+        if groupedByMonths.isEmpty {
             Spacer()
             Image(systemName: "house.circle")
                 .font(.largeTitle)
@@ -83,8 +84,13 @@ struct HomeConsumptionsList: View {
         }
     }
     
-    init(navigationPath: Binding<NavigationPath>, associatedLocation: Location?) {
+    init(
+        navigationPath: Binding<NavigationPath>,
+        preselectedConsumptions: Binding<[HomeConsumption]?>,
+        associatedLocation: Location?
+    ) {
         self._navigationPath = navigationPath
+        self._preselectedConsumptions = preselectedConsumptions
         
         var predicate: Predicate<HomeConsumption>
         if let id = associatedLocation?.persistentModelID {
