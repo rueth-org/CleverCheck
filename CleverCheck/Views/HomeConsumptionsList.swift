@@ -85,16 +85,16 @@ struct HomeConsumptionsList: View {
     
     init(
         navigationPath: Binding<NavigationPath>,
-        selectedTimePeriod: (Date, Date)?,
+        timeBox: TimeBox?,
         associatedLocation: Location?
     ) {
         self._navigationPath = navigationPath
         
         var predicate: Predicate<HomeConsumption>
         if let id = associatedLocation?.persistentModelID {
-            if let selectedTimePeriod {
-                let start = selectedTimePeriod.0
-                let end = selectedTimePeriod.1
+            if let timePeriod = timeBox?.timePeriod {
+                let start = timePeriod.start
+                let end = timePeriod.end
                 predicate = #Predicate<HomeConsumption> { homeConsumption in
                     homeConsumption.associatedLocation?.persistentModelID == id && start <= homeConsumption.validUntil && homeConsumption.validUntil <= end
                 }

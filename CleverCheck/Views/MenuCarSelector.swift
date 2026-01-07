@@ -9,20 +9,20 @@ import SwiftUI
 
 struct MenuCarSelector: View {
     @Binding var selectedCar: Car?
-    @Binding var selectedTimePeriod: (Date, Date)?
+    @Binding var timeBox: TimeBox?
     var allCars: [Car]
     
     var body: some View {
         Button(action: {
             selectedCar = nil
-            selectedTimePeriod = nil
+            timeBox = nil
             UserSettings.shared.selectedCarId = nil
         }) {
             Text("All vehicles")
         }
         ForEach(allCars, id: \.id) { car in
             Button(action: {
-                selectedTimePeriod = nil
+                timeBox = nil
                 selectedCar = car
                 UserSettings.shared.selectedCarId = car.id.uuidString
             }) {

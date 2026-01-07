@@ -16,8 +16,8 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var navigationPath = NavigationPath()
     @State private var selectedLocation: Location? = nil
-    @State private var selectedDate: Date = Date.now.startOfYear
     @State private var selectedConsumption: HomeConsumption? = nil
+    @State private var timeBox: TimeBox? = nil
     
     enum Chart {
         case energy, cost
@@ -28,13 +28,10 @@ struct HomeView: View {
         location.isArchived == false
     }, sort: \Location.name) private var locations: [Location]
     
-    var timePeriod: (Date, Date) {
-        (selectedDate.startOfYear, selectedDate.endOfYear)
-    }
-    
     var homeData: HomeData? {
-        if let selectedLocation = selectedLocation {
-            return try? HomeData(modelContext: modelContext, location: selectedLocation, date: selectedDate)
+        if let selectedLocation, let timeBox {
+            // TODO pass timeBox and change resolution
+            return try? HomeData(modelContext: modelContext, location: selectedLocation, date: timeBox.selectedDate)
         } else {
             return nil
         }
@@ -43,28 +40,13 @@ struct HomeView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             List {
-                if let homeData = homeData {
+                if let homeData, let timeBox {
                     // The date selection part
                     Text(selectedLocation?.name ?? "No location selected")
                         .font(Font.title.bold())
                     
-                    HStack(alignment: .center) {
-                        Button(action: decreaseYear) {
-                            Image(systemName: "chevron.left")
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Spacer()
-                        
-                        Text(verbatim: "\(Calendar.current.component(.year, from: selectedDate))")
-                        
-                        Spacer()
-                        
-                        Button(action: increaseYear) {
-                            Image(systemName: "chevron.right")
-                        }
-                        .buttonStyle(.plain)
-                    }
+                    // The date picker
+                    TimeBoxPicker(timeBox: timeBox)
                     
                     // The picker to choose which data to display
                     Picker("Choose data set", selection: $selectedChart) {
@@ -74,7 +56,9 @@ struct HomeView: View {
                     .pickerStyle(.palette)
                     
                     // The data part
-                    HomeViewChart(homeData: homeData, selectedChart: selectedChart)
+                    HomeViewChart(homeData: homeData, selectedChart: selectedChart, onBarTap: { dateKey in
+                        timeBox.switchResolution(dateKey)
+                    })
                 } else {
                     Text("Select location").italic()
                 }
@@ -103,7 +87,7 @@ struct HomeView: View {
                 // Filter menu
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        MenuHomeSelector(selectedHome: $selectedLocation, selectedTimePeriod: .constant(nil), allHomes: locations)
+                        MenuHomeSelector(selectedHome: $selectedLocation, timeBox: .constant(nil), allHomes: locations)
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .foregroundColor(selectedLocation == nil ? .primary : .blue)
@@ -116,32 +100,10 @@ struct HomeView: View {
                     }
                 }
             }
-            .onAppear {
-                if !locations.isEmpty {
-                    // First check if selectedLocation still is available (could have been deleted)
-                    if let selectedLocation {
-                        if !locations.contains(selectedLocation) {
-                            self.selectedLocation = nil
-                        }
-                    }
-                    
-                    if let selectedLocationId = UserSettings.shared.selectedLocationId {
-                        if let selectedLocation = locations.first(where: { $0.id.uuidString == selectedLocationId }) {
-                            self.selectedLocation = selectedLocation
-                        }
-                    }
-                    
-                    // If still no location selected and there's only one available, select it
-                    if selectedLocation == nil && locations.count == 1 {
-                        selectedLocation = locations.first
-                        UserSettings.shared.selectedLocationId = locations.first?.id.uuidString
-                    }
-                }
-            }
             .navigationDestination(for: NavigationDestination.self) { screen in
                 switch screen {
                 case .HomeConsumptions:
-                    HomeConsumptionsView(navigationPath: $navigationPath, selectedLocation: $selectedLocation, selectedTimePeriod: timePeriod)
+                    HomeConsumptionsView(navigationPath: $navigationPath, selectedLocation: $selectedLocation, timeBox: timeBox)
                 }
             }
             .navigationDestination(for: HomeConsumptionsView.NavigationDestination.self) { screen in
@@ -169,6 +131,35 @@ struct HomeView: View {
                 }
             }
         }
+        .onAppear {
+            if !locations.isEmpty {
+                // First check if selectedLocation still is available (could have been deleted)
+                if let selectedLocation {
+                    if !locations.contains(selectedLocation) {
+                        self.selectedLocation = nil
+                    }
+                }
+                
+                if let selectedLocationId = UserSettings.shared.selectedLocationId {
+                    if let selectedLocation = locations.first(where: { $0.id.uuidString == selectedLocationId }) {
+                        self.selectedLocation = selectedLocation
+                    }
+                }
+                
+                // If still no location selected and there's only one available, select it
+                if selectedLocation == nil && locations.count == 1 {
+                    selectedLocation = locations.first
+                    UserSettings.shared.selectedLocationId = locations.first?.id.uuidString
+                }
+            }
+            
+            self.timeBox = TimeBox(
+                selectedDate: Date.now.startOfMonth,
+                selectedResolution: .yearly,
+                allowedResolutions: [.monthly, .yearly],
+                selectIndividualItem: selectIndividualConsumption
+            )
+        }
     }
     
     private func addLocation() {
@@ -179,15 +170,40 @@ struct HomeView: View {
         navigationPath.append(HomeConsumptionsView.NavigationDestination.NewConsumption(location: selectedLocation))
     }
     
-    private func decreaseYear() {
-        withAnimation {
-            selectedDate = Calendar.current.date(byAdding: .year, value: -1, to: selectedDate)!
-        }
-    }
-    
-    private func increaseYear() {
-        withAnimation {
-            selectedDate = Calendar.current.date(byAdding: .year, value: 1, to: selectedDate)!
+    private func selectIndividualConsumption(dateKey: String) {
+        if let homeData, let timeBox {
+            // Try to identify consumption
+            if homeData.homeConsumptions.count == 1 {
+                // There is only one consumption
+                selectedConsumption = homeData.homeConsumptions.first!
+            } else {
+                let calendar = Calendar.current
+                
+                // Create a date from the dateKey
+                if let time = DateFormatter.chartDisplayDateDaily.date(from: dateKey) {
+                    let year = calendar.component(.year, from: timeBox.selectedDate)
+                    let month = calendar.component(.month, from: timeBox.selectedDate)
+                    let day = calendar.component(.day, from: timeBox.selectedDate)
+                    
+                    // Add year, month and day to the time
+                    if let date = DateComponents(
+                        calendar: calendar,
+                        year: year,
+                        month: month,
+                        day: day,
+                        hour: calendar.component(.hour, from: time),
+                        minute: calendar.component(.minute, from: time)
+                    ).date {
+                        // Try to match endTime
+                        for consumption in homeData.homeConsumptions {
+                            if consumption.validUntil == date {
+                                selectedConsumption = consumption
+                                break
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

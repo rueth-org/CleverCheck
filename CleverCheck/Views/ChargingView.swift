@@ -13,18 +13,11 @@ struct ChargingView: View {
         case ChargingSessions
     }
     
-    enum Resolution {
-        case yearly
-        case monthly
-        case daily
-    }
-    
     @Environment(\.modelContext) private var modelContext
     @State private var navigationPath = NavigationPath()
     @State private var selectedCar: Car? = nil
-    @State private var selectedResolution: Resolution = .monthly
-    @State private var selectedDate: Date = Date.now.startOfMonth
     @State private var selectedSession: ChargingSession? = nil
+    @State private var timeBox: TimeBox? = nil
     
     enum Chart {
         case charging, consumption
@@ -33,157 +26,38 @@ struct ChargingView: View {
     
     @Query private var vehicles: [Car]
     
-    var timePeriod: (Date, Date) {
-        switch selectedResolution {
-        case .daily:
-            return (selectedDate.startOfDay, selectedDate.endOfDay)
-        case .monthly:
-            return (selectedDate.startOfMonth, selectedDate.endOfMonth)
-        case .yearly:
-            return (selectedDate.startOfYear, selectedDate.endOfYear)
-        }
-    }
-    
     var chargingData: ChargingData? {
-        if let selectedCar = selectedCar {
+        if let selectedCar, let timeBox {
             var resolution: ChargingData.Resolution
-            switch selectedResolution {
+            switch timeBox.selectedResolution {
             case .daily:
-                resolution = .daily(date: selectedDate)
+                resolution = .daily(date: timeBox.selectedDate)
             case .monthly:
-                resolution = .monthly(date: selectedDate)
+                resolution = .monthly(date: timeBox.selectedDate)
             case .yearly:
-                resolution = .yearly(date: selectedDate)
+                resolution = .yearly(date: timeBox.selectedDate)
             }
+            // TODO pass timeBox instead of resolution
             return try? ChargingData(modelContext: modelContext, vehicle: selectedCar, resolution: resolution)
         } else {
             return nil
         }
     }
     
-    var monthPickerList: [Date] {
-        var result = [Date]()
-        let calendar = Calendar.current
-        let year = calendar.component(.year, from: selectedDate)
-        for i in 0..<12 {
-            let month = i + 1
-            result.append(DateComponents(calendar: calendar, year: year, month: month, day: 1).date!)
-        }
-        return result
-    }
-    
-    var dayPickerList: [Date] {
-        var result = [Date]()
-        let calendar = Calendar.current
-        let year = calendar.component(.year, from: selectedDate)
-        let month = calendar.component(.month, from: selectedDate)
-        let daysInMonth = calendar.range(of: .day, in: .month, for: Date(timeInterval: 0, since: selectedDate))!.count
-        for i in 0..<daysInMonth {
-            let day = i + 1
-            let dateTag = DateComponents(calendar: calendar, year: year, month: month, day: day).date!
-            result.append(dateTag)
-        }
-        return result
-    }
-    
     var body: some View {
         NavigationStack(path: $navigationPath) {
             List {
-                if let chargingData = chargingData {
+                if let chargingData, let timeBox {
                     
                     // The date selection part
                     
                     Text(selectedCar?.description ?? "No car selected")
                         .font(Font.title.bold())
-                    switch selectedResolution {
-                    case .yearly:
-                        HStack(alignment: .center) {
-                            Button(action: decreaseYear) {
-                                Image(systemName: "chevron.left")
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Spacer()
-                            
-                            Text(verbatim: "\(Calendar.current.component(.year, from: selectedDate))")
-                            
-                            Spacer()
-                            
-                            Button(action: increaseYear) {
-                                Image(systemName: "chevron.right")
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    case .monthly:
-                        HStack(alignment: .center) {
-                            Button(action: decreaseMonth) {
-                                Image(systemName: "chevron.left")
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Spacer()
-                            
-                            Picker("Month", selection: $selectedDate) {
-                                ForEach(monthPickerList, id: \.self) { date in
-                                    Text(DateFormatter.displayAbbreviatedMonthOnly.string(from: date)).tag(date)
-                                }
-                            }
-                            .labelsHidden()
-                            .pickerStyle(.menu)
-                            
-                            Button(action: switchToYearly) {
-                                Text(verbatim: "\(Calendar.current.component(.year, from: selectedDate))")
-                                    .foregroundStyle(Color.accentColor)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Spacer()
-                            
-                            Button(action: increaseMonth) {
-                                Image(systemName: "chevron.right")
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    case .daily:
-                        HStack(alignment: .center) {
-                            Button(action: decreaseDay) {
-                                Image(systemName: "chevron.left")
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Spacer()
-                            
-                            Picker("Day", selection: $selectedDate) {
-                                ForEach(dayPickerList, id: \.self) { date in
-                                    Text(DateFormatter.chartDisplayDateMonthly.string(from: date)).tag(date)
-                                }
-                            }
-                            .labelsHidden()
-                            .pickerStyle(.menu)
-                            
-                            Button(action: switchToMonthly) {
-                                Text(DateFormatter.displayAbbreviatedMonthOnly.string(from: selectedDate))
-                                    .foregroundStyle(Color.accentColor)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button(action: switchToYearly) {
-                                Text(verbatim: "\(Calendar.current.component(.year, from: selectedDate))")
-                                    .foregroundStyle(Color.accentColor)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Spacer()
-                            
-                            Button(action: increaseDay) {
-                                Image(systemName: "chevron.right")
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                    
+                    // The date picker
+                    TimeBoxPicker(timeBox: timeBox)
                     
                     // The data part
-                    
                     if chargingData.chargingSessions.isEmpty {
                         HStack {
                             Spacer()
@@ -201,72 +75,7 @@ struct ChargingView: View {
                         .pickerStyle(.palette)
                         
                         ChargingViewChart(chargingData: chargingData, selectedChart: selectedChart, onBarTap: { dateKey in
-                            let calendar = Calendar.current
-                            switch selectedResolution {
-                            case .yearly:
-                                // Switch to the month tapped and stored in dateKey as String (double-digit integer)
-                                let year = calendar.component(.year, from: selectedDate)
-                                let month = Int(dateKey) ?? calendar.component(.month, from: Date.now)
-                                if let newDate = DateComponents(
-                                    calendar: calendar,
-                                    year: year,
-                                    month: month,
-                                    day: 1
-                                ).date {
-                                    withAnimation {
-                                        selectedDate = newDate
-                                        selectedResolution = .monthly
-                                    }
-                                }
-                            case .monthly:
-                                // TODO this produces a runtime error: Picker: the selection "2025-12-17 23:00:00 +0000" is invalid and does not have an associated tag, this will give undefined results.
-                                // Switch to the day tapped and stored in dateKey as String (double-digit integer)
-                                let year = calendar.component(.year, from: selectedDate)
-                                let month = calendar.component(.month, from: selectedDate)
-                                let day = Int(dateKey) ?? calendar.component(.day, from: Date.now)
-                                if let newDate = DateComponents(
-                                    calendar: calendar,
-                                    year: year,
-                                    month: month,
-                                    day: day
-                                ).date {
-                                    withAnimation {
-                                        selectedDate = newDate
-                                        selectedResolution = .daily
-                                    }
-                                }
-                            case .daily:
-                                // Try to identify session
-                                if chargingData.chargingSessions.count == 1 {
-                                    // There is only one session
-                                    selectedSession = chargingData.chargingSessions.first!
-                                } else {
-                                    // Create a date from the dateKey
-                                    if let time = DateFormatter.chartDisplayDateDaily.date(from: dateKey) {
-                                        let year = calendar.component(.year, from: selectedDate)
-                                        let month = calendar.component(.month, from: selectedDate)
-                                        let day = calendar.component(.day, from: selectedDate)
-                                        
-                                        // Add year, month and day to the time
-                                        if let date = DateComponents(
-                                            calendar: calendar,
-                                            year: year,
-                                            month: month,
-                                            day: day,
-                                            hour: calendar.component(.hour, from: time),
-                                            minute: calendar.component(.minute, from: time)
-                                        ).date {
-                                            // Try to match endTime
-                                            for session in chargingData.chargingSessions {
-                                                if session.endTime == date {
-                                                    selectedSession = session
-                                                    break
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            timeBox.switchResolution(dateKey)
                         })
                         
                         // The summary data
@@ -301,7 +110,7 @@ struct ChargingView: View {
                 // Filter menu
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        MenuCarSelector(selectedCar: $selectedCar, selectedTimePeriod: .constant(nil), allCars: vehicles)
+                        MenuCarSelector(selectedCar: $selectedCar, timeBox: .constant(nil), allCars: vehicles)
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .foregroundColor(selectedCar == nil ? .primary : .blue)
@@ -314,37 +123,10 @@ struct ChargingView: View {
                     }
                 }
             }
-            .sheet(item: $selectedSession) { _ in
-                if let chargingData {
-                    ChargingSessionDetails(navigationPath: $navigationPath, selectedSession: $selectedSession, vehicle: selectedCar, allSessions: chargingData.chargingSessions)
-                }
-            }
-            .onAppear {
-                if !vehicles.isEmpty {
-                    // First check if selectedVehicle still is available (could have been deleted)
-                    if let selectedCar {
-                        if !vehicles.contains(selectedCar) {
-                            self.selectedCar = nil
-                        }
-                    }
-                    
-                    if let selectedCarId = UserSettings.shared.selectedCarId {
-                        if let selectedCar = vehicles.first(where: { $0.id.uuidString == selectedCarId }) {
-                            self.selectedCar = selectedCar
-                        }
-                    }
-                    
-                    // If still no vehicle selected and there's only one available, select it
-                    if selectedCar == nil && vehicles.count == 1 {
-                        selectedCar = vehicles.first
-                        UserSettings.shared.selectedCarId = vehicles.first?.id.uuidString
-                    }
-                }
-            }
             .navigationDestination(for: NavigationDestination.self) { screen in
                 switch screen {
                 case .ChargingSessions:
-                    ChargingSessionsView(navigationPath: $navigationPath, selectedCar: $selectedCar, selectedTimePeriod: timePeriod)
+                    ChargingSessionsView(navigationPath: $navigationPath, selectedCar: $selectedCar, timeBox: timeBox)
                 }
             }
             .navigationDestination(for: ChargingSessionsView.NavigationDestination.self) { screen in
@@ -364,13 +146,47 @@ struct ChargingView: View {
                 }
             }
         }
+        .sheet(item: $selectedSession) { _ in
+            if let chargingData {
+                ChargingSessionDetails(navigationPath: $navigationPath, selectedSession: $selectedSession, vehicle: selectedCar, allSessions: chargingData.chargingSessions)
+            }
+        }
+        .onAppear {
+            if !vehicles.isEmpty {
+                // First check if selectedVehicle still is available (could have been deleted)
+                if let selectedCar {
+                    if !vehicles.contains(selectedCar) {
+                        self.selectedCar = nil
+                    }
+                }
+                
+                if let selectedCarId = UserSettings.shared.selectedCarId {
+                    if let selectedCar = vehicles.first(where: { $0.id.uuidString == selectedCarId }) {
+                        self.selectedCar = selectedCar
+                    }
+                }
+                
+                // If still no vehicle selected and there's only one available, select it
+                if selectedCar == nil && vehicles.count == 1 {
+                    selectedCar = vehicles.first
+                    UserSettings.shared.selectedCarId = vehicles.first?.id.uuidString
+                }
+            }
+            
+            self.timeBox = TimeBox(
+                selectedDate: Date.now.startOfMonth,
+                selectedResolution: .monthly,
+                allowedResolutions: [.daily, .monthly, .yearly],
+                selectIndividualItem: selectIndividualSession
+            )
+        }
     }
     
     init() {
+        // Initialize car query
         let predicate = #Predicate<Car> { car in
             car.isArchived == false
         }
-        
         _vehicles = Query(
             filter: predicate,
             sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]
@@ -385,60 +201,40 @@ struct ChargingView: View {
         navigationPath.append(CarsView.NavigationDestination.NewCar)
     }
     
-    private func decreaseDay() {
-        withAnimation {
-            selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
-        }
-    }
-    
-    private func increaseDay() {
-        withAnimation {
-            selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
-        }
-    }
-    
-    private func decreaseMonth() {
-        withAnimation {
-            selectedDate = Calendar.current.date(byAdding: .month, value: -1, to: selectedDate)!
-        }
-    }
-    
-    private func increaseMonth() {
-        withAnimation {
-            selectedDate = Calendar.current.date(byAdding: .month, value: 1, to: selectedDate)!
-        }
-    }
-    
-    private func decreaseYear() {
-        withAnimation {
-            selectedDate = Calendar.current.date(byAdding: .year, value: -1, to: selectedDate)!
-        }
-    }
-    
-    private func increaseYear() {
-        withAnimation {
-            selectedDate = Calendar.current.date(byAdding: .year, value: 1, to: selectedDate)!
-        }
-    }
-    
-    private func switchToYearly() {
-        // Set correct date - we always need first of January of the year
-        let year = Calendar.current.component(.year, from: selectedDate)
-        let firstDayOfYear = Calendar.current.date(from: DateComponents(year: year, month: 1, day: 1))!
-        self.selectedDate = firstDayOfYear
-        withAnimation {
-            self.selectedResolution = .yearly
-        }
-    }
-    
-    private func switchToMonthly() {
-        // Set correct date - we always need the first day of the month
-        let year = Calendar.current.component(.year, from: selectedDate)
-        let month = Calendar.current.component(.month, from: selectedDate)
-        let firstDayOfMonth = Calendar.current.date(from: DateComponents(year: year, month: month, day: 1))!
-        self.selectedDate = firstDayOfMonth
-        withAnimation {
-            self.selectedResolution = .monthly
+    private func selectIndividualSession(dateKey: String) {
+        if let chargingData, let timeBox {
+            // Try to identify session
+            if chargingData.chargingSessions.count == 1 {
+                // There is only one session
+                selectedSession = chargingData.chargingSessions.first!
+            } else {
+                let calendar = Calendar.current
+                
+                // Create a date from the dateKey
+                if let time = DateFormatter.chartDisplayDateDaily.date(from: dateKey) {
+                    let year = calendar.component(.year, from: timeBox.selectedDate)
+                    let month = calendar.component(.month, from: timeBox.selectedDate)
+                    let day = calendar.component(.day, from: timeBox.selectedDate)
+                    
+                    // Add year, month and day to the time
+                    if let date = DateComponents(
+                        calendar: calendar,
+                        year: year,
+                        month: month,
+                        day: day,
+                        hour: calendar.component(.hour, from: time),
+                        minute: calendar.component(.minute, from: time)
+                    ).date {
+                        // Try to match endTime
+                        for session in chargingData.chargingSessions {
+                            if session.endTime == date {
+                                selectedSession = session
+                                break
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -156,17 +156,4 @@ final class UserSettings {
             return nil
         }
     }
-    
-    func formatTimePeriod(start: Date, end: Date) -> String {
-        let timeDiffInDays = end.timeIntervalSince(start) / 86400
-        if timeDiffInDays < 2 {
-            return DateFormatter().longDayMonthYear.string(from: end)
-        } else if timeDiffInDays < 32 {
-            return DateFormatter().longMonthYear.string(from: end)
-        } else if timeDiffInDays < 367 {
-            return DateFormatter().year.string(from: end)
-        } else {
-            return "\(DateFormatter().shortDayMonthYear.string(from: start)) - \(DateFormatter().shortDayMonthYear.string(from: end))"
-        }
-    }
 }

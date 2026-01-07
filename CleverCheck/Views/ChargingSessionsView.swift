@@ -18,7 +18,7 @@ struct ChargingSessionsView: View {
     @Binding var navigationPath: NavigationPath
     @Binding var selectedCar: Car?
     
-    @State private var selectedTimePeriod: (Date, Date)? = nil
+    @State var timeBox: TimeBox? = nil
     
     @Query private var vehicles: [Car]
     
@@ -34,8 +34,8 @@ struct ChargingSessionsView: View {
                 if let chargingCostPlans = vehicle.chargingCostPlans {
                     for chargingCostPlan in chargingCostPlans {
                         chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions?.filter { session in
-                            if let period = selectedTimePeriod {
-                                return period.0 <= session.endTime && session.endTime <= period.1
+                            if let period = timeBox?.timePeriod {
+                                return period.start <= session.endTime && session.endTime <= period.end
                             } else {
                                 return true
                             }
@@ -50,8 +50,8 @@ struct ChargingSessionsView: View {
             if let chargingCostPlans = selectedCar?.chargingCostPlans {
                 for chargingCostPlan in chargingCostPlans {
                     chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions?.filter { session in
-                        if let period = selectedTimePeriod {
-                            return period.0 <= session.endTime && session.endTime <= period.1
+                        if let period = timeBox?.timePeriod {
+                            return period.start <= session.endTime && session.endTime <= period.end
                         } else {
                             return true
                         }
@@ -63,17 +63,9 @@ struct ChargingSessionsView: View {
         return result
     }
     
-    var timePeriod: String? {
-        if let selectedTimePeriod {
-            return UserSettings.shared.formatTimePeriod(start: selectedTimePeriod.0, end: selectedTimePeriod.1)
-        } else {
-            return nil
-        }
-    }
-
     var body: some View {
         VStack {
-            if let timePeriod {
+            if let timePeriod = timeBox?.formattedTime {
                 Text(timePeriod)
                     .font(.subheadline)
             }
@@ -126,7 +118,7 @@ struct ChargingSessionsView: View {
             // New filter menu in the toolbar to replace the inline Picker
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    MenuCarSelector(selectedCar: $selectedCar, selectedTimePeriod: $selectedTimePeriod, allCars: vehicles)
+                    MenuCarSelector(selectedCar: $selectedCar, timeBox: $timeBox, allCars: vehicles)
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                         .foregroundColor(selectedCar == nil ? .primary : .blue)
@@ -152,11 +144,11 @@ struct ChargingSessionsView: View {
     init(
         navigationPath: Binding<NavigationPath>,
         selectedCar: Binding<Car?>,
-        selectedTimePeriod: (Date, Date)?
+        timeBox: TimeBox?
     ) {
         self._navigationPath = navigationPath
         self._selectedCar = selectedCar
-        self._selectedTimePeriod = State(initialValue: selectedTimePeriod)
+        self._timeBox = State(initialValue: timeBox)
         
         let predicate = #Predicate<Car> { car in
             car.isArchived == false

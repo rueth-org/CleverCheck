@@ -18,7 +18,7 @@ struct HomeConsumptionsView: View {
     @Binding var navigationPath: NavigationPath
     @Binding var selectedLocation: Location?
     
-    @State private var selectedTimePeriod: (Date, Date)? = nil
+    @State private var timeBox: TimeBox? = nil
     
     @Query(filter: #Predicate<Location> { location in
         location.isArchived == false
@@ -29,23 +29,15 @@ struct HomeConsumptionsView: View {
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
     
-    var timePeriod: String? {
-        if let selectedTimePeriod {
-            return UserSettings.shared.formatTimePeriod(start: selectedTimePeriod.0, end: selectedTimePeriod.1)
-        } else {
-            return nil
-        }
-    }
-
     var body: some View {
         VStack {
             Text(selectedLocation?.name ?? NSLocalizedString("All locations", comment: ""))
                 .font(.headline)
-            if let timePeriod {
+            if let timePeriod = timeBox?.formattedTime {
                 Text(timePeriod)
                     .font(.subheadline)
             }
-            HomeConsumptionsList(navigationPath: $navigationPath, selectedTimePeriod: selectedTimePeriod, associatedLocation: selectedLocation)
+            HomeConsumptionsList(navigationPath: $navigationPath, timeBox: timeBox, associatedLocation: selectedLocation)
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -57,7 +49,7 @@ struct HomeConsumptionsView: View {
                 
                 // Filter by location
                 Menu {
-                    MenuHomeSelector(selectedHome: $selectedLocation, selectedTimePeriod: $selectedTimePeriod, allHomes: locations)
+                    MenuHomeSelector(selectedHome: $selectedLocation, timeBox: $timeBox, allHomes: locations)
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                         .foregroundColor(selectedLocation == nil ? .primary : .blue)
@@ -88,11 +80,11 @@ struct HomeConsumptionsView: View {
     init(
         navigationPath: Binding<NavigationPath>,
         selectedLocation: Binding<Location?>,
-        selectedTimePeriod: (Date, Date)?
+        timeBox: TimeBox?
     ) {
         self._navigationPath = navigationPath
         self._selectedLocation = selectedLocation
-        self._selectedTimePeriod = State(initialValue: selectedTimePeriod)
+        self._timeBox = State(initialValue: timeBox)
     }
     
     private func addHomeConsumption() {
