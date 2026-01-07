@@ -18,7 +18,7 @@ struct HomeConsumptionsView: View {
     @Binding var navigationPath: NavigationPath
     @Binding var selectedLocation: Location?
     
-    @State private var preselectedConsumptions: [HomeConsumption]? = nil
+    @State private var selectedTimePeriod: (Date, Date)? = nil
     
     @Query(filter: #Predicate<Location> { location in
         location.isArchived == false
@@ -28,12 +28,24 @@ struct HomeConsumptionsView: View {
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlertType?
+    
+    var timePeriod: String? {
+        if let selectedTimePeriod {
+            return UserSettings.shared.formatTimePeriod(start: selectedTimePeriod.0, end: selectedTimePeriod.1)
+        } else {
+            return nil
+        }
+    }
 
     var body: some View {
         VStack {
             Text(selectedLocation?.name ?? NSLocalizedString("All locations", comment: ""))
                 .font(.headline)
-            HomeConsumptionsList(navigationPath: $navigationPath, preselectedConsumptions: $preselectedConsumptions, associatedLocation: selectedLocation)
+            if let timePeriod {
+                Text(timePeriod)
+                    .font(.subheadline)
+            }
+            HomeConsumptionsList(navigationPath: $navigationPath, selectedTimePeriod: selectedTimePeriod, associatedLocation: selectedLocation)
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -45,7 +57,7 @@ struct HomeConsumptionsView: View {
                 
                 // Filter by location
                 Menu {
-                    MenuHomeSelector(selectedHome: $selectedLocation, preselectedConsumptions: $preselectedConsumptions, allHomes: locations)
+                    MenuHomeSelector(selectedHome: $selectedLocation, selectedTimePeriod: $selectedTimePeriod, allHomes: locations)
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                         .foregroundColor(selectedLocation == nil ? .primary : .blue)
@@ -76,11 +88,11 @@ struct HomeConsumptionsView: View {
     init(
         navigationPath: Binding<NavigationPath>,
         selectedLocation: Binding<Location?>,
-        preselectedConsumptions: [HomeConsumption]? = nil
+        selectedTimePeriod: (Date, Date)?
     ) {
         self._navigationPath = navigationPath
         self._selectedLocation = selectedLocation
-        self._preselectedConsumptions = State(initialValue: preselectedConsumptions)
+        self._selectedTimePeriod = State(initialValue: selectedTimePeriod)
     }
     
     private func addHomeConsumption() {

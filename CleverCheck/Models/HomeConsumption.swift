@@ -12,8 +12,8 @@ import SwiftData
 final class HomeConsumption: Comparable {
     var id: UUID = UUID()
     var name: String = ""
-    var validFrom: Date = Date.now.startDateOfMonth
-    var validUntil: Date = Date.now.endDateOfMonth
+    var validFrom: Date = Date.now.startOfMonth
+    var validUntil: Date = Date.now.endOfMonth
     var consumptionKWh: Double = 0.0
     var consumptionIncludedElsewhere: Bool = false
     var associatedLocation: Location?

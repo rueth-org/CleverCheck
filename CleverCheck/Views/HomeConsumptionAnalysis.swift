@@ -43,8 +43,8 @@ struct HomeConsumptionAnalysis: View {
             let relatedChargingSessions: [ChargingSession] = allRelatedPlans.flatMap { $0.chargingSessions ?? [] }
             
             // Filter by month
-            let start = month.startDateOfMonth
-            let end = month.endDateOfMonth
+            let start = month.startOfMonth
+            let end = month.endOfMonth
             let relatedSessionsInRange = relatedChargingSessions.filter { session in
                 start <= session.endTime && session.endTime <= end
             }

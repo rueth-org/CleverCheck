@@ -11,11 +11,10 @@ import SwiftData
 struct HomeConsumptionsList: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    @Binding var preselectedConsumptions: [HomeConsumption]?
     @Query private var homeConsumptions: [HomeConsumption]
     
     private var groupedByMonths: [Date: [HomeConsumption]] {
-        Dictionary(grouping: preselectedConsumptions ?? homeConsumptions) { consumption in
+        Dictionary(grouping: homeConsumptions) { consumption in
             let components = Calendar.current.dateComponents([.year, .month], from: consumption.validUntil)
             return Calendar.current.date(from: components)!
         }
@@ -86,16 +85,23 @@ struct HomeConsumptionsList: View {
     
     init(
         navigationPath: Binding<NavigationPath>,
-        preselectedConsumptions: Binding<[HomeConsumption]?>,
+        selectedTimePeriod: (Date, Date)?,
         associatedLocation: Location?
     ) {
         self._navigationPath = navigationPath
-        self._preselectedConsumptions = preselectedConsumptions
         
         var predicate: Predicate<HomeConsumption>
         if let id = associatedLocation?.persistentModelID {
-            predicate = #Predicate<HomeConsumption> { homeConsumption in
-                homeConsumption.associatedLocation?.persistentModelID == id
+            if let selectedTimePeriod {
+                let start = selectedTimePeriod.0
+                let end = selectedTimePeriod.1
+                predicate = #Predicate<HomeConsumption> { homeConsumption in
+                    homeConsumption.associatedLocation?.persistentModelID == id && start <= homeConsumption.validUntil && homeConsumption.validUntil <= end
+                }
+            } else {
+                predicate = #Predicate<HomeConsumption> { homeConsumption in
+                    homeConsumption.associatedLocation?.persistentModelID == id
+                }
             }
         } else {
             predicate = .true

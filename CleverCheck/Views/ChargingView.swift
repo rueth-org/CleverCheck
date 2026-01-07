@@ -23,7 +23,7 @@ struct ChargingView: View {
     @State private var navigationPath = NavigationPath()
     @State private var selectedCar: Car? = nil
     @State private var selectedResolution: Resolution = .monthly
-    @State private var selectedDate: Date = Date.now.startDateOfMonth
+    @State private var selectedDate: Date = Date.now.startOfMonth
     @State private var selectedSession: ChargingSession? = nil
     
     enum Chart {
@@ -32,6 +32,17 @@ struct ChargingView: View {
     @State private var selectedChart: Chart = .charging
     
     @Query private var vehicles: [Car]
+    
+    var timePeriod: (Date, Date) {
+        switch selectedResolution {
+        case .daily:
+            return (selectedDate.startOfDay, selectedDate.endOfDay)
+        case .monthly:
+            return (selectedDate.startOfMonth, selectedDate.endOfMonth)
+        case .yearly:
+            return (selectedDate.startOfYear, selectedDate.endOfYear)
+        }
+    }
     
     var chargingData: ChargingData? {
         if let selectedCar = selectedCar {
@@ -290,7 +301,7 @@ struct ChargingView: View {
                 // Filter menu
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        MenuCarSelector(selectedCar: $selectedCar, preselectedSessions: .constant(nil), allCars: vehicles)
+                        MenuCarSelector(selectedCar: $selectedCar, selectedTimePeriod: .constant(nil), allCars: vehicles)
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .foregroundColor(selectedCar == nil ? .primary : .blue)
@@ -333,7 +344,7 @@ struct ChargingView: View {
             .navigationDestination(for: NavigationDestination.self) { screen in
                 switch screen {
                 case .ChargingSessions:
-                    ChargingSessionsView(navigationPath: $navigationPath, selectedCar: $selectedCar, preselectedSessions: chargingData?.chargingSessions)
+                    ChargingSessionsView(navigationPath: $navigationPath, selectedCar: $selectedCar, selectedTimePeriod: timePeriod)
                 }
             }
             .navigationDestination(for: ChargingSessionsView.NavigationDestination.self) { screen in

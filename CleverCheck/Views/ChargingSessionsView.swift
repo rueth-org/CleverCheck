@@ -18,7 +18,7 @@ struct ChargingSessionsView: View {
     @Binding var navigationPath: NavigationPath
     @Binding var selectedCar: Car?
     
-    @State private var preselectedSessions: [ChargingSession]? = nil
+    @State private var selectedTimePeriod: (Date, Date)? = nil
     
     @Query private var vehicles: [Car]
     
@@ -27,16 +27,19 @@ struct ChargingSessionsView: View {
     
     private var groupedSessions: [String: [ChargingSession]] {
         var result: [String: [ChargingSession]] = [:]
-        if let preselectedSessions, !preselectedSessions.isEmpty {
-            let vehicleDescription = preselectedSessions.first!.chargingCostPlan?.car?.description ?? "Unknown car"
-            result[vehicleDescription] = preselectedSessions
-        } else if selectedCar == nil {
+        if selectedCar == nil {
             // Display all vehicles
             for vehicle in vehicles {
                 var chargingSessions: [ChargingSession] = []
                 if let chargingCostPlans = vehicle.chargingCostPlans {
                     for chargingCostPlan in chargingCostPlans {
-                        chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions ?? [])
+                        chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions?.filter { session in
+                            if let period = selectedTimePeriod {
+                                return period.0 <= session.endTime && session.endTime <= period.1
+                            } else {
+                                return true
+                            }
+                        } ?? [])
                     }
                     result[vehicle.description] = chargingSessions.sorted(by: { $0.endTime > $1.endTime })
                 }
@@ -46,7 +49,13 @@ struct ChargingSessionsView: View {
             var chargingSessions: [ChargingSession] = []
             if let chargingCostPlans = selectedCar?.chargingCostPlans {
                 for chargingCostPlan in chargingCostPlans {
-                    chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions ?? [])
+                    chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions?.filter { session in
+                        if let period = selectedTimePeriod {
+                            return period.0 <= session.endTime && session.endTime <= period.1
+                        } else {
+                            return true
+                        }
+                    } ?? [])
                 }
                 result[selectedCar!.description] = chargingSessions.sorted(by: { $0.endTime > $1.endTime })
             }
@@ -54,7 +63,21 @@ struct ChargingSessionsView: View {
         return result
     }
     
+    var timePeriod: String? {
+        if let selectedTimePeriod {
+            return UserSettings.shared.formatTimePeriod(start: selectedTimePeriod.0, end: selectedTimePeriod.1)
+        } else {
+            return nil
+        }
+    }
+
     var body: some View {
+        VStack {
+            if let timePeriod {
+                Text(timePeriod)
+                    .font(.subheadline)
+            }
+        }
         List(groupedSessions.keys.sorted(), id: \.self) { carDescription in
             Section(header: Text(carDescription)) {
                 if groupedSessions[carDescription]!.isEmpty {
@@ -103,7 +126,7 @@ struct ChargingSessionsView: View {
             // New filter menu in the toolbar to replace the inline Picker
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    MenuCarSelector(selectedCar: $selectedCar, preselectedSessions: $preselectedSessions, allCars: vehicles)
+                    MenuCarSelector(selectedCar: $selectedCar, selectedTimePeriod: $selectedTimePeriod, allCars: vehicles)
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                         .foregroundColor(selectedCar == nil ? .primary : .blue)
@@ -129,11 +152,11 @@ struct ChargingSessionsView: View {
     init(
         navigationPath: Binding<NavigationPath>,
         selectedCar: Binding<Car?>,
-        preselectedSessions: [ChargingSession]? = nil
+        selectedTimePeriod: (Date, Date)?
     ) {
         self._navigationPath = navigationPath
         self._selectedCar = selectedCar
-        self._preselectedSessions = State(initialValue: preselectedSessions)
+        self._selectedTimePeriod = State(initialValue: selectedTimePeriod)
         
         let predicate = #Predicate<Car> { car in
             car.isArchived == false
@@ -167,3 +190,4 @@ struct ChargingSessionsView: View {
         try? modelContext.save()
     }
 }
+

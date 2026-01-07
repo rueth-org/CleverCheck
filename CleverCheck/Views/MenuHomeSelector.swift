@@ -9,12 +9,12 @@ import SwiftUI
 
 struct MenuHomeSelector: View {
     @Binding var selectedHome: Location?
-    @Binding var preselectedConsumptions: [HomeConsumption]?
+    @Binding var selectedTimePeriod: (Date, Date)?
     var allHomes: [Location]
     
     var body: some View {
         Button(action: {
-            preselectedConsumptions = nil
+            selectedTimePeriod = nil
             selectedHome = nil
             UserSettings.shared.selectedLocationId = nil
         }) {
@@ -22,7 +22,7 @@ struct MenuHomeSelector: View {
         }
         ForEach(allHomes, id: \.id) { home in
             Button(action: {
-                preselectedConsumptions = nil
+                selectedTimePeriod = nil
                 selectedHome = home
                 UserSettings.shared.selectedLocationId = home.id.uuidString
             }) {

@@ -16,7 +16,7 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var navigationPath = NavigationPath()
     @State private var selectedLocation: Location? = nil
-    @State private var selectedDate: Date = Date.now.startDateOfYear
+    @State private var selectedDate: Date = Date.now.startOfYear
     @State private var selectedConsumption: HomeConsumption? = nil
     
     enum Chart {
@@ -27,6 +27,10 @@ struct HomeView: View {
     @Query(filter: #Predicate<Location> { location in
         location.isArchived == false
     }, sort: \Location.name) private var locations: [Location]
+    
+    var timePeriod: (Date, Date) {
+        (selectedDate.startOfYear, selectedDate.endOfYear)
+    }
     
     var homeData: HomeData? {
         if let selectedLocation = selectedLocation {
@@ -99,7 +103,7 @@ struct HomeView: View {
                 // Filter menu
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        MenuHomeSelector(selectedHome: $selectedLocation, preselectedConsumptions: .constant(nil), allHomes: locations)
+                        MenuHomeSelector(selectedHome: $selectedLocation, selectedTimePeriod: .constant(nil), allHomes: locations)
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .foregroundColor(selectedLocation == nil ? .primary : .blue)
@@ -137,7 +141,7 @@ struct HomeView: View {
             .navigationDestination(for: NavigationDestination.self) { screen in
                 switch screen {
                 case .HomeConsumptions:
-                    HomeConsumptionsView(navigationPath: $navigationPath, selectedLocation: $selectedLocation, preselectedConsumptions: homeData?.homeConsumptions)
+                    HomeConsumptionsView(navigationPath: $navigationPath, selectedLocation: $selectedLocation, selectedTimePeriod: timePeriod)
                 }
             }
             .navigationDestination(for: HomeConsumptionsView.NavigationDestination.self) { screen in
@@ -145,8 +149,8 @@ struct HomeView: View {
                 case .NewConsumption(let location):
                     let newHomeConsumption = HomeConsumption(
                         name: "",
-                        validFrom: Date.now.startDateOfMonth,
-                        validUntil: Date.now.endDateOfMonth,
+                        validFrom: Date.now.startOfMonth,
+                        validUntil: Date.now.endOfMonth,
                         consumption: .init(value: 0.0, unit: .kilowattHours),
                         consumptionIncludedElsewhere: false,
                         associatedLocation: location

@@ -126,7 +126,7 @@ struct ChargingData: Identifiable {
                 end = calendar.date(byAdding: .day, value: 1, to: start)!
             case .monthly(let date):
                 // Start of the given month
-                let startOfMonth = date.startDateOfMonth
+                let startOfMonth = date.startOfMonth
                 // Start of next month
                 let endOfMonth = calendar.date(byAdding: DateComponents(month: 1), to: startOfMonth)!
                 start = startOfMonth
