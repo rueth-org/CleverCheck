@@ -30,8 +30,7 @@ struct HomeView: View {
     
     var homeData: HomeData? {
         if let selectedLocation, let timeBox {
-            // TODO pass timeBox and change resolution
-            return try? HomeData(modelContext: modelContext, location: selectedLocation, date: timeBox.selectedDate)
+            return try? HomeData(modelContext: modelContext, location: selectedLocation, timeBox: timeBox)
         } else {
             return nil
         }
@@ -156,7 +155,7 @@ struct HomeView: View {
             self.timeBox = TimeBox(
                 selectedDate: Date.now.startOfMonth,
                 selectedResolution: .yearly,
-                allowedResolutions: [.monthly, .yearly],
+                allowedResolutions: [.yearly],
                 selectIndividualItem: selectIndividualConsumption
             )
         }
@@ -170,37 +169,18 @@ struct HomeView: View {
         navigationPath.append(HomeConsumptionsView.NavigationDestination.NewConsumption(location: selectedLocation))
     }
     
-    private func selectIndividualConsumption(dateKey: String) {
-        if let homeData, let timeBox {
+    private func selectIndividualConsumption(date: Date) {
+        if let homeData {
             // Try to identify consumption
             if homeData.homeConsumptions.count == 1 {
                 // There is only one consumption
                 selectedConsumption = homeData.homeConsumptions.first!
             } else {
-                let calendar = Calendar.current
-                
-                // Create a date from the dateKey
-                if let time = DateFormatter.chartDisplayDateDaily.date(from: dateKey) {
-                    let year = calendar.component(.year, from: timeBox.selectedDate)
-                    let month = calendar.component(.month, from: timeBox.selectedDate)
-                    let day = calendar.component(.day, from: timeBox.selectedDate)
-                    
-                    // Add year, month and day to the time
-                    if let date = DateComponents(
-                        calendar: calendar,
-                        year: year,
-                        month: month,
-                        day: day,
-                        hour: calendar.component(.hour, from: time),
-                        minute: calendar.component(.minute, from: time)
-                    ).date {
-                        // Try to match endTime
-                        for consumption in homeData.homeConsumptions {
-                            if consumption.validUntil == date {
-                                selectedConsumption = consumption
-                                break
-                            }
-                        }
+                // Try to match endTime
+                for consumption in homeData.homeConsumptions {
+                    if consumption.validUntil == date {
+                        selectedConsumption = consumption
+                        break
                     }
                 }
             }

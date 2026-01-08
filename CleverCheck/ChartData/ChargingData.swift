@@ -9,52 +9,24 @@ import Foundation
 import SwiftData
 
 struct ChargingData: Identifiable {
-    enum Resolution: Equatable {
-        case yearly(date: Date)
-        case monthly(date: Date)
-        case daily(date: Date)
-    }
-
     let id = UUID()
     let modelContext: ModelContext
     let relatedPlans: [ChargingCostPlan]
-    let resolution: Resolution
+    let timeBox: TimeBox
     let chargingSessions: [ChargingSession]
     
     var consumptionData: ConsumptionData? {
-        try? ConsumptionData(modelContext: modelContext, resolution: resolution, relatedPlans: relatedPlans, sessions: chargingSessions)
+        try? ConsumptionData(modelContext: modelContext, timeBox: timeBox, relatedPlans: relatedPlans, sessions: chargingSessions)
     }
     
     var chargedEnergy: [String: Double] {
-        switch resolution {
-        case .yearly(_):
-            var result = [String: Double]()
-            for session in chargingSessions {
-                let monthKey = ChargingData.dateKey(for: session.endTime, with: resolution)
-                let energy = session.chargedEnergy(in: UserSettings.shared.energyUnit).value
-                result[monthKey, default: 0] += energy
-            }
-            return result
-        case .monthly(_):
-            var result = [String: Double]()
-            for session in chargingSessions {
-                let dayKey = ChargingData.dateKey(for: session.endTime, with: resolution)
-                let energy = session.chargedEnergy(in: UserSettings.shared.energyUnit).value
-                result[dayKey, default: 0] += energy
-            }
-            return result
-        case .daily(_):
-            var result = [String: Double]()
-            // The exact localized date format string used by this formatter (e.g. "h:mm a" or localized variant)
-            // This matches how `endTime.formatted(date: .omitted, time: .shortened)` would display the time.
-            for session in chargingSessions {
-                // Use the localized short time string as key (matches .shortened)
-                let dayKey = ChargingData.dateKey(for: session.endTime, with: resolution)
-                let energy = session.chargedEnergy(in: UserSettings.shared.energyUnit).value
-                result[dayKey, default: 0] += energy
-            }
-            return result
+        var result = [String: Double]()
+        for session in chargingSessions {
+            let monthKey = timeBox.getKeyForDate(session.endTime)
+            let energy = session.chargedEnergy(in: UserSettings.shared.energyUnit).value
+            result[monthKey, default: 0] += energy
         }
+        return result
     }
     
     var totalChargedEnergy: Measurement<UnitEnergy> {
@@ -63,8 +35,8 @@ struct ChargingData: Identifiable {
     }
     
     var chargingCost: [String: Double] {
-        switch resolution {
-        case .yearly(_):
+        switch timeBox.selectedResolution {
+        case .yearly:
             var result = [String: Double]()
             for session in chargingSessions {
                 let monthKey = DateFormatter.chartDisplayDateYearly.string(from: session.endTime)
@@ -72,7 +44,7 @@ struct ChargingData: Identifiable {
                 result[monthKey, default: 0] += cost.amount
             }
             return result
-        case .monthly(_):
+        case .monthly:
             var result = [String: Double]()
             for session in chargingSessions {
                 let dayKey = DateFormatter.chartDisplayDateMonthly.string(from: session.endTime)
@@ -80,7 +52,7 @@ struct ChargingData: Identifiable {
                 result[dayKey, default: 0] += cost.amount
             }
             return result
-        case .daily(_):
+        case .daily:
             var result = [String: Double]()
             // The exact localized date format string used by this formatter (e.g. "h:mm a" or localized variant)
             // This matches how `endTime.formatted(date: .omitted, time: .shortened)` would display the time.
@@ -99,9 +71,9 @@ struct ChargingData: Identifiable {
         return .init(amount: totalCost)
     }
     
-    init(modelContext: ModelContext, vehicle: Car, resolution: Resolution) throws {
+    init(modelContext: ModelContext, vehicle: Car, timeBox: TimeBox) throws {
         self.modelContext = modelContext
-        self.resolution = resolution
+        self.timeBox = timeBox
         
         // Get the id of the vehicle
         let vehicleID = vehicle.persistentModelID
@@ -116,35 +88,13 @@ struct ChargingData: Identifiable {
         
         if !relatedPlans.isEmpty {
             // Compute concrete date range outside the predicate so it can be captured.
-            let calendar = Calendar.current
-            let start: Date
-            let end: Date
-
-            switch resolution {
-            case .daily(let date):
-                start = calendar.startOfDay(for: date)
-                end = calendar.date(byAdding: .day, value: 1, to: start)!
-            case .monthly(let date):
-                // Start of the given month
-                let startOfMonth = date.startOfMonth
-                // Start of next month
-                let endOfMonth = calendar.date(byAdding: DateComponents(month: 1), to: startOfMonth)!
-                start = startOfMonth
-                end = endOfMonth
-            case .yearly(let date):
-                // Start of the given year
-                let year = calendar.component(.year, from: date)
-                let startOfYear = calendar.startOfDay(for: calendar.date(from: DateComponents(year: year, month: 1, day: 1))!)
-                // Start of next year
-                let endOfYear = calendar.date(byAdding: DateComponents(year: 1), to: startOfYear)!
-                start = startOfYear
-                end = endOfYear
-            }
+            let start = timeBox.timePeriod.start
+            let end = timeBox.timePeriod.end
 
             // Get all sessions in time period
             let sessionDescriptor = FetchDescriptor<ChargingSession>(
                 predicate: #Predicate { session in
-                    session.endTime >= start && session.endTime < end
+                    start <= session.endTime && session.endTime <= end
                 },
                 sortBy: [
                     .init(\.endTime)
@@ -160,30 +110,5 @@ struct ChargingData: Identifiable {
         } else {
             self.chargingSessions = []
         }
-    }
-    
-    static func dateKey(for time: Date, with resolution: ChargingData.Resolution) -> String {
-        switch resolution {
-        case .yearly(_): DateFormatter.chartDisplayDateYearly.string(from: time)
-        case .monthly(_): DateFormatter.chartDisplayDateMonthly.string(from: time)
-        case .daily(_): DateFormatter.chartDisplayDateDaily.string(from: time)
-        }
-    }
-}
-
-// Helper to fetch a localized short time date format string.
-extension DateFormatter {
-    /// Returns the localized date format string for a short time style (equivalent to `.timeStyle = .short`).
-    /// Falls back to a reasonable template if the formatter's `dateFormat` is unavailable.
-    static func localizedShortTimeFormat(locale: Locale = .current) -> String {
-        let f = DateFormatter()
-        f.locale = locale
-        f.timeStyle = .short
-        f.dateStyle = .none
-        if let df = f.dateFormat, !df.isEmpty {
-            return df
-        }
-        // As a fallback, produce a localized format from a template using hour/minute
-        return DateFormatter.dateFormat(fromTemplate: "j:mm", options: 0, locale: locale) ?? "HH:mm"
     }
 }

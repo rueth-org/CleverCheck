@@ -84,7 +84,7 @@ struct HomeViewChart: View {
                                     if let key = proxy.value(atX: xInPlot, as: String.self) {
                                         barTapped(key)
                                     } else if let date = proxy.value(atX: xInPlot, as: Date.self) {
-                                        let key = DateFormatter.chartDisplayDateYearly.string(from: date)
+                                        let key = homeData.timeBox.getKeyForDate(date)
                                         barTapped(key)
                                     } else if let number = proxy.value(atX: xInPlot, as: Double.self) {
                                         barTapped(String(number))

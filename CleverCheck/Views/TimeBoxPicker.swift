@@ -126,7 +126,7 @@ class TimeBox {
     var selectedDate: Date
     var selectedResolution: Resolution
     @ObservationIgnored var allowedResolutions: [Resolution]
-    var selectIndividualItem: (_ dateKey: String) -> ()
+    var selectIndividualItem: (_ date: Date) -> ()
     
     var referenceDate: Date {
         var date = selectedDate
@@ -195,7 +195,7 @@ class TimeBox {
         selectedDate: Date,
         selectedResolution: Resolution,
         allowedResolutions: [Resolution],
-        selectIndividualItem: @escaping (_: String) -> ()
+        selectIndividualItem: @escaping (_: Date) -> ()
     ) {
         self.selectedDate = selectedDate
         self.selectedResolution = selectedResolution
@@ -265,46 +265,80 @@ class TimeBox {
     }
     
     func switchResolution(_ dateKey: String) {
+        var switched = false
         let calendar = Calendar.current
+        var newDate: Date? = nil
         switch selectedResolution {
         case .yearly:
-            if allowedResolutions.contains(.monthly) {
-                // Switch to the month tapped and stored in dateKey as String (double-digit integer)
-                let year = calendar.component(.year, from: selectedDate)
-                let month = Int(dateKey) ?? calendar.component(.month, from: Date.now)
-                if let newDate = DateComponents(
-                    calendar: calendar,
-                    year: year,
-                    month: month,
-                    day: 1
-                ).date {
-                    withAnimation {
-                        selectedDate = newDate
-                        selectedResolution = .monthly
-                    }
+            // Switch to the month tapped and stored in dateKey as String (double-digit integer)
+            let year = calendar.component(.year, from: selectedDate)
+            let month = Int(dateKey) ?? calendar.component(.month, from: Date.now)
+            newDate = DateComponents(
+                calendar: calendar,
+                year: year,
+                month: month,
+                day: 1
+            ).date
+            if allowedResolutions.contains(.monthly), let newDate {
+                switched = true
+                withAnimation {
+                    selectedDate = newDate
+                    selectedResolution = .monthly
                 }
             }
         case .monthly:
-            if allowedResolutions.contains(.daily) {
-                // TODO this produces a runtime error: Picker: the selection "2025-12-17 23:00:00 +0000" is invalid and does not have an associated tag, this will give undefined results.
-                // Switch to the day tapped and stored in dateKey as String (double-digit integer)
-                let year = calendar.component(.year, from: selectedDate)
-                let month = calendar.component(.month, from: selectedDate)
-                let day = Int(dateKey) ?? calendar.component(.day, from: Date.now)
-                if let newDate = DateComponents(
-                    calendar: calendar,
-                    year: year,
-                    month: month,
-                    day: day
-                ).date {
-                    withAnimation {
-                        selectedDate = newDate
-                        selectedResolution = .daily
-                    }
+            // TODO this produces a runtime error: Picker: the selection "2025-12-17 23:00:00 +0000" is invalid and does not have an associated tag, this will give undefined results.
+            // Switch to the day tapped and stored in dateKey as String (double-digit integer)
+            let year = calendar.component(.year, from: selectedDate)
+            let month = calendar.component(.month, from: selectedDate)
+            let day = Int(dateKey) ?? calendar.component(.day, from: Date.now)
+            newDate = DateComponents(
+                calendar: calendar,
+                year: year,
+                month: month,
+                day: day
+            ).date
+            if allowedResolutions.contains(.daily), let newDate {
+                switched = true
+                withAnimation {
+                    selectedDate = newDate
+                    selectedResolution = .daily
                 }
             }
         case .daily:
-            selectIndividualItem(dateKey)
+            if let time = DateFormatter.chartDisplayDateDaily.date(from: dateKey) {
+                let year = calendar.component(.year, from: selectedDate)
+                let month = calendar.component(.month, from: selectedDate)
+                let day = calendar.component(.day, from: selectedDate)
+                
+                // Add year, month and day to the time
+                newDate = DateComponents(
+                    calendar: calendar,
+                    year: year,
+                    month: month,
+                    day: day,
+                    hour: calendar.component(.hour, from: time),
+                    minute: calendar.component(.minute, from: time)
+                ).date
+                
+                if let newDate {
+                    switched = true
+                    selectIndividualItem(newDate)
+                }
+            }
+        }
+        
+        if !switched, let newDate {
+            // If no switch yet, go for individual item
+            selectIndividualItem(newDate)
+        }
+    }
+    
+    func getKeyForDate(_ date: Date) -> String {
+        switch selectedResolution {
+        case .yearly: return DateFormatter.chartDisplayDateYearly.string(from: date)
+        case .monthly: return DateFormatter.chartDisplayDateMonthly.string(from: date)
+        case .daily: return DateFormatter.chartDisplayDateDaily.string(from: date)
         }
     }
 }

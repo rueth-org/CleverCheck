@@ -26,20 +26,17 @@ struct HomeData: Identifiable {
     var id = UUID()
     let modelContext: ModelContext
     let homeConsumptions: [HomeConsumption]
-    let relatedChargingCostPlans: [ChargingCostPlan]
-    let refundedChargingCostPlans: [ChargingCostPlan]
-    let startDate: Date
-    let endDate: Date
+    let timeBox: TimeBox
     
     var data: [String: Data] {
         var result = [String: Data]()
         
         // Step through the months
         let calendar = Calendar.current
-        var currentDate = startDate
-        while currentDate < endDate {
+        var currentDate = timeBox.timePeriod.start
+        while currentDate <= timeBox.timePeriod.end {
             // Get the monthly contributions from each home consumption (one may span several months)
-            let monthKeyDisplay = HomeData.dateKey(for: currentDate)
+            let monthKeyDisplay = timeBox.getKeyForDate(currentDate)
             let monthKeyGrouping = UserSettings.shared.groupingDateFormatter.string(from: currentDate)
             
             // Gross consumption
@@ -71,30 +68,13 @@ struct HomeData: Identifiable {
         return result
     }
     
-    init(modelContext: ModelContext, location: Location, date: Date) throws {
+    init(modelContext: ModelContext, location: Location, timeBox: TimeBox) throws {
         self.modelContext = modelContext
+        self.timeBox = timeBox
         
-        // Get related charing cost plans
-        let allPlans: [ChargingCostPlan] = try modelContext.fetch(FetchDescriptor<ChargingCostPlan>())
-        self.relatedChargingCostPlans = allPlans.filter({ $0.charger?.location != nil && $0.charger?.location?.persistentModelID == location.persistentModelID })
-        
-        // Determine all plans refunded by on of the related plans
-        let relatedChargingCostPlanIds = Set(relatedChargingCostPlans.map(\.id))
-        self.refundedChargingCostPlans = allPlans.filter({ $0.includedInOtherPlan != nil && relatedChargingCostPlanIds.contains($0.includedInOtherPlan!.id) })
-        
-        // Compute concrete date range outside the predicate so it can be captured.
-        let calendar = Calendar.current
-        
-        // Start of the given year
-        let year = calendar.component(.year, from: date)
-        let start = calendar.startOfDay(for: calendar.date(from: DateComponents(year: year, month: 1, day: 1))!)
-        // Start of next year
-        let end = calendar.date(byAdding: DateComponents(year: 1), to: start)!
-        
-        self.startDate = start
-        self.endDate = end
-
         // Get all consumptions ending in time period and belonging to the location
+        let start = timeBox.timePeriod.start
+        let end = timeBox.timePeriod.end
         let descriptor = FetchDescriptor<HomeConsumption>(
             predicate: #Predicate { consumption in
                 consumption.validUntil >= start && consumption.validUntil < end
@@ -109,9 +89,5 @@ struct HomeData: Identifiable {
         self.homeConsumptions = allConsumptionsInPeriod.filter({
             $0.associatedLocation != nil && $0.associatedLocation!.persistentModelID == location.persistentModelID
         })
-    }
-    
-    static func dateKey(for time: Date) -> String {
-        DateFormatter.chartDisplayDateYearly.string(from: time)
     }
 }

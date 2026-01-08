@@ -81,7 +81,7 @@ struct ConsumptionData: Identifiable {
     
     let id: UUID = UUID()
     let sessions: [ChargingSession]
-    let resolution: ChargingData.Resolution
+    let timeBox: TimeBox
     let previousSessions: [ChargingSession]?
     
     var consumptions: [String: Consumption] {
@@ -113,7 +113,7 @@ struct ConsumptionData: Identifiable {
                 
                 if let lastMileage, let lastDate {
                     let distanceConsumed: Double = mileage - lastMileage
-                    let dateKey = ChargingData.dateKey(for: session.endTime, with: resolution)
+                    let dateKey = timeBox.getKeyForDate(session.endTime)
                     let consumption = Consumption(
                         distance: .init(value: distanceConsumed, unit: UserSettings.shared.distanceUnit),
                         energy: .init(value: consumedEnergy, unit: UserSettings.shared.energyUnit),
@@ -145,12 +145,12 @@ struct ConsumptionData: Identifiable {
         return result
     }
     
-    init(modelContext: ModelContext, resolution: ChargingData.Resolution, relatedPlans: [ChargingCostPlan], sessions: [ChargingSession]) throws {
+    init(modelContext: ModelContext, timeBox: TimeBox, relatedPlans: [ChargingCostPlan], sessions: [ChargingSession]) throws {
         if sessions.isEmpty {
             throw DataError(message: "No sessions available")
         }
         
-        self.resolution = resolution
+        self.timeBox = timeBox
         self.sessions = sessions
         
         // Identify the last session for the vehicle (via related plans) with a mileage and the reference SOC before the first session in scope

@@ -28,17 +28,7 @@ struct ChargingView: View {
     
     var chargingData: ChargingData? {
         if let selectedCar, let timeBox {
-            var resolution: ChargingData.Resolution
-            switch timeBox.selectedResolution {
-            case .daily:
-                resolution = .daily(date: timeBox.selectedDate)
-            case .monthly:
-                resolution = .monthly(date: timeBox.selectedDate)
-            case .yearly:
-                resolution = .yearly(date: timeBox.selectedDate)
-            }
-            // TODO pass timeBox instead of resolution
-            return try? ChargingData(modelContext: modelContext, vehicle: selectedCar, resolution: resolution)
+            return try? ChargingData(modelContext: modelContext, vehicle: selectedCar, timeBox: timeBox)
         } else {
             return nil
         }
@@ -201,37 +191,18 @@ struct ChargingView: View {
         navigationPath.append(CarsView.NavigationDestination.NewCar)
     }
     
-    private func selectIndividualSession(dateKey: String) {
-        if let chargingData, let timeBox {
+    private func selectIndividualSession(date: Date) {
+        if let chargingData {
             // Try to identify session
             if chargingData.chargingSessions.count == 1 {
                 // There is only one session
                 selectedSession = chargingData.chargingSessions.first!
             } else {
-                let calendar = Calendar.current
-                
-                // Create a date from the dateKey
-                if let time = DateFormatter.chartDisplayDateDaily.date(from: dateKey) {
-                    let year = calendar.component(.year, from: timeBox.selectedDate)
-                    let month = calendar.component(.month, from: timeBox.selectedDate)
-                    let day = calendar.component(.day, from: timeBox.selectedDate)
-                    
-                    // Add year, month and day to the time
-                    if let date = DateComponents(
-                        calendar: calendar,
-                        year: year,
-                        month: month,
-                        day: day,
-                        hour: calendar.component(.hour, from: time),
-                        minute: calendar.component(.minute, from: time)
-                    ).date {
-                        // Try to match endTime
-                        for session in chargingData.chargingSessions {
-                            if session.endTime == date {
-                                selectedSession = session
-                                break
-                            }
-                        }
+                // Try to match endTime
+                for session in chargingData.chargingSessions {
+                    if session.endTime == date {
+                        selectedSession = session
+                        break
                     }
                 }
             }
