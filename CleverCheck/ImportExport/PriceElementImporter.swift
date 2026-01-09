@@ -68,7 +68,7 @@ fileprivate struct PriceElementDTO: Codable {
             }
             // Then try String and parse
             if let s = try? container.decodeIfPresent(String.self, forKey: key) {
-                return ChargingSessionImporter.parseLocalizedDouble(s)
+                return TextRecognizer.parseLocalizedDouble(s)
             }
             return nil
         }

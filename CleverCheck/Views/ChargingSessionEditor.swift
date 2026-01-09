@@ -129,6 +129,19 @@ struct ChargingSessionEditor: View {
                     }
                 }
                 
+                HStack {
+                    Button {
+                        Task { await getDataFromImage() }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Image(systemName: "camera.viewfinder")
+                            Text("Read data from image")
+                            Spacer()
+                        }
+                    }
+                }
+                
                 // Start time (optional)
                 if enterStartTime {
                     HStack {
@@ -551,6 +564,25 @@ struct ChargingSessionEditor: View {
     
     private func addPlan() {
         navigationPath.append(ChargingCostPlansView.NavigationDestination.NewPlan(car: selectedCar))
+    }
+    
+    @MainActor private func getDataFromImage() async {
+        do {
+            let uiImage = try await ImageHandler.getImageFromCameraOrLibrary()
+            if let cgImage = uiImage.cgImage {
+                let recognizedText = try TextRecognizer.recognizeText(from: cgImage)
+                var proposedData = TextRecognizer(rawImage: cgImage, recognizedText: recognizedText)
+                proposedData.analyse()
+                debugPrint(proposedData)
+            } else {
+                activeAlert = .error(message: "Failed to get image")
+                showingAlert = true
+            }
+        } catch {
+            let errorDescription = String(describing: error)
+            activeAlert = .error(message: "Image capture failed: \(errorDescription)")
+            showingAlert = true
+        }
     }
 }
 

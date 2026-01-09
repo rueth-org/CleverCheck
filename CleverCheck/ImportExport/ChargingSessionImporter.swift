@@ -59,7 +59,7 @@ fileprivate struct ChargingSessionDTO: Codable {
             }
             // Then try String and parse
             if let s = try? container.decodeIfPresent(String.self, forKey: key) {
-                return ChargingSessionImporter.parseLocalizedDouble(s)
+                return TextRecognizer.parseLocalizedDouble(s)
             }
             return nil
         }
@@ -79,36 +79,6 @@ public struct ChargingSessionImporter {
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f
     }()
-
-    // Parse localized numeric string into Double
-    static func parseLocalizedDouble(_ raw: String) -> Double? {
-        var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if s.isEmpty { return nil }
-        
-        // Check for percentage
-        var isPercentage = false
-        if s.contains("%") { isPercentage = true }
-
-        // Remove currency symbols and letters: keep digits, separators, plus/minus
-        s = s.filter { "0123456789.,+-".contains($0) }
-
-        // Handle common grouping/decimal conventions
-        if s.contains(".") && s.contains(",") {
-            // assume "." is thousands separator and "," is decimal (e.g. "1.234,56")
-            s = s.replacingOccurrences(of: ".", with: "")
-            s = s.replacingOccurrences(of: ",", with: ".")
-        } else if s.contains(",") && !s.contains(".") {
-            // assume "," is decimal separator
-            s = s.replacingOccurrences(of: ",", with: ".")
-        }
-        
-        let doubleValue = Double(s)
-        if isPercentage, let doubleValue = doubleValue {
-            return doubleValue / 100.0
-        } else {
-            return doubleValue
-        }
-    }
 
     /// Import from raw JSON Data.
     /// - Parameters:
