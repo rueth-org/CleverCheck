@@ -11,6 +11,7 @@ import SwiftData
 struct HomeConsumptionsList: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
+    @Binding var selectedConsumptions: HomeView.ConsumptionContainer?
     @Query private var homeConsumptions: [HomeConsumption]
     
     private var groupedByMonths: [Date: [HomeConsumption]] {
@@ -33,14 +34,16 @@ struct HomeConsumptionsList: View {
                 ForEach(groupedByMonths.keys.sorted(by: { $0 > $1 }), id: \.self) { month in
                     Section(header: Text(month, format: UserSettings.shared.displayDateFormatInSection)) {
                         // The total cost for the month
-                        NavigationLink(value: groupedByMonths[month]!) {
-                            HStack {
-                                Text("Total:")
-                                Spacer()
-                                Text(totalCost(for: month), format: .currency(code: UserSettings.shared.currencyIdentifier))
-                            }
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
+                        HStack {
+                            Text("Total:")
+                            Spacer()
+                            Text(totalCost(for: month), format: .currency(code: UserSettings.shared.currencyIdentifier))
+                            Button {
+                                self.selectedConsumptions = .init(consumptions: groupedByMonths[month]!)
+                            } label: {
+                                Image(systemName: "chevron.right")
+                                    .imageScale(.small)
+                            }.foregroundStyle(.gray)
                         }
                         
                         // The list of home consumptions ending this month
@@ -86,9 +89,11 @@ struct HomeConsumptionsList: View {
     init(
         navigationPath: Binding<NavigationPath>,
         timeBox: TimeBox?,
-        associatedLocation: Location?
+        associatedLocation: Location?,
+        selectedConsumptions: Binding<HomeView.ConsumptionContainer?>
     ) {
         self._navigationPath = navigationPath
+        self._selectedConsumptions = selectedConsumptions
         
         var predicate: Predicate<HomeConsumption>
         if let id = associatedLocation?.persistentModelID {

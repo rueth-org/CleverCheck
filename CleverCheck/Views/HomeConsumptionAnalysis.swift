@@ -10,7 +10,6 @@ import SwiftData
 
 struct HomeConsumptionAnalysis: View {
     @Environment(\.modelContext) private var modelContext
-    @Binding var navigationPath: NavigationPath
     var homeConsumptions: [HomeConsumption]
     private var location: Location?
     
@@ -80,6 +79,10 @@ struct HomeConsumptionAnalysis: View {
     }
     
     var body: some View {
+        Text(month, format: UserSettings.shared.displayDateFormatInSection)
+            .font(.title)
+            .padding(.top)
+            .padding(.horizontal)
         List {
             Section(header: Text("This month's home consumption data")) {
                 Text("Location: \(location?.name ?? NSLocalizedString("All locations", comment: ""))")
@@ -151,16 +154,9 @@ struct HomeConsumptionAnalysis: View {
                 }
             }
         }
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text(month, format: UserSettings.shared.displayDateFormatInSection)
-                    .font(.headline)
-            }
-        }
     }
     
-    init(navigationPath: Binding<NavigationPath>, homeConsumptions: [HomeConsumption], location: Location? = nil) {
-        self._navigationPath = navigationPath
+    init(homeConsumptions: [HomeConsumption], location: Location? = nil) {
         self.homeConsumptions = homeConsumptions
         self.location = location
         

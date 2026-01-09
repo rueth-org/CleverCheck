@@ -17,6 +17,7 @@ struct HomeConsumptionsView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     @Binding var selectedLocation: Location?
+    @Binding var selectedConsumptions: HomeView.ConsumptionContainer?
     
     @State private var timeBox: TimeBox? = nil
     
@@ -37,7 +38,7 @@ struct HomeConsumptionsView: View {
                 Text(timePeriod)
                     .font(.subheadline)
             }
-            HomeConsumptionsList(navigationPath: $navigationPath, timeBox: timeBox, associatedLocation: selectedLocation)
+            HomeConsumptionsList(navigationPath: $navigationPath, timeBox: timeBox, associatedLocation: selectedLocation, selectedConsumptions: $selectedConsumptions)
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -61,11 +62,6 @@ struct HomeConsumptionsView: View {
                 }
             }
         }
-        .navigationDestination(for: [HomeConsumption].self) { homeConsumptions in
-            if !homeConsumptions.isEmpty {
-                HomeConsumptionAnalysis(navigationPath: $navigationPath, homeConsumptions: homeConsumptions, location: selectedLocation)
-            }
-        }
         .alert(
             activeAlert?.title() ?? "Notice",
             isPresented: $showingAlert,
@@ -80,11 +76,13 @@ struct HomeConsumptionsView: View {
     init(
         navigationPath: Binding<NavigationPath>,
         selectedLocation: Binding<Location?>,
-        timeBox: TimeBox?
+        timeBox: TimeBox?,
+        selectedConsumptions: Binding<HomeView.ConsumptionContainer?>
     ) {
         self._navigationPath = navigationPath
         self._selectedLocation = selectedLocation
         self._timeBox = State(initialValue: timeBox)
+        self._selectedConsumptions = selectedConsumptions
     }
     
     private func addHomeConsumption() {

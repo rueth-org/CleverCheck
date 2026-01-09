@@ -13,11 +13,17 @@ struct HomeView: View {
         case HomeConsumptions
     }
     
+    struct ConsumptionContainer: Identifiable {
+        let id = UUID()
+        let consumptions: [HomeConsumption]
+    }
+    
     @Environment(\.modelContext) private var modelContext
     @State private var navigationPath = NavigationPath()
     @State private var selectedLocation: Location? = nil
-    @State private var selectedConsumption: HomeConsumption? = nil
+    @State private var selectedConsumptions: ConsumptionContainer? = nil
     @State private var timeBox: TimeBox? = nil
+    @State private var showingHomeConsumptionAnalysis: Bool = false
     
     enum Chart {
         case energy, cost
@@ -102,7 +108,7 @@ struct HomeView: View {
             .navigationDestination(for: NavigationDestination.self) { screen in
                 switch screen {
                 case .HomeConsumptions:
-                    HomeConsumptionsView(navigationPath: $navigationPath, selectedLocation: $selectedLocation, timeBox: timeBox)
+                    HomeConsumptionsView(navigationPath: $navigationPath, selectedLocation: $selectedLocation, timeBox: timeBox, selectedConsumptions: $selectedConsumptions)
                 }
             }
             .navigationDestination(for: HomeConsumptionsView.NavigationDestination.self) { screen in
@@ -130,6 +136,13 @@ struct HomeView: View {
                 }
             }
         }
+        
+        .sheet(item: $selectedConsumptions) { selectedConsumptions in
+            HomeConsumptionAnalysis(
+                homeConsumptions: selectedConsumptions.consumptions,
+                location: selectedLocation
+            )
+        }
         .onAppear {
             if !locations.isEmpty {
                 // First check if selectedLocation still is available (could have been deleted)
@@ -156,7 +169,7 @@ struct HomeView: View {
                 selectedDate: Date.now.startOfMonth,
                 selectedResolution: .yearly,
                 allowedResolutions: [.yearly],
-                selectIndividualItem: selectIndividualConsumption
+                selectIndividualItem: selectMonth
             )
         }
     }
@@ -169,21 +182,18 @@ struct HomeView: View {
         navigationPath.append(HomeConsumptionsView.NavigationDestination.NewConsumption(location: selectedLocation))
     }
     
-    private func selectIndividualConsumption(date: Date) {
+    private func selectMonth(date: Date) {
         if let homeData {
-            // Try to identify consumption
-            if homeData.homeConsumptions.count == 1 {
-                // There is only one consumption
-                selectedConsumption = homeData.homeConsumptions.first!
-            } else {
-                // Try to match endTime
-                for consumption in homeData.homeConsumptions {
-                    if consumption.validUntil == date {
-                        selectedConsumption = consumption
-                        break
-                    }
-                }
+            // Collect all consumptions ending in the selected month
+            let calendar = Calendar.current
+            let selectedYear = calendar.component(.year, from: date)
+            let selectedMonth = calendar.component(.month, from: date)
+            let selectedConsumptions = homeData.homeConsumptions.filter { consumption in
+                calendar.component(.year, from: consumption.validUntil) == selectedYear &&
+                calendar.component(.month, from: consumption.validUntil) == selectedMonth
             }
+            self.selectedConsumptions = ConsumptionContainer(consumptions: selectedConsumptions)
         }
     }
 }
+
