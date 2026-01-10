@@ -131,7 +131,12 @@ struct ChargingSessionEditor: View {
                 
                 HStack {
                     Button {
-                        Task { await getDataFromImage() }
+                        if selectedCar == nil {
+                            activeAlert = .notice(message: "Please select a charging cost plan first")
+                            showingAlert = true
+                        } else {
+                            Task { await getDataFromImage() }
+                        }
                     } label: {
                         HStack {
                             Spacer()
@@ -567,21 +572,23 @@ struct ChargingSessionEditor: View {
     }
     
     @MainActor private func getDataFromImage() async {
-        do {
-            let uiImage = try await ImageHandler.getImageFromCameraOrLibrary()
-            if let cgImage = uiImage.cgImage {
-                let recognizedText = try TextRecognizer.recognizeText(from: cgImage)
-                var proposedData = TextRecognizer(rawImage: cgImage, recognizedText: recognizedText)
-                proposedData.analyse()
-                debugPrint(proposedData)
-            } else {
-                activeAlert = .error(message: "Failed to get image")
+        if let car = selectedCar {
+            do {
+                let uiImage = try await ImageHandler.getImageFromCameraOrLibrary()
+                if let cgImage = uiImage.cgImage {
+                    let recognizedText = try TextRecognizer.recognizeText(from: cgImage)
+                    var proposedData = TextRecognizer(rawImage: cgImage, recognizedText: recognizedText)
+                    proposedData.analyse(for: car)
+                    debugPrint(proposedData)
+                } else {
+                    activeAlert = .error(message: "Failed to get image")
+                    showingAlert = true
+                }
+            } catch {
+                let errorDescription = String(describing: error)
+                activeAlert = .error(message: "Image capture failed: \(errorDescription)")
                 showingAlert = true
             }
-        } catch {
-            let errorDescription = String(describing: error)
-            activeAlert = .error(message: "Image capture failed: \(errorDescription)")
-            showingAlert = true
         }
     }
 }

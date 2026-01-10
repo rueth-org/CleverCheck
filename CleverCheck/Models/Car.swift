@@ -14,6 +14,8 @@ final class Car {
     var make: String = ""
     var model: String = ""
     var defaultSOC: Double = 0.8
+    var netBatteryCapacityKWh: Double?
+    var maxChargingPowerkW: Double?
     var isArchived: Bool = false
     
     @Relationship(deleteRule: .nullify, inverse: \ChargingCostPlan.car)
