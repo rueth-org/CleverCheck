@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct HomeConsumptionPicker: View {
-    @Binding var isShowing: Bool
+    @Environment(\.dismiss) var dismiss
     var possibleHomeConsumptions: [HomeConsumption]?
     
     @Binding var selectedHomeConsumption: HomeConsumption?
@@ -31,7 +31,7 @@ struct HomeConsumptionPicker: View {
                         Text(consumption.descriptionWithDate)
                             .onTapGesture {
                                 selectedHomeConsumption = consumption
-                                isShowing = false
+                                dismiss()
                             }
                     }
                 }

@@ -37,12 +37,12 @@ private class ImagePickerHelper: NSObject, UIImagePickerControllerDelegate, UINa
     private let imagePicker: UIImagePickerController
     private weak var presentingViewController: UIViewController?
 
-    init(presentingViewController: UIViewController, continuation: CheckedContinuation<UIImage, Error>) {
+    init(presentingViewController: UIViewController, sourceType: UIImagePickerController.SourceType, continuation: CheckedContinuation<UIImage, Error>) {
         self.presentingViewController = presentingViewController
         self.continuation = continuation
         self.imagePicker = UIImagePickerController()
         super.init()
-        imagePicker.sourceType = .photoLibrary
+        imagePicker.sourceType = sourceType
         imagePicker.allowsEditing = true
         imagePicker.delegate = self
     }
@@ -92,7 +92,7 @@ struct ImageHandler {
         }
     }
 
-    @MainActor static func getImageFromCameraOrLibrary() async throws -> UIImage {
+    @MainActor static func getImageFromCameraOrLibrary(_ sourceType: UIImagePickerController.SourceType) async throws -> UIImage {
         guard var topVC = UIApplication.shared.connectedScenes
                 .compactMap({ $0 as? UIWindowScene })
                 .flatMap({ $0.windows })
@@ -103,7 +103,7 @@ struct ImageHandler {
             topVC = presented
         }
         return try await withCheckedThrowingContinuation { continuation in
-            let helper = ImagePickerHelper(presentingViewController: topVC, continuation: continuation)
+            let helper = ImagePickerHelper(presentingViewController: topVC, sourceType: sourceType, continuation: continuation)
             // Retain the helper by associating it with the presenting view controller until dismissal.
             objc_setAssociatedObject(topVC, Unmanaged.passUnretained(helper).toOpaque(), helper, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
             helper.present()

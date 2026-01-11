@@ -9,13 +9,13 @@ import Foundation
 import UIKit
 import Vision
 
-class TextRecognizer {
+class TextRecognizer: Identifiable {
     enum RecognitionError: Error {
         case requestFailed(Error)
         case noResults
     }
     
-    enum Probability: Int, CaseIterable {
+    enum Confidence: Int, CaseIterable {
         case veryHigh = 0, high, medium, low
     }
     
@@ -33,23 +33,24 @@ class TextRecognizer {
     }
     
     struct Candidate<T: Hashable>: Comparable, Hashable {
-        let probability: Probability
+        let confidence: Confidence
         let value: T
         
         static func == (lhs: TextRecognizer.Candidate<T>, rhs: TextRecognizer.Candidate<T>) -> Bool {
-            lhs.probability.rawValue == rhs.probability.rawValue
+            lhs.confidence.rawValue == rhs.confidence.rawValue
         }
         
         static func < (lhs: TextRecognizer.Candidate<T>, rhs: TextRecognizer.Candidate<T>) -> Bool {
-            lhs.probability.rawValue < rhs.probability.rawValue
+            lhs.confidence.rawValue < rhs.confidence.rawValue
         }
         
         func hash(into hasher: inout Hasher) {
-            hasher.combine(probability)
+            hasher.combine(confidence)
             hasher.combine(value)
         }
     }
     
+    let id = UUID()
     let rawImage: CGImage
     let recognizedText: String
     var start = [Candidate<Date>]()
@@ -59,6 +60,13 @@ class TextRecognizer {
     var initialSOC = [Candidate<Double>]()
     var finalSOC = [Candidate<Double>]()
     var duration = [Candidate<Duration>]()
+    
+    private var soc = [Candidate<Double>]()
+    private var numberBacklog = [Double]()
+    private var indicationStringBacklog = [String]()
+    private var otherStringBacklog = [String]()
+    
+    var report = [String]()
 
     init(rawImage: CGImage, recognizedText: String) {
         self.rawImage = rawImage
@@ -66,30 +74,254 @@ class TextRecognizer {
     }
      
     func analyse(for vehicle: Car) {
+        report.append(NSLocalizedString("Recognized text:\n\(recognizedText)", comment: ""))
+        
         // Separate by line breaks
         let splitText = recognizedText.components(separatedBy: "\n")
+        let normalizedText = splitText.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
         
         // Evaluate each line
-        for text in splitText {
+        for text in normalizedText {
+            report.append(NSLocalizedString("Evaluating '\(text)'", comment: ""))
             evaluate(text)
         }
         
+        // Evaluate backlog
+        report.append(NSLocalizedString("Evaluating backlog", comment: ""))
+        if indicationStringBacklog.count > 0 {
+            // We have some indications, which were not parsed together with their value, e.g., "kWh"
+            if numberBacklog.count == indicationStringBacklog.count {
+                // Most probably the order of value is matching
+                for i in 0..<indicationStringBacklog.count {
+                    let indicationString = indicationStringBacklog[i]
+                    let value = numberBacklog[i]
+                    report.append(NSLocalizedString("Evaluating indication '\(indicationString)' with value \(value)", comment: ""))
+                    
+                    for indication in Indication.allCases {
+                        switch indication {
+                        case .energy:
+                            if indication.indications.contains(indicationString) {
+                                report.append(NSLocalizedString("- Assumed as \(value) kWh with high confidence", comment: ""))
+                                chargedEnergy.append(.init(confidence: .high, value: Measurement<UnitEnergy>(value: value, unit: .kilowattHours)))
+                            }
+                        case .power:
+                            if indication.indications.contains(indicationString) {
+                                report.append(NSLocalizedString("- Assumed as \(value) kW with high confidence", comment: ""))
+                                chargingPower.append(.init(confidence: .high, value: Measurement<UnitPower>(value: value, unit: .kilowatts)))
+                            }
+                        case .soc:
+                            if indication.indications.contains(indicationString) {
+                                report.append(NSLocalizedString("- Assumed as \(value * 100)% with high confidence", comment: ""))
+                                soc.append(.init(confidence: .high, value: value))
+                            }
+                        case .duration:
+                            if indication.indications.contains(indicationString) {
+                                report.append(NSLocalizedString("- Assumed as \(value) minutes with high confidence", comment: ""))
+                                let durationInSec = Duration.seconds(value * 60)
+                                duration.append(.init(confidence: .high, value: durationInSec))
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Number backlog is not identical, but indication string backlog available
+                for indicationString in indicationStringBacklog {
+                    for indication in Indication.allCases {
+                        switch indication {
+                        case .energy:
+                            if indication.indications.contains(indicationString) {
+                                report.append(NSLocalizedString("Adding the following values as energy with medium confidence:", comment: ""))
+                                var possibleValues = numberBacklog
+                                // Remove values larger than net battery capacity
+                                if let netBatteryCapacityKWh = vehicle.netBatteryCapacityKWh {
+                                    possibleValues = numberBacklog.filter { $0 <= netBatteryCapacityKWh }
+                                }
+                                // Add values to result
+                                for possibleValue in possibleValues {
+                                    report.append(NSLocalizedString("- \(possibleValue) kWh", comment: ""))
+                                    chargedEnergy.append(.init(confidence: .medium, value: Measurement<UnitEnergy>(value: Double(possibleValue), unit: .kilowattHours)))
+                                }
+                            }
+                        case .power:
+                            if indication.indications.contains(indicationString) {
+                                report.append(NSLocalizedString("Adding the following values as power with medium confidence:", comment: ""))
+                                var possibleValues = numberBacklog
+                                // Remove values larger than max charging power
+                                if let maxChargingPower = vehicle.maxChargingPowerkW {
+                                    possibleValues = numberBacklog.filter { $0 <= maxChargingPower }
+                                }
+                                // Add values to result
+                                for possibleValue in possibleValues {
+                                    report.append(NSLocalizedString("- \(possibleValue) kW", comment: ""))
+                                    chargingPower.append(.init(confidence: .medium, value: Measurement<UnitPower>(value: Double(possibleValue), unit: .kilowatts)))
+                                }
+                            }
+                        case .soc:
+                            if indication.indications.contains(indicationString) {
+                                report.append(NSLocalizedString("Adding the following values as SOC with medium confidence:", comment: ""))
+                                // Remove values larger than 1 and less than 0
+                                let possibleValues = numberBacklog.filter { 0 <= $0 && $0 <= 1 }
+                                
+                                // Add values to result
+                                for possibleValue in possibleValues {
+                                    report.append(NSLocalizedString("- \(possibleValue * 100)%", comment: ""))
+                                    soc.append(.init(confidence: .medium, value: possibleValue))
+                                }
+                            }
+                        case .duration:
+                            if indication.indications.contains(indicationString) {
+                                report.append(NSLocalizedString("Adding the following values as duration with medium confidence:", comment: ""))
+                                for value in numberBacklog {
+                                    report.append(NSLocalizedString("- \(value) minutes", comment: ""))
+                                    let durationInSec = Duration.seconds(value * 60)
+                                    duration.append(.init(confidence: .medium, value: durationInSec))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // No indication string available, check for number backlog
+            if numberBacklog.count == 1 {
+                let value = numberBacklog[0]
+                
+                // We assume the value to be the charged energy
+                if let netBatteryCapacityKWh = vehicle.netBatteryCapacityKWh {
+                    if value <= netBatteryCapacityKWh {
+                        report.append(NSLocalizedString("Adding \(value) kWh with high confidence:", comment: ""))
+                        chargedEnergy.append(.init(confidence: .high, value: Measurement<UnitEnergy>(value: value, unit: .kilowattHours)))
+                    } else if value/10.0 <= netBatteryCapacityKWh {
+                        // There are cases where the decimal separator was not read correctly, so divide by 10 and try again
+                        report.append(NSLocalizedString("Dividing \(value)/10 and adding \(value/10.0) kWh with medium confidence:", comment: ""))
+                        chargedEnergy.append(.init(confidence: .medium, value: Measurement<UnitEnergy>(value: value/10.0, unit: .kilowattHours)))
+                    }
+                } else {
+                    // We simply add the value
+                    report.append(NSLocalizedString("Adding \(value) kWh with low confidence:", comment: ""))
+                    chargedEnergy.append(.init(confidence: .low, value: Measurement<UnitEnergy>(value: value, unit: .kilowattHours)))
+                }
+            }
+        }
+        
+        // Check sanity
+        checkSanity(for: vehicle)
+        
+        // Adding ignored strings to report
+        report.append(NSLocalizedString("Ignored the following strings:\n\(otherStringBacklog.joined(separator: "\n"))", comment: ""))
+    }
+    
+    private func evaluate(_ text: String) {
+        var success = false
+        for indication in Indication.allCases {
+            if TextRecognizer.containsAnyIndication(in: text, indications: indication.indications) {
+                // The text contains an indication, try to extract the number
+                switch indication {
+                case .energy:
+                    report.append(NSLocalizedString("- Identified as energy", comment: ""))
+                    // Try to parse as number
+                    if let value = TextRecognizer.parseLocalizedDouble(text) {
+                        report.append(NSLocalizedString("- Parsed as \(value) kWh with very high confidence", comment: ""))
+                        // There was a number alongside the indication
+                        chargedEnergy.append(.init(
+                            confidence: .veryHigh,
+                            value: Measurement<UnitEnergy>(value: value, unit: .kilowattHours)
+                        ))
+                    } else {
+                        report.append(NSLocalizedString("- Could not parse as number, adding to backlog", comment: ""))
+                        indicationStringBacklog.append(text)
+                    }
+                    success = true
+                case .power:
+                    // Make sure it's not energy, as kW is a substring of kWh
+                    if !TextRecognizer.containsAnyIndication(in: text, indications: Indication.energy.indications) {
+                        report.append(NSLocalizedString("- Identified as power", comment: ""))
+                        // Try to parse as number
+                        if let value = TextRecognizer.parseLocalizedDouble(text) {
+                            report.append(NSLocalizedString("- Parsed as \(value) kW with very high confidence", comment: ""))
+                            // There was a number alongside the indication
+                            chargingPower.append(.init(
+                                confidence: .veryHigh,
+                                value: Measurement<UnitPower>(value: value, unit: .kilowatts)
+                            ))
+                        } else {
+                            report.append(NSLocalizedString("- Could not parse as number, adding to backlog", comment: ""))
+                            indicationStringBacklog.append(text)
+                        }
+                        success = true
+                    }
+                case .soc:
+                    report.append(NSLocalizedString("- Identified as SOC", comment: ""))
+                    // We might see two percentages - one initial SOC, one final SOC - in one line
+                    // Therefore we first split by percentage sign
+                    let parts = text.components(separatedBy: "%")
+                    for part in parts {
+                        if !part.isEmpty {
+                            if let value = TextRecognizer.parseLocalizedDouble(String(part)) {
+                                if value > 0.0 && value <= 100.0 {
+                                    report.append(NSLocalizedString("- Parsed as \(value)% with very high confidence", comment: ""))
+                                    soc.append(.init(confidence: .veryHigh, value: value/100.0))
+                                } else {
+                                    report.append(NSLocalizedString("- Could not parse as valid percentage, adding to backlog", comment: ""))
+                                    numberBacklog.append(value)
+                                }
+                            } else {
+                                report.append(NSLocalizedString("- Could not parse as number, adding to backlog", comment: ""))
+                                indicationStringBacklog.append(text)
+                            }
+                            success = true
+                        }
+                    }
+                case .duration:
+                    report.append(NSLocalizedString("- Identified as duration", comment: ""))
+                    // Try to parse as time
+                    if let value = TextRecognizer.parseDuration(text) {
+                        report.append(NSLocalizedString("- Parsed as \(value.formatted(.time(pattern: .hourMinuteSecond(padHourToLength: 2, fractionalSecondsLength: 0)))) with very high confidence", comment: ""))
+                        // A duration was identified
+                        duration.append(.init(
+                            confidence: .veryHigh,
+                            value: value
+                        ))
+                    } else {
+                        report.append(NSLocalizedString("- Could not parse as duration, adding to backlog", comment: ""))
+                        indicationStringBacklog.append(text)
+                    }
+                    success = true
+                }
+            }
+        }
+        
+        if !success {
+            // No indication was found, so check the text for a number and put it in the backlog
+            report.append(NSLocalizedString("- No indication for a certain type found, adding to backlog", comment: ""))
+            if let number = TextRecognizer.parseLocalizedDouble(text) {
+                numberBacklog.append(number)
+            } else {
+                otherStringBacklog.append(text)
+            }
+        }
+    }
+    
+    private func checkSanity(for vehicle: Car) {
         // Check sanity of charged energy
+        report.append(NSLocalizedString("Checking sanity of energy candidates...", comment: ""))
         if chargedEnergy.count > 1 {
             var candidates = Set(chargedEnergy)
             if let netBatteryCapacityKWh = vehicle.netBatteryCapacityKWh {
                 // Charging more than the vehicle's net capacity is impossible
                 let impossible = candidates.filter { $0.value.converted(to: .kilowattHours).value > netBatteryCapacityKWh }
+                report.append(NSLocalizedString("- Removing \(impossible.count) candidate(s) exceeding net battery capacity of \(netBatteryCapacityKWh) kWh.", comment: ""))
                 remove(impossible, from: &candidates)
                 
                 if candidates.count > 1 {
                     // We still have more than 1 candidate
                     // We rarely charge more than 80% of the net capacity
                     let unlikely = candidates.filter { $0.value.converted(to: .kilowattHours).value > netBatteryCapacityKWh * 0.8 }
-                    // Mark those with low probability by creating new candidates with .low probability
+                    report.append(NSLocalizedString("- Marking \(unlikely.count) candidate(s) with more than 80% of net battery capacity as low confidence", comment: ""))
+                    // Mark those with low confidence by creating new candidates with .low confidence
                     candidates = Set(candidates.map { candidate in
                         if unlikely.contains(candidate) {
-                            return Candidate(probability: .low, value: candidate.value)
+                            return Candidate(confidence: .low, value: candidate.value)
                         } else {
                             return candidate
                         }
@@ -97,24 +329,37 @@ class TextRecognizer {
                     chargedEnergy = Array(candidates).sorted()
                 }
             }
+        } else if chargedEnergy.count == 1 {
+            report.append(NSLocalizedString("- One candidate found", comment: ""))
+            
+            // Check for net capacity
+            if let netBatteryCapacityKWh = vehicle.netBatteryCapacityKWh {
+                if chargedEnergy[0].value.value > netBatteryCapacityKWh {
+                    report.append(NSLocalizedString("- Candidate (\(chargedEnergy[0].value.value) kWh) larger than the net battery capacity of \(netBatteryCapacityKWh) kWh removed.", comment: ""))
+                    chargedEnergy.remove(at: 0)
+                }
+            }
         }
         
         // Check sanity of charging power
+        report.append(NSLocalizedString("Checking sanity of power candidates...", comment: ""))
         if chargingPower.count > 1 {
             var candidates = Set(chargingPower)
             if let maxChargingPowerKW = vehicle.maxChargingPowerkW {
                 // Charging more than the vehicle's max charging power is impossible
                 let impossible = candidates.filter { $0.value.converted(to: .kilowatts).value > maxChargingPowerKW }
+                report.append(NSLocalizedString("- Removing \(impossible.count) candidate(s) exceeding max charging power of \(maxChargingPowerKW) kW.", comment: ""))
                 remove(impossible, from: &candidates)
                 
                 if candidates.count > 1 {
                     // We still have more than 1 candidate
                     // We rarely charge with more than 80% of the max power
                     let unlikely = candidates.filter { $0.value.converted(to: .kilowatts).value > maxChargingPowerKW * 0.8 }
-                    // Mark those with low probability by creating new candidates with .low probability
+                    report.append(NSLocalizedString("- Marking \(unlikely.count) candidate(s) with more than 80% of max charging power as low confidence", comment: ""))
+                    // Mark those with low confidence by creating new candidates with .low confidence
                     candidates = Set(candidates.map { candidate in
                         if unlikely.contains(candidate) {
-                            return Candidate(probability: .low, value: candidate.value)
+                            return Candidate(confidence: .low, value: candidate.value)
                         } else {
                             return candidate
                         }
@@ -122,113 +367,55 @@ class TextRecognizer {
                     chargingPower = Array(candidates).sorted()
                 }
             }
+        } else if chargingPower.count == 1 {
+            report.append(NSLocalizedString("- One candidate found", comment: ""))
+            
+            // Check for max charging power
+            if let maxChargingPower = vehicle.maxChargingPowerkW {
+                if chargingPower[0].value.value > maxChargingPower {
+                    report.append(NSLocalizedString("- Candidate (\(chargingPower[0].value.value) kW) larger than the max charging power of \(maxChargingPower) kW removed.", comment: ""))
+                    chargingPower.remove(at: 0)
+                }
+            }
         }
         
         // Check sanity of SOC
-        // Get all SOC values
-        let initialSOC = Set(self.initialSOC.map { $0.value })
-        let finalSOC = Set(self.finalSOC.map { $0.value })
+        report.append(NSLocalizedString("Checking sanity of SOC candidates...", comment: ""))
         
-        // This will remove all duplicates
-        let unionizedSOC = initialSOC.union(finalSOC)
+        // Get all candidates with very high confidence
+        let veryHighSOC = soc.filter { $0.confidence == .veryHigh }
+        report.append(NSLocalizedString("- \(veryHighSOC.count) candidates with very high confidence found.", comment: ""))
+        setSOC(veryHighSOC)
         
-        // Exclude all impossible SOC
-        let allSOC = unionizedSOC.filter { $0 >= 0 && $0 <= 1 }
+        // Add candidates with high confidence
+        let highSOC = soc.filter { $0.confidence == .high }
+        report.append(NSLocalizedString("- \(highSOC.count) candidates with high confidence found.", comment: ""))
+        setSOC(highSOC)
         
-        if allSOC.count == 0 {
-            self.initialSOC = []
-            self.finalSOC = []
-        } else if allSOC.count == 1 {
-            self.finalSOC = [Candidate<Double>(probability: .veryHigh, value: allSOC.first!)]
-        } else if allSOC.count == 2 {
-            if let first = allSOC.first, let second = allSOC.subtracting([first]).first {
-                if first < second {
-                    self.initialSOC = [Candidate<Double>(probability: .veryHigh, value: first)]
-                    self.finalSOC = [Candidate<Double>(probability: .veryHigh, value: second)]
-                } else {
-                    self.finalSOC = [Candidate<Double>(probability: .veryHigh, value: first)]
-                    self.initialSOC = [Candidate<Double>(probability: .veryHigh, value: second)]
-                }
-            }
-        }
+        let mediumSOC = soc.filter { $0.confidence == .medium }
+        report.append(NSLocalizedString("- \(mediumSOC.count) candidates with medium confidence found.", comment: ""))
+        setSOC(mediumSOC)
+        
+        let lowSOC = soc.filter { $0.confidence == .low }
+        report.append(NSLocalizedString("- \(lowSOC.count) candidates with low confidence found.", comment: ""))
+        setSOC(lowSOC)
     }
     
-    private func evaluate(_ text: String) {
-        for indication in Indication.allCases {
-            if TextRecognizer.containsAnyIndication(in: text, indications: indication.indications) {
-                // The text contains an indication, try to extract the number
-                switch indication {
-                case .energy:
-                    // Try to parse as number
-                    if let value = TextRecognizer.parseLocalizedDouble(text) {
-                        // There was a number alongside the indication
-                        chargedEnergy.append(.init(
-                            probability: .veryHigh,
-                            value: Measurement<UnitEnergy>(value: value, unit: .kilowattHours)
-                        ))
-                    }
-                case .power:
-                    // Make sure it's not energy, as kW is a substring of kWh
-                    if !TextRecognizer.containsAnyIndication(in: text, indications: Indication.energy.indications) {
-                        // Try to parse as number
-                        if let value = TextRecognizer.parseLocalizedDouble(text) {
-                            // There was a number alongside the indication
-                            chargingPower.append(.init(
-                                probability: .veryHigh,
-                                value: Measurement<UnitPower>(value: value, unit: .kilowatts)
-                            ))
-                        }
-                    }
-                case .soc:
-                    // We might see two percentages - one initial SOC, one final SOC - in one line
-                    let percentSignCount = text.filter { $0 == "%" }.count
-                    
-                    if percentSignCount <= 1 {
-                        // Try to parse as number
-                        if let value = TextRecognizer.parseLocalizedDouble(text) {
-                            // There was a number alongside the indication
-                            let soc = Candidate<Double>(
-                                probability: .veryHigh,
-                                value: value
-                            )
-                            
-                            // Assign it to both initial and final SOC, we sort it out later
-                            initialSOC.append(soc)
-                            finalSOC.append(soc)
-                        }
-                    } else if percentSignCount == 2 {
-                        // Split at the percent sign
-                        let parts = text.components(separatedBy: "%")
-                        
-                        if parts.count >= 2 {
-                            // We assume the first part and the second part to be the percentages
-                            if let value1 = TextRecognizer.parseLocalizedDouble(String(parts[0])),
-                               let value2 = TextRecognizer.parseLocalizedDouble(String(parts[1]))
-                            {
-                                if value1 == value2 {
-                                    initialSOC.append(Candidate<Double>(probability: .veryHigh, value: value1 / 100))
-                                    finalSOC.append(Candidate<Double>(probability: .veryHigh, value: value1 / 100))
-                                } else if value1 < value2 {
-                                    initialSOC.append(Candidate<Double>(probability: .veryHigh, value: value1 / 100))
-                                    finalSOC.append(Candidate<Double>(probability: .veryHigh, value: value2 / 100))
-                                } else {
-                                    initialSOC.append(Candidate<Double>(probability: .veryHigh, value: value2 / 100))
-                                    finalSOC.append(Candidate<Double>(probability: .veryHigh, value: value1 / 100))
-                                }
-                            }
-                        }
-                    }
-                case .duration:
-                    // Try to parse as time
-                    if let value = TextRecognizer.parseDuration(text) {
-                        // A duration was identified
-                        duration.append(.init(
-                            probability: .veryHigh,
-                            value: value
-                        ))
-                    }
-                }
-            }
+    private func setSOC(_ candidates: [Candidate<Double>]) {
+        let sortedCandidates = candidates.sorted(by: { $0.value < $1.value })
+        if sortedCandidates.count == 1 {
+            report.append(NSLocalizedString("- Setting \(sortedCandidates[0].value * 100)% as final SOC.", comment: ""))
+            self.finalSOC.append(contentsOf: sortedCandidates)
+        } else if sortedCandidates.count == 2 {
+            report.append(NSLocalizedString("- Setting \(sortedCandidates[0].value * 100)% as initial SOC.", comment: ""))
+            self.initialSOC.append(sortedCandidates[0])
+            report.append(NSLocalizedString("- Setting \(sortedCandidates[1].value * 100)% as final SOC.", comment: ""))
+            self.finalSOC.append(sortedCandidates[1])
+        } else {
+            // Add all candidates to both
+            report.append(NSLocalizedString("- Adding all values to both initial and final SOC.", comment: ""))
+            self.initialSOC.append(contentsOf: sortedCandidates)
+            self.finalSOC.append(contentsOf: sortedCandidates)
         }
     }
     
@@ -389,4 +576,3 @@ class TextRecognizer {
         }
     }
 }
-

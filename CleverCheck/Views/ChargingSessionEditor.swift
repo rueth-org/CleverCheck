@@ -56,6 +56,8 @@ struct ChargingSessionEditor: View {
     
     @State private var isShowingHomeConsumptionPickerSheet: Bool = false
     
+    @State private var proposedData: TextRecognizer? = nil
+    
     @FocusState private var focusedField: Field?
     @State private var showingAlert = false
     @State private var activeAlert: SimpleAlertType?
@@ -127,6 +129,14 @@ struct ChargingSessionEditor: View {
                                 .foregroundStyle(.gray)
                         }
                     }
+                    .sheet(isPresented: $isShowingHomeConsumptionPickerSheet) {
+                        HomeConsumptionPicker(
+                            possibleHomeConsumptions: possibleHomeConsumptions,
+                            selectedHomeConsumption: $relatedHomeConsumption,
+                            ignorePlan: $ignorePlan,
+                            ignoreDate: $ignoreDate
+                        )
+                    }
                 }
                 
                 HStack {
@@ -135,15 +145,39 @@ struct ChargingSessionEditor: View {
                             activeAlert = .notice(message: "Please select a charging cost plan first")
                             showingAlert = true
                         } else {
-                            Task { await getDataFromImage() }
+                            Task { await getDataFromImage(.camera) }
                         }
                     } label: {
                         HStack {
-                            Spacer()
                             Image(systemName: "camera.viewfinder")
-                            Text("Read data from image")
-                            Spacer()
+                            Text("Take picture")
                         }
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                    Button {
+                        if selectedCar == nil {
+                            activeAlert = .notice(message: "Please select a charging cost plan first")
+                            showingAlert = true
+                        } else {
+                            Task { await getDataFromImage(.photoLibrary) }
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "photo")
+                            Text("Select picture")
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .sheet(item: $proposedData) { data in
+                        TextConfirmationView(
+                            proposedData: data,
+                            chargedEnergy: $chargedEnergy,
+                            initialSOC: $initialSOC,
+                            enterInitialSOC: $enterInitialSOC,
+                            finalSOC: $finalSOC,
+                            enterFinalSOC: $enterFinalSOC
+                        )
                     }
                 }
                 
@@ -331,15 +365,6 @@ struct ChargingSessionEditor: View {
                     cancelAndExit()
                 }
             }
-        }
-        .sheet(isPresented: $isShowingHomeConsumptionPickerSheet) {
-            HomeConsumptionPicker(
-                isShowing: $isShowingHomeConsumptionPickerSheet,
-                possibleHomeConsumptions: possibleHomeConsumptions,
-                selectedHomeConsumption: $relatedHomeConsumption,
-                ignorePlan: $ignorePlan,
-                ignoreDate: $ignoreDate
-            )
         }
         .onAppear {
             if let chargingSession {
@@ -571,15 +596,15 @@ struct ChargingSessionEditor: View {
         navigationPath.append(ChargingCostPlansView.NavigationDestination.NewPlan(car: selectedCar))
     }
     
-    @MainActor private func getDataFromImage() async {
+    @MainActor private func getDataFromImage(_ sourceType: UIImagePickerController.SourceType) async {
         if let car = selectedCar {
             do {
-                let uiImage = try await ImageHandler.getImageFromCameraOrLibrary()
+                let uiImage = try await ImageHandler.getImageFromCameraOrLibrary(sourceType)
                 if let cgImage = uiImage.cgImage {
                     let recognizedText = try TextRecognizer.recognizeText(from: cgImage)
-                    var proposedData = TextRecognizer(rawImage: cgImage, recognizedText: recognizedText)
+                    let proposedData = TextRecognizer(rawImage: cgImage, recognizedText: recognizedText)
                     proposedData.analyse(for: car)
-                    debugPrint(proposedData)
+                    self.proposedData = proposedData
                 } else {
                     activeAlert = .error(message: "Failed to get image")
                     showingAlert = true
