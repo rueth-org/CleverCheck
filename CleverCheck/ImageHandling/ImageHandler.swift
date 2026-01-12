@@ -43,7 +43,7 @@ private class ImagePickerHelper: NSObject, UIImagePickerControllerDelegate, UINa
         self.imagePicker = UIImagePickerController()
         super.init()
         imagePicker.sourceType = sourceType
-        imagePicker.allowsEditing = true
+        imagePicker.allowsEditing = false
         imagePicker.delegate = self
     }
 
