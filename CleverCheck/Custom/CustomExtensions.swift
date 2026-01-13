@@ -18,7 +18,7 @@ extension Date {
     
     /// Returns the end date of the year for the given date, i.e., the first day of the next year minus one second
     var endOfYear: Date {
-        guard let date = Calendar.current.date(byAdding: DateComponents(year: 1, day: -1), to: self.startOfYear)?.addingTimeInterval(-1) else {
+        guard let date = Calendar.current.date(byAdding: DateComponents(year: 1), to: self.startOfYear)?.addingTimeInterval(-1) else {
             fatalError("Unable to get end date from date")
         }
         return date
@@ -34,7 +34,7 @@ extension Date {
 
     /// Returns the end date of the month for the given date, i.e., the first day of the next month minus one second
     var endOfMonth: Date {
-        guard let date = Calendar.current.date(byAdding: DateComponents(month: 1, day: -1), to: self.startOfMonth)?.addingTimeInterval(-1) else {
+        guard let date = Calendar.current.date(byAdding: DateComponents(month: 1), to: self.startOfMonth)?.addingTimeInterval(-1) else {
             fatalError("Unable to get end date from date")
         }
         return date

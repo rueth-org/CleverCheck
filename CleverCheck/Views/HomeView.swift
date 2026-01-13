@@ -114,17 +114,9 @@ struct HomeView: View {
             .navigationDestination(for: HomeConsumptionsView.NavigationDestination.self) { screen in
                 switch screen {
                 case .NewConsumption(let location):
-                    let newHomeConsumption = HomeConsumption(
-                        name: "",
-                        validFrom: Date.now.startOfMonth,
-                        validUntil: Date.now.endOfMonth,
-                        consumption: .init(value: 0.0, unit: .kilowattHours),
-                        consumptionIncludedElsewhere: false,
-                        associatedLocation: location
-                    )
-                    HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: newHomeConsumption, isNew: true)
+                    HomeConsumptionEditor(navigationPath: $navigationPath, selectedLocation: location)
                 case .EditConsumption(homeConsumption: let HomeConsumption):
-                    HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: HomeConsumption, isNew: false)
+                    HomeConsumptionEditor(navigationPath: $navigationPath, homeConsumption: HomeConsumption)
                 }
             }
             .navigationDestination(for: LocationsView.NavigationDestination.self) { screen in

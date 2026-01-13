@@ -76,270 +76,283 @@ struct ChargingSessionEditor: View {
     }
     
     var body: some View {
-        VStack {
-            Form {
-                // Display selected vehicle
-                HStack {
-                    Text("Vehicle")
-                    Spacer()
-                    if let selectedCar = selectedCar {
-                        Text("\(selectedCar.make) \(selectedCar.model)")
-                            .font(.headline)
-                    } else {
-                        Text("Please select a plan")
-                            .italic()
-                    }
-                }
-                
-                // Charging Cost Plan
-                if shownPlans.isEmpty {
-                    HStack {
-                        Button {
-                            addPlan()
-                        } label: {
-                            HStack {
-                                Text("Add Charging Cost Plan")
-                                Spacer()
-                                Image(systemName: "plus.circle.fill")
-                                    .foregroundStyle(.gray)
-                            }
-                        }
-                    }
+        Form {
+            // Display selected vehicle
+            HStack {
+                Text("Vehicle")
+                Spacer()
+                if let selectedCar = selectedCar {
+                    Text("\(selectedCar.make) \(selectedCar.model)")
+                        .font(.headline)
                 } else {
-                    Picker("Charging Cost Plan", selection: $chargingCostPlan) {
-                        Text("- Select a plan -").tag(nil as ChargingCostPlan?)
-                        ForEach(shownPlans) { chargingCostPlan in
-                            Text("\(selectedCar == nil ? chargingCostPlan.descriptionShort : chargingCostPlan.descriptionShortNoCar)").tag(chargingCostPlan)
-                        }
-                        .onChange(of: chargingCostPlan) { _oldValue, newValue in
-                            // Update selectedCar to the plan's car (or nil) without force-unwrapping
-                            self.selectedCar = newValue?.car
-                        }
-                    }
+                    Text("Please select a plan")
+                        .italic()
                 }
-                
-                // When editing a session (if new, we present it later after saving) ...
-                if chargingSession != nil, chargingCostPlan?.planType == .refunded {
-                    // Ask for a home consumption
-                    HStack {
-                        Text("Home Consumption for refunding: \(relatedHomeConsumption?.descriptionWithDate ?? "-")")
-                        Spacer()
-                        Button(action: {
-                            isShowingHomeConsumptionPickerSheet = true
-                        }) {
-                            Image(systemName: "chevron.right")
-                                .foregroundStyle(.gray)
-                        }
-                    }
-                }
-                
+            }
+            
+            // Charging Cost Plan
+            if shownPlans.isEmpty {
                 HStack {
                     Button {
-                        if selectedCar == nil {
-                            activeAlert = SimpleAlert(type: .notice(message: "Please select a charging cost plan first"))
-                            showingAlert = true
-                        } else {
-                            Task { await getDataFromImage(.camera) }
-                        }
+                        addPlan()
                     } label: {
                         HStack {
-                            Image(systemName: "camera.viewfinder")
-                            Text("Take picture")
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    Spacer()
-                    Button {
-                        if selectedCar == nil {
-                            activeAlert = SimpleAlert(type: .notice(message: "Please select a charging cost plan first"))
-                            showingAlert = true
-                        } else {
-                            Task { await getDataFromImage(.photoLibrary) }
-                        }
-                    } label: {
-                        HStack {
-                            Image(systemName: "photo")
-                            Text("Select picture")
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .sheet(item: $proposedData) { data in
-                        TextConfirmationView(
-                            proposedData: data,
-                            chargedEnergy: $chargedEnergy,
-                            initialSOC: $initialSOC,
-                            enterInitialSOC: $enterInitialSOC,
-                            finalSOC: $finalSOC,
-                            enterFinalSOC: $enterFinalSOC
-                        )
-                    }
-                }
-                
-                // Start time (optional)
-                if enterStartTime {
-                    HStack {
-                        DatePicker("Start", selection: $startTime)
-                        Button {
-                            deleteStartTime()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.gray)
-                        }
-                    }
-                } else {
-                    // Offer to enter start
-                    HStack {
-                        Text("Start")
-                        Spacer()
-                        Button {
-                            enterStartTime = true
-                        } label: {
+                            Text("Add Charging Cost Plan")
+                            Spacer()
                             Image(systemName: "plus.circle.fill")
                                 .foregroundStyle(.gray)
                         }
                     }
                 }
-                
-                // End time
-                DatePicker("End", selection: $endTime)
-                
-                // Amount
+            } else {
+                Picker("Charging Cost Plan", selection: $chargingCostPlan) {
+                    Text("- Select a plan -").tag(nil as ChargingCostPlan?)
+                    ForEach(shownPlans) { chargingCostPlan in
+                        Text("\(selectedCar == nil ? chargingCostPlan.descriptionShort : chargingCostPlan.descriptionShortNoCar)").tag(chargingCostPlan)
+                    }
+                    .onChange(of: chargingCostPlan) { _oldValue, newValue in
+                        // Update selectedCar to the plan's car (or nil) without force-unwrapping
+                        self.selectedCar = newValue?.car
+                    }
+                }
+            }
+            
+            // When editing a session (if new, we present it later after saving) ...
+            if chargingSession != nil, chargingCostPlan?.planType == .refunded {
+                // Ask for a home consumption
                 HStack {
-                    Text("Amount")
-                    TextField("Amount", value: $chargedEnergy.value, format: .number)
+                    Text("Home Consumption for refunding: \(relatedHomeConsumption?.descriptionWithDate ?? "-")")
+                    Spacer()
+                    Button(action: {
+                        isShowingHomeConsumptionPickerSheet = true
+                    }) {
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.gray)
+                    }
+                }
+            }
+            
+            HStack {
+                Button {
+                    if selectedCar == nil {
+                        activeAlert = SimpleAlert(type: .notice(message: "Please select a charging cost plan first"))
+                        showingAlert = true
+                    } else {
+                        Task { await getDataFromImage(.camera) }
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "camera.viewfinder")
+                        Text("Take picture")
+                    }
+                }
+                .buttonStyle(.plain)
+                Spacer()
+                Button {
+                    if selectedCar == nil {
+                        activeAlert = SimpleAlert(type: .notice(message: "Please select a charging cost plan first"))
+                        showingAlert = true
+                    } else {
+                        Task { await getDataFromImage(.photoLibrary) }
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "photo")
+                        Text("Select picture")
+                    }
+                }
+                .buttonStyle(.plain)
+                .sheet(item: $proposedData) { data in
+                    TextConfirmationView(
+                        proposedData: data,
+                        chargedEnergy: $chargedEnergy,
+                        initialSOC: $initialSOC,
+                        enterInitialSOC: $enterInitialSOC,
+                        finalSOC: $finalSOC,
+                        enterFinalSOC: $enterFinalSOC
+                    )
+                }
+            }
+            
+            // Start time (optional)
+            if enterStartTime {
+                HStack {
+                    DatePicker("Start", selection: $startTime)
+                    Button {
+                        deleteStartTime()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
+                }
+            } else {
+                // Offer to enter start
+                HStack {
+                    Text("Start")
+                    Spacer()
+                    Button {
+                        enterStartTime = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
+                }
+            }
+            
+            // End time
+            DatePicker("End", selection: $endTime)
+            
+            // Amount
+            HStack {
+                Text("Amount")
+                TextField("Amount", value: $chargedEnergy.value, format: .number)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                Text(chargedEnergy.unit.symbol)
+            }
+            
+            // Cost
+            Picker("Cost entry", selection: $enterCost) {
+                Text(ChargingSession.CostCalculationMethod.none.description()).tag(ChargingSession.CostCalculationMethod.none)
+                Text(ChargingSession.CostCalculationMethod.absolute.description()).tag(ChargingSession.CostCalculationMethod.absolute)
+                Text(ChargingSession.CostCalculationMethod.specific.description()).tag(ChargingSession.CostCalculationMethod.specific)
+                Text(ChargingSession.CostCalculationMethod.both.description()).tag(ChargingSession.CostCalculationMethod.both)
+            }
+            
+            if enterCost == .absolute || enterCost == .both {
+                HStack {
+                    Text("Cost")
+                    Spacer()
+                    TextField("", value: $cost.amount, format: .currency(code: cost.currency))
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
-                    Text(chargedEnergy.unit.symbol)
                 }
-                
-                // Cost
-                Picker("Cost entry", selection: $enterCost) {
-                    Text(ChargingSession.CostCalculationMethod.none.description()).tag(ChargingSession.CostCalculationMethod.none)
-                    Text(ChargingSession.CostCalculationMethod.absolute.description()).tag(ChargingSession.CostCalculationMethod.absolute)
-                    Text(ChargingSession.CostCalculationMethod.specific.description()).tag(ChargingSession.CostCalculationMethod.specific)
-                    Text(ChargingSession.CostCalculationMethod.both.description()).tag(ChargingSession.CostCalculationMethod.both)
+            }
+            
+            // Specific Cost (optional)
+            if enterCost == .specific || enterCost == .both {
+                HStack {
+                    Text("Specific cost")
+                    Spacer()
+                    TextField("", value: $specificCost.amount, format: .currency(code: cost.currency))
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
                 }
-                
-                if enterCost == .absolute || enterCost == .both {
-                    HStack {
-                        Text("Cost")
-                        Spacer()
-                        TextField("", value: $cost.amount, format: .currency(code: cost.currency))
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
-                
-                // Specific Cost (optional)
-                if enterCost == .specific || enterCost == .both {
-                    HStack {
-                        Text("Specific cost")
-                        Spacer()
-                        TextField("", value: $specificCost.amount, format: .currency(code: cost.currency))
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
-                
-                // Mileage (optional)
-                if enterMileage {
-                    HStack {
-                        Text("Mileage")
-                        Spacer()
-                        TextField("", value: $mileage.value, format: .number)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .focused($focusedField, equals: .mileage)
-                        Text(UserSettings.shared.distanceUnit.symbol)
-                        Button {
-                            deleteMileage()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.gray)
-                        }
-                    }
-                } else {
-                    // Offer to enter mileage
-                    HStack {
-                        Text("Mileage")
-                        Spacer()
-                        Button {
-                            focusedField = .mileage
-                            enterMileage = true
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .foregroundStyle(.gray)
-                        }
+            }
+            
+            // Mileage (optional)
+            if enterMileage {
+                HStack {
+                    Text("Mileage")
+                    Spacer()
+                    TextField("", value: $mileage.value, format: .number)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .focused($focusedField, equals: .mileage)
+                    Text(UserSettings.shared.distanceUnit.symbol)
+                    Button {
+                        deleteMileage()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.gray)
                     }
                 }
-                
-                // Initial SOC (optional)
-                if enterInitialSOC {
-                    HStack {
-                        Text("Initial SOC")
-                        Spacer()
-                        TextField("", value: $initialSOC, format: .percent)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .focused($focusedField, equals: .initialSOC)
-                        Button {
-                            deleteInitialSOC()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.gray)
-                        }
-                    }
-                } else {
-                    // Offer to enter initial SOC
-                    HStack {
-                        Text("Initial SOC")
-                        Spacer()
-                        Button {
-                            focusedField = .initialSOC
-                            enterInitialSOC = true
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .foregroundStyle(.gray)
-                        }
+            } else {
+                // Offer to enter mileage
+                HStack {
+                    Text("Mileage")
+                    Spacer()
+                    Button {
+                        focusedField = .mileage
+                        enterMileage = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(.gray)
                     }
                 }
-                
-                // Final SOC (optional)
-                if enterFinalSOC {
-                    HStack {
-                        Text("Final SOC")
-                        Spacer()
-                        TextField("", value: $finalSOC, format: .percent)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .focused($focusedField, equals: .finalSOC)
-                        Button {
-                            deleteFinalSOC()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.gray)
-                        }
-                    }
-                } else {
-                    // Offer to enter final SOC
-                    HStack {
-                        Text("Final SOC")
-                        Spacer()
-                        Button {
-                            focusedField = .finalSOC
-                            enterFinalSOC = true
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .foregroundStyle(.gray)
-                        }
+            }
+            
+            // Initial SOC (optional)
+            if enterInitialSOC {
+                HStack {
+                    Text("Initial SOC")
+                    Spacer()
+                    TextField("", value: $initialSOC, format: .percent)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .focused($focusedField, equals: .initialSOC)
+                    Button {
+                        deleteInitialSOC()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.gray)
                     }
                 }
-                
-                TextField("Comments", text: $comment, axis: .vertical)
-                    .lineLimit(3)
-                
-                Toggle("Archived", isOn: $isArchived)
-                    .padding(.top)
+            } else {
+                // Offer to enter initial SOC
+                HStack {
+                    Text("Initial SOC")
+                    Spacer()
+                    Button {
+                        focusedField = .initialSOC
+                        enterInitialSOC = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
+                }
+            }
+            
+            // Final SOC (optional)
+            if enterFinalSOC {
+                HStack {
+                    Text("Final SOC")
+                    Spacer()
+                    TextField("", value: $finalSOC, format: .percent)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .focused($focusedField, equals: .finalSOC)
+                    Button {
+                        deleteFinalSOC()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
+                }
+            } else {
+                // Offer to enter final SOC
+                HStack {
+                    Text("Final SOC")
+                    Spacer()
+                    Button {
+                        focusedField = .finalSOC
+                        enterFinalSOC = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(.gray)
+                    }
+                }
+            }
+            
+            TextField("Comments", text: $comment, axis: .vertical)
+                .lineLimit(3)
+            
+            Toggle("Archived", isOn: $isArchived)
+                .padding(.top)
+            
+            if let chargingSession {
+                Button("Delete charging session", systemImage: "trash", role: .destructive) {
+                    activeAlert = SimpleAlert(
+                        type: .warning(message: "This will delete the charging session. Are you sure?"),
+                        customButtons: [
+                            SimpleAlertButton(title: NSLocalizedString("Cancel", comment: ""), role: .cancel) { },
+                            SimpleAlertButton(title: NSLocalizedString("Delete", comment: ""), role: .destructive) {
+                                delete(chargingSession)
+                            }
+                        ]
+                    )
+                    showingAlert = true
+                }
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -615,6 +628,12 @@ struct ChargingSessionEditor: View {
     
     private func addPlan() {
         navigationPath.append(ChargingCostPlansView.NavigationDestination.NewPlan(car: selectedCar))
+    }
+    
+    private func delete(_ chargingSession: ChargingSession) {
+        navigationPath.removeLast()
+        modelContext.delete(chargingSession)
+        try? modelContext.save()
     }
     
     @MainActor private func getDataFromImage(_ sourceType: UIImagePickerController.SourceType) async {
