@@ -1546,7 +1546,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ladeverlauf löschen"
+            "value" : "Ladevorgang löschen"
           }
         }
       }
@@ -4090,7 +4090,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dies löscht den Ladeverlauf. Wirklich löschen?"
+            "value" : "Dies löscht den Ladevorgang. Wirklich löschen?"
           }
         }
       }
