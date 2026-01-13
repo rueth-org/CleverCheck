@@ -23,7 +23,7 @@ struct ChargingSessionsView: View {
     @Query private var vehicles: [Car]
     
     @State private var showingAlert: Bool = false
-    @State private var activeAlert: SimpleAlertType?
+    @State private var activeAlert: SimpleAlert?
     
     private var groupedSessions: [String: [ChargingSession]] {
         var result: [String: [ChargingSession]] = [:]
@@ -135,7 +135,7 @@ struct ChargingSessionsView: View {
             isPresented: $showingAlert,
             presenting: activeAlert
         ) { activeAlert in
-            activeAlert.button()
+            activeAlert.actionButtons()
         } message: { activeAlert in
             activeAlert.message()
         }
@@ -162,7 +162,7 @@ struct ChargingSessionsView: View {
     
     private func addSession() {
         if vehicles.isEmpty {
-            activeAlert = .warning(message: "Please add a car first")
+            activeAlert = SimpleAlert(type: .warning(message: "Please add a car first"))
             showingAlert = true
             return
         }
@@ -182,4 +182,3 @@ struct ChargingSessionsView: View {
         try? modelContext.save()
     }
 }
-

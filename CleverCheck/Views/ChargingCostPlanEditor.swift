@@ -48,7 +48,7 @@ struct ChargingCostPlanEditor: View {
     
     @FocusState private var focusedField: Field?
     @State private var showingAlert: Bool = false
-    @State private var activeAlert: SimpleAlertType?
+    @State private var activeAlert: SimpleAlert?
     
     private var editorTitle: String {
         plan == nil ? NSLocalizedString("New Plan", comment: "") : NSLocalizedString("Edit Plan", comment: "")
@@ -130,7 +130,7 @@ struct ChargingCostPlanEditor: View {
                                 energyUnitSymbol = UserSettings.shared.energyUnitSymbol
                                 
                                 // Inform the user
-                                activeAlert = .error(message: "Unknown energy unit: \(plan.energyUnitSymbol). Assuming default: \(UserSettings.shared.energyUnitSymbol). Please check your values.")
+                                activeAlert = SimpleAlert(type: .error(message: "Unknown energy unit: \(plan.energyUnitSymbol). Assuming default: \(UserSettings.shared.energyUnitSymbol). Please check your values."))
                                 showingAlert = true
                             }
                         }
@@ -144,20 +144,20 @@ struct ChargingCostPlanEditor: View {
                     }
                 case .homeConsumption:
                     guard (plan.charger?.location) != nil else {
-                        activeAlert = .fatalError(message: "Related charger has no location.")
+                        activeAlert = SimpleAlert(type: .fatalError(message: "Related charger has no location."))
                         showingAlert = true
                         return
                     }
                 case .refunded:
                     guard (plan.charger?.location) != nil else {
-                        activeAlert = .fatalError(message: "Related charger has no location.")
+                        activeAlert = SimpleAlert(type: .fatalError(message: "Related charger has no location."))
                         showingAlert = true
                         return
                     }
                     if let includedInOtherPlan = plan.includedInOtherPlan {
                         refundingPlan = includedInOtherPlan
                     } else {
-                        activeAlert = .fatalError(message: "No refunding cost plan found.")
+                        activeAlert = SimpleAlert(type: .fatalError(message: "No refunding cost plan found."))
                     }
                 }
             }
@@ -167,7 +167,7 @@ struct ChargingCostPlanEditor: View {
             isPresented: $showingAlert,
             presenting: activeAlert
         ) { activeAlert in
-            activeAlert.button()
+            activeAlert.actionButtons()
         } message: { activeAlert in
             activeAlert.message()
         }
@@ -203,21 +203,21 @@ struct ChargingCostPlanEditor: View {
     private func saveAndExit() {
         // Data check: No car selected
         if car == nil {
-            activeAlert = .error(message: "Please select a car.")
+            activeAlert = SimpleAlert(type: .error(message: "Please select a car."))
             showingAlert = true
             return
         }
         
         // Data check: No charger selected
         if charger == nil {
-            activeAlert = .error(message: "Please select a charger.")
+            activeAlert = SimpleAlert(type: .error(message: "Please select a charger."))
             showingAlert = true
             return
         }
         
         // Data check: No plan selected
         if selectedPlanType == nil {
-            activeAlert = .error(message: "Please select a plan type.")
+            activeAlert = SimpleAlert(type: .error(message: "Please select a plan type."))
             showingAlert = true
             return
         }
@@ -237,7 +237,7 @@ struct ChargingCostPlanEditor: View {
             tempFlatratePrice = flatratePrice
         case ChargingCostPlan.PlanType.homeConsumption.description:
             guard charger?.location != nil else {
-                activeAlert = .error(message: "Please select a charger with a known location.")
+                activeAlert = SimpleAlert(type: .error(message: "Please select a charger with a known location."))
                 showingAlert = true
                 return
             }
@@ -246,7 +246,7 @@ struct ChargingCostPlanEditor: View {
             tempPlanType = .refunded
             
             guard charger?.location != nil else {
-                activeAlert = .error(message: "Please select a charger with a known location.")
+                activeAlert = SimpleAlert(type: .error(message: "Please select a charger with a known location."))
                 showingAlert = true
                 return
             }
@@ -254,12 +254,12 @@ struct ChargingCostPlanEditor: View {
             if let refundingPlan {
                 tempRefundingPlan = refundingPlan
             } else {
-                activeAlert = .warning(message: "Please select a refunding plan.")
+                activeAlert = SimpleAlert(type: .warning(message: "Please select a refunding plan."))
                 showingAlert = true
                 return
             }
         default:
-            activeAlert = .fatalError(message: "Unsupported plan type: \(selectedPlanType!)")
+            activeAlert = SimpleAlert(type: .fatalError(message: "Unsupported plan type: \(selectedPlanType!)"))
             showingAlert = true
             return
         }

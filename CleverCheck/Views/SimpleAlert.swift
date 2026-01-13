@@ -76,9 +76,6 @@ struct SimpleAlertButton: Identifiable {
     let action: (() -> Void)?
 }
 
-// Remove the fragile global customButtonsStorage; the wrapper stores buttons per-alert instance instead.
-// private var customButtonsStorage = [ObjectIdentifier: [SimpleAlertButton]]()
-
 // Thin wrapper that carries the enum value plus optional custom buttons and a stable UUID identity.
 struct SimpleAlert: Error, Identifiable {
     let id: UUID

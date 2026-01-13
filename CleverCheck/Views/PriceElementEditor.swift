@@ -24,7 +24,7 @@ struct PriceElementEditor: View {
     @State private var elementType: PriceElement.PriceElementType = .byConsumption(energyUnitSymbol: UserSettings.shared.energyUnit.symbol)
     
     @State private var showingAlert: Bool = false
-    @State private var activeAlert: SimpleAlertType?
+    @State private var activeAlert: SimpleAlert?
     
     private var isNewPriceElement: Bool {
         priceElement == nil
@@ -99,7 +99,7 @@ struct PriceElementEditor: View {
             isPresented: $showingAlert,
             presenting: activeAlert
         ) { activeAlert in
-            activeAlert.button()
+            activeAlert.actionButtons()
         } message: { activeAlert in
             activeAlert.message()
         }
@@ -133,13 +133,13 @@ struct PriceElementEditor: View {
     private func saveAndExit() {
         let priceElementLabel = self.label.trimmingCharacters(in: .whitespaces)
         if priceElementLabel.isEmpty {
-            activeAlert = .error(message: "Label of the price element cannot be empty.")
+            activeAlert = SimpleAlert(type: .error(message: "Label of the price element cannot be empty."))
             showingAlert = true
             return
         }
         
         if priceElements.count(where: { $0.label == priceElementLabel }) > (isNewPriceElement ? 0 : 1) {
-            activeAlert = .error(message: "Label of the price element already exists.")
+            activeAlert = SimpleAlert(type: .error(message: "Label of the price element already exists."))
             showingAlert = true
             return
         }
@@ -166,7 +166,7 @@ struct PriceElementEditor: View {
                 priceElements[index].type = elementType
                 priceElements[index].vatRate = vatRate
             } else {
-                activeAlert = .fatalError(message: "Could not find the price element to edit.")
+                activeAlert = SimpleAlert(type: .fatalError(message: "Could not find the price element to edit."))
                 showingAlert = true
                 return
             }

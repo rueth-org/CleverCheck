@@ -31,7 +31,7 @@ struct HomeConsumptionEditor: View {
     @State private var showingChargingSessionPicker: Bool = false
     
     @State private var showingAlert: Bool = false
-    @State private var activeAlert: SimpleAlertType?
+    @State private var activeAlert: SimpleAlert?
     
     @Query(sort: \Location.name) private var locations: [Location]
     
@@ -153,7 +153,7 @@ struct HomeConsumptionEditor: View {
             isPresented: $showingAlert,
             presenting: activeAlert
         ) { activeAlert in
-            activeAlert.button()
+            activeAlert.actionButtons()
         } message: { activeAlert in
             activeAlert.message()
         }
@@ -192,14 +192,14 @@ struct HomeConsumptionEditor: View {
         // Check for valid name
         let name = homeConsumption.name.trimmingCharacters(in: .whitespaces)
         if name.isEmpty {
-            activeAlert = .error(message: "Name is required.")
+            activeAlert = SimpleAlert(type: .error(message: "Name is required."))
             showingAlert = true
             return
         }
         
         // Check dates
         if homeConsumption.validFrom >= homeConsumption.validUntil {
-            activeAlert = .error(message: "'Valid from' date must be before 'valid until' date.")
+            activeAlert = SimpleAlert(type: .error(message: "'Valid from' date must be before 'valid until' date."))
             showingAlert = true
             return
         }

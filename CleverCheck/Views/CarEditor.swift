@@ -26,7 +26,7 @@ struct CarEditor: View {
     
     @State private var isEditingSOC: Bool = false
     @State private var showingAlert: Bool = false
-    @State private var activeAlert: SimpleAlertType?
+    @State private var activeAlert: SimpleAlert?
     
     @FocusState private var focusedField: Field?
     
@@ -173,7 +173,7 @@ struct CarEditor: View {
             isPresented: $showingAlert,
             presenting: activeAlert
         ) { activeAlert in
-            activeAlert.button()
+            activeAlert.actionButtons()
         } message: { activeAlert in
             activeAlert.message()
         }
@@ -195,7 +195,7 @@ struct CarEditor: View {
         let make = self.make.trimmingCharacters(in: .whitespaces)
         let model = self.model.trimmingCharacters(in: .whitespaces)
         if make.isEmpty || model.isEmpty {
-            activeAlert = .error(message: "Make and model are required.")
+            activeAlert = SimpleAlert(type: .error(message: "Make and model are required."))
             showingAlert = true
         } else {
             if let car {

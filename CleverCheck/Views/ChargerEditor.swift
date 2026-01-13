@@ -30,7 +30,7 @@ struct ChargerEditor: View {
     @FocusState private var focusedField: Field?
     
     @State private var showingAlert: Bool = false
-    @State private var activeAlert: SimpleAlertType?
+    @State private var activeAlert: SimpleAlert?
     
     private var editorTitle: String {
         charger == nil ? NSLocalizedString("New Charger", comment: "") : NSLocalizedString("Edit Charger", comment: "")
@@ -118,7 +118,7 @@ struct ChargerEditor: View {
             isPresented: $showingAlert,
             presenting: activeAlert
         ) { activeAlert in
-            activeAlert.button()
+            activeAlert.actionButtons()
         } message: { activeAlert in
             activeAlert.message()
         }
@@ -136,7 +136,7 @@ struct ChargerEditor: View {
     private func saveAndExit() {
         let name = self.name.trimmingCharacters(in: .whitespaces)
         if name.isEmpty {
-            activeAlert = .error(message: "Name is required.")
+            activeAlert = SimpleAlert(type: .error(message: "Name is required."))
             showingAlert = true
         } else {
             if let charger {
@@ -161,7 +161,7 @@ struct ChargerEditor: View {
     private func checkMaxPower(charger: Charger) -> Bool {
         if enterMaxPower {
             if maxPower.value == 0 {
-                activeAlert = .warning(message: "Max power must be greater than 0.")
+                activeAlert = SimpleAlert(type: .warning(message: "Max power must be greater than 0."))
                 showingAlert = true
                 return false
             }

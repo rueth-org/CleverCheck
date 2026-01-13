@@ -16,7 +16,7 @@ struct LocationEditor: View {
     @State private var isArchived: Bool = false
     
     @State private var showingAlert: Bool = false
-    @State private var activeAlert: SimpleAlertType?
+    @State private var activeAlert: SimpleAlert?
     
     private var editorTitle: String {
         location == nil ? NSLocalizedString("New Location", comment: "") : NSLocalizedString("Edit Location", comment: "")
@@ -59,7 +59,7 @@ struct LocationEditor: View {
             isPresented: $showingAlert,
             presenting: activeAlert
         ) { activeAlert in
-            activeAlert.button()
+            activeAlert.actionButtons()
         } message: { activeAlert in
             activeAlert.message()
         }
@@ -72,7 +72,7 @@ struct LocationEditor: View {
     private func saveAndExit() {
         let name = self.name.trimmingCharacters(in: .whitespaces)
         if name.isEmpty {
-            activeAlert = .error(message: "Name is required.")
+            activeAlert = SimpleAlert(type: .error(message: "Name is required."))
             showingAlert = true
         } else {
             if let location {

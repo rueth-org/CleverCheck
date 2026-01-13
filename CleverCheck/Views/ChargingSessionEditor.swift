@@ -60,7 +60,7 @@ struct ChargingSessionEditor: View {
     
     @FocusState private var focusedField: Field?
     @State private var showingAlert = false
-    @State private var activeAlert: SimpleAlertType?
+    @State private var activeAlert: SimpleAlert?
     
     private var shownPlans: [ChargingCostPlan] {
         chargingCostPlans.filter { plan in
@@ -142,7 +142,7 @@ struct ChargingSessionEditor: View {
                 HStack {
                     Button {
                         if selectedCar == nil {
-                            activeAlert = .notice(message: "Please select a charging cost plan first")
+                            activeAlert = SimpleAlert(type: .notice(message: "Please select a charging cost plan first"))
                             showingAlert = true
                         } else {
                             Task { await getDataFromImage(.camera) }
@@ -157,7 +157,7 @@ struct ChargingSessionEditor: View {
                     Spacer()
                     Button {
                         if selectedCar == nil {
-                            activeAlert = .notice(message: "Please select a charging cost plan first")
+                            activeAlert = SimpleAlert(type: .notice(message: "Please select a charging cost plan first"))
                             showingAlert = true
                         } else {
                             Task { await getDataFromImage(.photoLibrary) }
@@ -356,7 +356,7 @@ struct ChargingSessionEditor: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
                     withAnimation {
-                        saveAndExit()
+                        save()
                     }
                 }
             }
@@ -418,7 +418,7 @@ struct ChargingSessionEditor: View {
                     if let possibleHomeConsumptions, possibleHomeConsumptions.count == 1 {
                         if let relatedHomeConsumption = possibleHomeConsumptions.first {
                             self.relatedHomeConsumption = relatedHomeConsumption
-                            activeAlert = .notice(message: "Automatically determined related home consumption \(relatedHomeConsumption.descriptionWithDate). Please save this session or correct.")
+                            activeAlert = SimpleAlert(type: .notice(message: "Automatically determined related home consumption \(relatedHomeConsumption.descriptionWithDate). Please save this session or correct."))
                             showingAlert = true
                         }
                     }
@@ -430,7 +430,7 @@ struct ChargingSessionEditor: View {
             isPresented: $showingAlert,
             presenting: activeAlert
         ) { activeAlert in
-            activeAlert.button()
+            activeAlert.actionButtons()
         } message: { activeAlert in
             activeAlert.message()
         }
@@ -484,17 +484,17 @@ struct ChargingSessionEditor: View {
         finalSOC = 0.8
     }
     
-    private func saveAndExit() {
+    private func save() {
         // Ensure a plan is selected and bind it safely
         guard let selectedPlan = chargingCostPlan else {
-            activeAlert = .error(message: "Please select a plan.")
+            activeAlert = SimpleAlert(type: .error(message: "Please select a plan."))
             showingAlert = true
             return
         }
 
         // Data check: start time before end time
         if enterStartTime && startTime >= endTime {
-            activeAlert = .error(message: "Start time must be before end time.")
+            activeAlert = SimpleAlert(type: .error(message: "Start time must be before end time."))
             showingAlert = true
             return
         }
@@ -518,7 +518,7 @@ struct ChargingSessionEditor: View {
                         // If there's no previous session, we're earlier than the earliest; compare to nextSession
                         if prevSession == nil, let next = nextSession, let nextMileage = next.mileage {
                             if mileageKilometer > nextMileage.converted(to: .kilometers) {
-                                activeAlert = .error(message: "Mileage must be less or equal than \(UserSettings.shared.format(nextMileage.value, withSignificantDigits: 4)) \(nextMileage.unit.symbol).")
+                                activeAlert = SimpleAlert(type: .error(message: "Mileage must be less or equal than \(UserSettings.shared.format(nextMileage.value, withSignificantDigits: 4)) \(nextMileage.unit.symbol)."))
                                 showingAlert = true
                                 return
                             }
@@ -527,7 +527,7 @@ struct ChargingSessionEditor: View {
                         // If there's no next session, we're later than the latest; compare to prevSession
                         if nextSession == nil, let prev = prevSession, let prevMileage = prev.mileage {
                             if mileageKilometer < prevMileage.converted(to: .kilometers) {
-                                activeAlert = .error(message: "Mileage must be greater or equal than \(UserSettings.shared.format(prevMileage.value, withSignificantDigits: 4)) \(prevMileage.unit.symbol).")
+                                activeAlert = SimpleAlert(type: .error(message: "Mileage must be greater or equal than \(UserSettings.shared.format(prevMileage.value, withSignificantDigits: 4)) \(prevMileage.unit.symbol)."))
                                 showingAlert = true
                                 return
                             }
@@ -536,7 +536,7 @@ struct ChargingSessionEditor: View {
                         // If both exist, ensure the new mileage lies between them
                         if let prev = prevSession, let prevMileage = prev.mileage, let next = nextSession, let nextMileage = next.mileage {
                             if mileageKilometer < prevMileage.converted(to: .kilometers) || mileageKilometer > nextMileage.converted(to: .kilometers) {
-                                activeAlert = .error(message: "Mileage must be between \(UserSettings.shared.format(prevMileage.value, withSignificantDigits: 4)) \(prevMileage.unit.symbol) and \(UserSettings.shared.format(nextMileage.value, withSignificantDigits: 4)) \(nextMileage.unit.symbol).")
+                                activeAlert = SimpleAlert(type: .error(message: "Mileage must be between \(UserSettings.shared.format(prevMileage.value, withSignificantDigits: 4)) \(prevMileage.unit.symbol) and \(UserSettings.shared.format(nextMileage.value, withSignificantDigits: 4)) \(nextMileage.unit.symbol)."))
                                 showingAlert = true
                                 return
                             }
@@ -544,12 +544,6 @@ struct ChargingSessionEditor: View {
                     }
                 }
             }
-        }
-        
-        // Data check: Home consumption is recommended if charging cost plan type is refunded
-        if selectedPlan.planType == .refunded, relatedHomeConsumption == nil {
-            activeAlert = .notice(message: "A home consumption entry is recommended for a refunded charging cost plan.")
-            showingAlert = true
         }
         
         // Save data
@@ -581,9 +575,31 @@ struct ChargingSessionEditor: View {
             newSession.comment = self.comment
             modelContext.insert(newSession)
         }
-
-        // Save data and leave editor
+        
+        // Save data
         try? modelContext.save()
+        
+        // Data check: Home consumption is recommended if charging cost plan type is refunded
+        if selectedPlan.planType == .refunded, relatedHomeConsumption == nil {
+            activeAlert = SimpleAlert(
+                type: .notice(message: "A home consumption entry is recommended for a refunded charging cost plan."),
+                customButtons: [
+                    SimpleAlertButton(title: NSLocalizedString("Add later", comment: ""), role: nil) {
+                        andExit()
+                    },
+                    SimpleAlertButton(title: NSLocalizedString("Add now", comment: ""), role: .cancel) {
+                        // Do nothing and return to editor
+                    }
+                ]
+            )
+                
+            showingAlert = true
+        } else {
+            andExit()
+        }
+    }
+    
+    private func andExit() {
         navigationPath.removeLast()
     }
     
@@ -606,15 +622,14 @@ struct ChargingSessionEditor: View {
                     proposedData.analyse(for: car)
                     self.proposedData = proposedData
                 } else {
-                    activeAlert = .error(message: "Failed to get image")
+                    activeAlert = SimpleAlert(type: .error(message: "Failed to get image"))
                     showingAlert = true
                 }
             } catch {
                 let errorDescription = String(describing: error)
-                activeAlert = .error(message: "Image capture failed: \(errorDescription)")
+                activeAlert = SimpleAlert(type: .error(message: "Image capture failed: \(errorDescription)"))
                 showingAlert = true
             }
         }
     }
 }
-

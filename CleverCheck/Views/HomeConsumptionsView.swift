@@ -28,7 +28,7 @@ struct HomeConsumptionsView: View {
     @Query(sort: [SortDescriptor(\HomeConsumption.validUntil), SortDescriptor(\HomeConsumption.name)]) private var homeConsumptions: [HomeConsumption]
     
     @State private var showingAlert: Bool = false
-    @State private var activeAlert: SimpleAlertType?
+    @State private var activeAlert: SimpleAlert?
     
     var body: some View {
         VStack {
@@ -67,7 +67,7 @@ struct HomeConsumptionsView: View {
             isPresented: $showingAlert,
             presenting: activeAlert
         ) { activeAlert in
-            activeAlert.button()
+            activeAlert.actionButtons()
         } message: { activeAlert in
             activeAlert.message()
         }
@@ -87,7 +87,7 @@ struct HomeConsumptionsView: View {
     
     private func addHomeConsumption() {
         if locations.isEmpty {
-            activeAlert = .warning(message: "Please add a location first")
+            activeAlert = SimpleAlert(type: .warning(message: "Please add a location first"))
             showingAlert = true
         } else {
             navigationPath.append(NavigationDestination.NewConsumption(location: selectedLocation))
