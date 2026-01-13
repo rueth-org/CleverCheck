@@ -22,7 +22,7 @@ struct ChargingSessionEditor: View {
     
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    var chargingSession: ChargingSession?
+    @State private var chargingSession: ChargingSession?
     
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
     @Query private var chargingCostPlans: [ChargingCostPlan]
@@ -53,6 +53,7 @@ struct ChargingSessionEditor: View {
     
     @State private var ignorePlan: Bool = false
     @State private var ignoreDate: Bool = false
+    @State private var chooseHomeConsumptionLater: Bool = false
     
     @State private var isShowingHomeConsumptionPickerSheet: Bool = false
     
@@ -117,7 +118,8 @@ struct ChargingSessionEditor: View {
                     }
                 }
                 
-                if chargingCostPlan?.planType == .refunded {
+                // When editing a session (if new, we present it later after saving) ...
+                if chargingSession != nil, chargingCostPlan?.planType == .refunded {
                     // Ask for a home consumption
                     HStack {
                         Text("Home Consumption for refunding: \(relatedHomeConsumption?.descriptionWithDate ?? "-")")
@@ -128,14 +130,6 @@ struct ChargingSessionEditor: View {
                             Image(systemName: "chevron.right")
                                 .foregroundStyle(.gray)
                         }
-                    }
-                    .sheet(isPresented: $isShowingHomeConsumptionPickerSheet) {
-                        HomeConsumptionPicker(
-                            possibleHomeConsumptions: possibleHomeConsumptions,
-                            selectedHomeConsumption: $relatedHomeConsumption,
-                            ignorePlan: $ignorePlan,
-                            ignoreDate: $ignoreDate
-                        )
                     }
                 }
                 
@@ -425,6 +419,15 @@ struct ChargingSessionEditor: View {
                 }
             }
         }
+        .sheet(isPresented: $isShowingHomeConsumptionPickerSheet) {
+            HomeConsumptionPicker(
+                possibleHomeConsumptions: possibleHomeConsumptions,
+                selectedHomeConsumption: $relatedHomeConsumption,
+                chooseLater: $chooseHomeConsumptionLater,
+                ignorePlan: $ignorePlan,
+                ignoreDate: $ignoreDate
+            )
+        }
         .alert(
             activeAlert?.title() ?? "Notice",
             isPresented: $showingAlert,
@@ -442,7 +445,7 @@ struct ChargingSessionEditor: View {
         selectedCar: Car? = nil
     ) {
         self._navigationPath = navigationPath
-        self.chargingSession = chargingSession
+        self._chargingSession = State(initialValue: chargingSession)
         self._selectedCar = State(initialValue: selectedCar)
         
         var predicate: Predicate<ChargingCostPlan>
@@ -574,28 +577,30 @@ struct ChargingSessionEditor: View {
             newSession.relatedHomeConsumption = relatedHomeConsumption
             newSession.comment = self.comment
             modelContext.insert(newSession)
+            self.chargingSession = newSession
         }
         
         // Save data
         try? modelContext.save()
         
-        // Data check: Home consumption is recommended if charging cost plan type is refunded
-        if selectedPlan.planType == .refunded, relatedHomeConsumption == nil {
+        if chooseHomeConsumptionLater || selectedPlan.planType != .refunded || (selectedPlan.planType == .refunded && relatedHomeConsumption != nil) {
+            andExit()
+        } else {
+            // Data check: Home consumption is recommended if charging cost plan type is refunded
             activeAlert = SimpleAlert(
                 type: .notice(message: "A home consumption entry is recommended for a refunded charging cost plan."),
                 customButtons: [
                     SimpleAlertButton(title: NSLocalizedString("Add later", comment: ""), role: nil) {
                         andExit()
                     },
-                    SimpleAlertButton(title: NSLocalizedString("Add now", comment: ""), role: .cancel) {
-                        // Do nothing and return to editor
+                    SimpleAlertButton(title: NSLocalizedString("Add now", comment: ""), role: nil) {
+                        // Open the home consumption picker
+                        isShowingHomeConsumptionPickerSheet = true
                     }
                 ]
             )
                 
             showingAlert = true
-        } else {
-            andExit()
         }
     }
     

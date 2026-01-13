@@ -13,6 +13,7 @@ struct HomeConsumptionPicker: View {
     var possibleHomeConsumptions: [HomeConsumption]?
     
     @Binding var selectedHomeConsumption: HomeConsumption?
+    @Binding var chooseLater: Bool
     @Binding var ignorePlan: Bool
     @Binding var ignoreDate: Bool
     
@@ -21,24 +22,36 @@ struct HomeConsumptionPicker: View {
             Toggle("Ignore plan", isOn: $ignorePlan)
             Toggle("Ignore date", isOn: $ignoreDate)
             Divider()
-            if let possibleHomeConsumptions, !possibleHomeConsumptions.isEmpty {
-                Text("Choose home consumption:")
-                List(possibleHomeConsumptions, id: \.id) { consumption in
-                    HStack {
-                        Image(systemName: consumption == selectedHomeConsumption ? "checkmark.circle.fill" : "circle")
-                            .imageScale(.large)
-                            .foregroundStyle(consumption == selectedHomeConsumption ? .green : .gray)
-                        Text(consumption.descriptionWithDate)
-                            .onTapGesture {
-                                selectedHomeConsumption = consumption
-                                dismiss()
-                            }
-                    }
+            Text("Choose home consumption:")
+                .font(.headline)
+            List {
+                HStack {
+                    Image(systemName: selectedHomeConsumption == nil ? "checkmark.circle.fill" : "circle")
+                        .imageScale(.large)
+                        .foregroundStyle(selectedHomeConsumption == nil ? .green : .gray)
+                    Text("Choose later")
+                        .onTapGesture {
+                            selectedHomeConsumption = nil
+                            chooseLater = true
+                        }
                 }
-            } else {
-                Text("No valid home consumption found, try to ignore date or plan.")
-                    .italic()
-                Spacer()
+                if let possibleHomeConsumptions, !possibleHomeConsumptions.isEmpty {
+                    ForEach(possibleHomeConsumptions, id: \.id) { consumption in
+                        HStack {
+                            Image(systemName: consumption == selectedHomeConsumption ? "checkmark.circle.fill" : "circle")
+                                .imageScale(.large)
+                                .foregroundStyle(consumption == selectedHomeConsumption ? .green : .gray)
+                            Text(consumption.descriptionWithDate)
+                                .onTapGesture {
+                                    selectedHomeConsumption = consumption
+                                    dismiss()
+                                }
+                        }
+                    }
+                } else {
+                    Text("No valid home consumption found, try to ignore date or plan.")
+                        .italic()
+                }
             }
         }
         .padding()

@@ -11,19 +11,19 @@ import SwiftData
 @main
 struct CleverCheckApp: App {
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Car.self,
-            Charger.self,
-            Location.self,
-            ChargingSession.self,
-            ChargingCostPlan.self,
-            HomeConsumption.self,
-            PriceElement.self
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(for:
+                Car.self,
+                Charger.self,
+                ChargingCostPlan.self,
+                ChargingSession.self,
+                PriceElement.self,
+                Location.self,
+                HomeConsumption.self
+            )
+            // Turn off automatic implicit saves
+            container.mainContext.autosaveEnabled = false
+            return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
