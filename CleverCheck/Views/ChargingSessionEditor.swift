@@ -639,10 +639,10 @@ struct ChargingSessionEditor: View {
     @MainActor private func getDataFromImage(_ sourceType: UIImagePickerController.SourceType) async {
         if let car = selectedCar {
             do {
-                let uiImage = try await ImageHandler.getImageFromCameraOrLibrary(sourceType)
-                if let cgImage = uiImage.cgImage {
+                let imageWithMetadata = try await ImageHandler.getImageWithMetadataFromCameraOrLibrary(sourceType)
+                if let cgImage = imageWithMetadata.image.cgImage {
                     let recognizedText = try TextRecognizer.recognizeText(from: cgImage)
-                    let proposedData = TextRecognizer(rawImage: cgImage, recognizedText: recognizedText)
+                    let proposedData = TextRecognizer(image: imageWithMetadata, recognizedText: recognizedText)
                     proposedData.analyse(for: car)
                     self.proposedData = proposedData
                 } else {

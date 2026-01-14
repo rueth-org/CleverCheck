@@ -20,14 +20,14 @@ class TextRecognizer: Identifiable {
     }
     
     enum Indication: CaseIterable {
-        case energy, power, soc, duration
+        case energy, power, soc, time
         
         var indications: [String] {
             switch self {
             case .energy: return ["kwh", "kilowatthours"]
             case .power: return ["kw", "kilowatt"]
             case .soc: return ["%", "soc", "state of charge"]
-            case .duration: return [":", "min", "minutes"]
+            case .time: return [":", "min", "minutes"]
             }
         }
     }
@@ -51,7 +51,7 @@ class TextRecognizer: Identifiable {
     }
     
     let id = UUID()
-    let rawImage: CGImage
+    let image: ImageWithMetadata
     let recognizedText: String
     var start = [Candidate<Date>]()
     var end = [Candidate<Date>]()
@@ -59,17 +59,19 @@ class TextRecognizer: Identifiable {
     var chargingPower = [Candidate<Measurement<UnitPower>>]()
     var initialSOC = [Candidate<Double>]()
     var finalSOC = [Candidate<Double>]()
-    var duration = [Candidate<Duration>]()
     
+    private var captureDate: Date?
     private var soc = [Candidate<Double>]()
+    private var time = [Candidate<Date>]()
     private var numberBacklog = [Double]()
     private var indicationStringBacklog = [String]()
     private var otherStringBacklog = [String]()
     
     var report = [String]()
 
-    init(rawImage: CGImage, recognizedText: String) {
-        self.rawImage = rawImage
+    init(image: ImageWithMetadata, recognizedText: String) {
+        self.image = image
+        self.captureDate = image.creationDate
         self.recognizedText = recognizedText
     }
      
@@ -114,11 +116,12 @@ class TextRecognizer: Identifiable {
                                 report.append(NSLocalizedString("- Assumed as \(value * 100)% with high confidence", comment: ""))
                                 soc.append(.init(confidence: .high, value: value))
                             }
-                        case .duration:
-                            if indication.indications.contains(indicationString) {
-                                report.append(NSLocalizedString("- Assumed as \(value) minutes with high confidence", comment: ""))
-                                let durationInSec = Duration.seconds(value * 60)
-                                duration.append(.init(confidence: .high, value: durationInSec))
+                        case .time:
+                            if indication.indications.contains(indicationString), let endTime = self.captureDate {
+                                report.append(NSLocalizedString("- Assumed as duration (\(value) minutes) with high confidence, assuming capture time (\(endTime.formatted()) as end time", comment: ""))
+                                let durationInSec = value * 60
+                                self.end.append(.init(confidence: .high, value: endTime))
+                                self.start.append(.init(confidence: .high, value: endTime.addingTimeInterval(-durationInSec)))
                             }
                         }
                     }
@@ -168,13 +171,14 @@ class TextRecognizer: Identifiable {
                                     soc.append(.init(confidence: .medium, value: possibleValue))
                                 }
                             }
-                        case .duration:
-                            if indication.indications.contains(indicationString) {
-                                report.append(NSLocalizedString("Adding the following values as duration with medium confidence:", comment: ""))
+                        case .time:
+                            if indication.indications.contains(indicationString), let endTime = self.captureDate {
+                                report.append(NSLocalizedString("Adding the following values as duration with medium confidence, assuming capture time (\(endTime.formatted()) as end time:", comment: ""))
+                                end.append(.init(confidence: .medium, value: endTime))
                                 for value in numberBacklog {
                                     report.append(NSLocalizedString("- \(value) minutes", comment: ""))
-                                    let durationInSec = Duration.seconds(value * 60)
-                                    duration.append(.init(confidence: .medium, value: durationInSec))
+                                    let durationInSec = value * 60
+                                    start.append(.init(confidence: .medium, value: endTime.addingTimeInterval(-durationInSec)))
                                 }
                             }
                         }
@@ -272,19 +276,32 @@ class TextRecognizer: Identifiable {
                             success = true
                         }
                     }
-                case .duration:
-                    report.append(NSLocalizedString("- Identified as duration", comment: ""))
+                case .time:
+                    report.append(NSLocalizedString("- Identified as duration or time", comment: ""))
                     // Try to parse as time
-                    if let value = TextRecognizer.parseDuration(text) {
-                        report.append(NSLocalizedString("- Parsed as \(value.formatted(.time(pattern: .hourMinuteSecond(padHourToLength: 2, fractionalSecondsLength: 0)))) with very high confidence", comment: ""))
-                        // A duration was identified
-                        duration.append(.init(
-                            confidence: .veryHigh,
-                            value: value
-                        ))
-                    } else {
+                    let timeTimeDuration = parseTime(text)
+                    
+                    if timeTimeDuration == (nil, nil, nil) {
                         report.append(NSLocalizedString("- Could not parse as duration, adding to backlog", comment: ""))
                         indicationStringBacklog.append(text)
+                    } else {
+                        if let time1 = timeTimeDuration.time1, let time2 = timeTimeDuration.time2, timeTimeDuration.duration == nil {
+                            // We only have this case, when there was a from-to scenario
+                            report.append(NSLocalizedString("- Parsed as \(time1.formatted())-\(time2.formatted()) with very high confidence", comment: ""))
+                            start.append(Candidate(confidence: .veryHigh, value: time1))
+                            end.append(Candidate(confidence: .veryHigh, value: time2))
+                        } else if let time1 = timeTimeDuration.time1, timeTimeDuration.time2 == nil, let duration = timeTimeDuration.duration {
+                            // We cannot decide whether it's a duration or a time, so we take the time as end time and ignore the duration
+                            report.append(NSLocalizedString("- Parsed as \(time1.formatted()) and duration \(duration.formatted()) with high confidence", comment: ""))
+                            end.append(Candidate(confidence: .high, value: time1))
+                        } else if timeTimeDuration.time1 == nil, timeTimeDuration.time2 == nil, let duration = timeTimeDuration.duration {
+                            // We only have a duration, so we assume the captureDate as endTime and substract the duration
+                            report.append(NSLocalizedString("- Parsed as duration \(duration.formatted()) with high confidence, using capture date as end time", comment: ""))
+                            if let captureDate = captureDate {
+                                end.append(Candidate(confidence: .high, value: captureDate))
+                                start.append(Candidate(confidence: .high, value: captureDate.addingTimeInterval(-Double(duration.components.seconds))))
+                            }
+                        }
                     }
                     success = true
                 }
@@ -525,54 +542,101 @@ class TextRecognizer: Identifiable {
         }
     }
     
-    // Pars string into duration
-    static func parseDuration(_ raw: String) -> Duration? {
+    // Parse string into duration
+    private func parseTime(_ raw: String) -> (time1: Date?, time2: Date?, duration: Duration?) {
         var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if s.isEmpty { return nil }
+        if s.isEmpty { return (nil, nil, nil) }
         
-        // Remove any symbols and letters: keep digits, colons
-        s = s.filter { "0123456789:".contains($0) }
+        // Remove any symbols and letters: keep digits, colons and dash
+        s = s.filter { "0123456789:-".contains($0) }
+        
+        // Check if the string contains two times, e.g.: 9:45 - 13:42
+        if s.contains("-") {
+            // If there is an equal number of colons before and after the dash, we most linkely have a from - to pattern
+            let times = s.components(separatedBy: "-")
+            let colonsBeforeDash = times[0].filter { $0 == ":" }.count
+            let colonsAfterDash = times[1].filter { $0 == ":" }.count
+            if colonsBeforeDash == colonsAfterDash {
+                let dateAndDuration1 = getDateAndDuration(from: times[0])
+                let dateAndDuration2 = getDateAndDuration(from: times[1])
+                return (dateAndDuration1.date, dateAndDuration2.date, nil)
+            }
+        }
         
         // Identify number of colons
         let colonCount = s.filter { $0 == ":" }.count
         
         if colonCount == 0 {
-            // There seem to be minutes only
+            // There seem to be minutes only, so this is most likely a duration
             if let minutes = TextRecognizer.parseLocalizedDouble(s) {
                 // Successfully parsed value
-                return Duration.seconds(minutes * 60)
+                return (time1: nil, time2: nil, duration: Duration.seconds(minutes * 60))
             } else {
                 // No number parsed
-                return nil
+                return (nil, nil, nil)
             }
         } else {
             // Split into parts
-            let parts = s.components(separatedBy: ":")
-            
-            if parts.count == 2 {
-                // There are two parts, one before and one after the colong
-                if let part1 = TextRecognizer.parseLocalizedDouble(parts[0]), let part2 = TextRecognizer.parseLocalizedDouble(parts[1]) {
-                    if part1 == 0 {
-                        // If part 1 = 0, then it represents most likely hours and part 2 minutes
-                        return Duration.seconds(part1 * 3600 + part2 * 60)
-                    } else {
-                        // If part 1 other than 0, then it represents most likely minutes and part 2 seconds
-                        return Duration.seconds(part1 * 60 + part2)
-                    }
-                } else {
-                    return nil
-                }
-            } else if parts.count == 3 {
-                if let part1 = TextRecognizer.parseLocalizedDouble(parts[0]), let part2 = TextRecognizer.parseLocalizedDouble(parts[1]), let part3 = TextRecognizer.parseLocalizedDouble(parts[2]) {
-                    // Part 1 are hours, part 2 minutes, part 3 seconds
-                    return Duration.seconds(part1 * 3600 + part2 * 60 + part3)
-                } else {
-                    return nil
-                }
-            } else {
-                // Cannot interprete more than 3 parts
-                return nil
-            }
+            let dateAndDuration = getDateAndDuration(from: s)
+            return (time1: dateAndDuration.date, time2: nil, duration: dateAndDuration.duration)
         }
     }
+    
+    private func getDateAndDuration(from s: String) -> (date: Date?, duration: Duration?) {
+        // Split into parts
+        let parts = s.components(separatedBy: ":")
+        
+        if parts.count == 2 {
+            // There are two parts, one before and one after the colong
+            if let part1 = TextRecognizer.parseLocalizedDouble(parts[0]), let part2 = TextRecognizer.parseLocalizedDouble(parts[1]) {
+                var duration: Duration
+                if part1 == 0 {
+                    // Duration: If part 1 = 0, then it represents most likely hours and part 2 minutes
+                    duration = Duration.seconds(part1 * 3600 + part2 * 60)
+                } else {
+                    // If part 1 other than 0, then it represents most likely minutes and part 2 seconds
+                    duration = Duration.seconds(part1 * 60 + part2)
+                }
+                
+                // Time: It could well be the time in hours and minutes
+                let date = getDateFrom(hour: part1, minute: part2)
+                
+                return (date: date, duration: duration)
+            } else {
+                return (nil, nil)
+            }
+        } else if parts.count == 3 {
+            if let part1 = TextRecognizer.parseLocalizedDouble(parts[0]), let part2 = TextRecognizer.parseLocalizedDouble(parts[1]), let part3 = TextRecognizer.parseLocalizedDouble(parts[2]) {
+                // Duration: Part 1 are hours, part 2 minutes, part 3 seconds
+                let duration = Duration.seconds(part1 * 3600 + part2 * 60 + part3)
+                
+                // Time: It could well be the time in hours and minutes
+                let date = getDateFrom(hour: part1, minute: part2, second: part3)
+                
+                return (date: date, duration: duration)
+            } else {
+                return (nil, nil)
+            }
+        } else {
+            // Cannot interprete more than 3 parts
+            return (nil, nil)
+        }
+    }
+    
+    private func getDateFrom(hour: Double, minute: Double, second: Double? = nil) -> Date? {
+        // Time: It could well be the time in hours and minutes
+        // Always initialize dateComponents with the current date first
+        var dateComponents = Calendar.current.dateComponents([.year, .month, .day], from: Date.now)
+        if let captureDate {
+            dateComponents = Calendar.current.dateComponents([.year, .month, .day], from: captureDate)
+        }
+        dateComponents.hour = Int(hour)
+        dateComponents.minute = Int(minute)
+        if let second {
+            dateComponents.second = Int(second)
+        }
+        
+        return Calendar.current.date(from: dateComponents) ?? Date.now
+    }
 }
+
