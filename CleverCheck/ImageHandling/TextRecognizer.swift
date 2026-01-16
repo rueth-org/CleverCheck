@@ -84,12 +84,14 @@ class TextRecognizer: Identifiable {
         
         // Evaluate each line
         for text in normalizedText {
-            report.append(NSLocalizedString("Evaluating '\(text)'", comment: ""))
+            report.append(NSLocalizedString("\n\nEvaluating '\(text)'", comment: ""))
             evaluate(text)
         }
         
+        report.append(NSLocalizedString("\nText evaluation finished.", comment: ""))
+        
         // Evaluate backlog
-        report.append(NSLocalizedString("Evaluating backlog", comment: ""))
+        report.append(NSLocalizedString("\n\nEvaluating backlog", comment: ""))
         if indicationStringBacklog.count > 0 {
             // We have some indications, which were not parsed together with their value, e.g., "kWh"
             if numberBacklog.count == indicationStringBacklog.count {
@@ -97,7 +99,7 @@ class TextRecognizer: Identifiable {
                 for i in 0..<indicationStringBacklog.count {
                     let indicationString = indicationStringBacklog[i]
                     let value = numberBacklog[i]
-                    report.append(NSLocalizedString("Evaluating indication '\(indicationString)' with value \(value)", comment: ""))
+                    report.append(NSLocalizedString("\nEvaluating indication '\(indicationString)' with value \(value)", comment: ""))
                     
                     for indication in Indication.allCases {
                         switch indication {
@@ -133,7 +135,7 @@ class TextRecognizer: Identifiable {
                         switch indication {
                         case .energy:
                             if indication.indications.contains(indicationString) {
-                                report.append(NSLocalizedString("Adding the following values as energy with medium confidence:", comment: ""))
+                                report.append(NSLocalizedString("\nAdding the following values as energy with medium confidence:", comment: ""))
                                 var possibleValues = numberBacklog
                                 // Remove values larger than net battery capacity
                                 if let netBatteryCapacityKWh = vehicle.netBatteryCapacityKWh {
@@ -147,7 +149,7 @@ class TextRecognizer: Identifiable {
                             }
                         case .power:
                             if indication.indications.contains(indicationString) {
-                                report.append(NSLocalizedString("Adding the following values as power with medium confidence:", comment: ""))
+                                report.append(NSLocalizedString("\nAdding the following values as power with medium confidence:", comment: ""))
                                 var possibleValues = numberBacklog
                                 // Remove values larger than max charging power
                                 if let maxChargingPower = vehicle.maxChargingPowerkW {
@@ -161,7 +163,7 @@ class TextRecognizer: Identifiable {
                             }
                         case .soc:
                             if indication.indications.contains(indicationString) {
-                                report.append(NSLocalizedString("Adding the following values as SOC with medium confidence:", comment: ""))
+                                report.append(NSLocalizedString("\nAdding the following values as SOC with medium confidence:", comment: ""))
                                 // Remove values larger than 1 and less than 0
                                 let possibleValues = numberBacklog.filter { 0 <= $0 && $0 <= 1 }
                                 
@@ -173,7 +175,7 @@ class TextRecognizer: Identifiable {
                             }
                         case .time:
                             if indication.indications.contains(indicationString), let endTime = self.captureDate {
-                                report.append(NSLocalizedString("Adding the following values as duration with medium confidence, assuming capture time (\(endTime.formatted()) as end time:", comment: ""))
+                                report.append(NSLocalizedString("\nAdding the following values as duration with medium confidence, assuming capture time (\(endTime.formatted()) as end time:", comment: ""))
                                 end.append(.init(confidence: .medium, value: endTime))
                                 for value in numberBacklog {
                                     report.append(NSLocalizedString("- \(value) minutes", comment: ""))
@@ -193,26 +195,28 @@ class TextRecognizer: Identifiable {
                 // We assume the value to be the charged energy
                 if let netBatteryCapacityKWh = vehicle.netBatteryCapacityKWh {
                     if value <= netBatteryCapacityKWh {
-                        report.append(NSLocalizedString("Adding \(value) kWh with high confidence:", comment: ""))
+                        report.append(NSLocalizedString("\nAdding \(value) kWh with high confidence:", comment: ""))
                         chargedEnergy.append(.init(confidence: .high, value: Measurement<UnitEnergy>(value: value, unit: .kilowattHours)))
                     } else if value/10.0 <= netBatteryCapacityKWh {
                         // There are cases where the decimal separator was not read correctly, so divide by 10 and try again
-                        report.append(NSLocalizedString("Dividing \(value)/10 and adding \(value/10.0) kWh with medium confidence:", comment: ""))
+                        report.append(NSLocalizedString("\nDividing \(value)/10 and adding \(value/10.0) kWh with medium confidence:", comment: ""))
                         chargedEnergy.append(.init(confidence: .medium, value: Measurement<UnitEnergy>(value: value/10.0, unit: .kilowattHours)))
                     }
                 } else {
                     // We simply add the value
-                    report.append(NSLocalizedString("Adding \(value) kWh with low confidence:", comment: ""))
+                    report.append(NSLocalizedString("\nAdding \(value) kWh with low confidence:", comment: ""))
                     chargedEnergy.append(.init(confidence: .low, value: Measurement<UnitEnergy>(value: value, unit: .kilowattHours)))
                 }
             }
         }
         
+        report.append(NSLocalizedString("\nBacklog check done.", comment: ""))
+        
         // Check sanity
         checkSanity(for: vehicle)
         
         // Adding ignored strings to report
-        report.append(NSLocalizedString("Ignored the following strings:\n\(otherStringBacklog.joined(separator: "\n"))", comment: ""))
+        report.append(NSLocalizedString("\n\nIgnored the following strings:\n\(otherStringBacklog.joined(separator: "\n"))", comment: ""))
     }
     
     private func evaluate(_ text: String) {
@@ -321,7 +325,7 @@ class TextRecognizer: Identifiable {
     
     private func checkSanity(for vehicle: Car) {
         // Check sanity of charged energy
-        report.append(NSLocalizedString("Checking sanity of energy candidates...", comment: ""))
+        report.append(NSLocalizedString("\n\nChecking sanity of energy candidates...", comment: ""))
         if chargedEnergy.count > 1 {
             var candidates = Set(chargedEnergy)
             if let netBatteryCapacityKWh = vehicle.netBatteryCapacityKWh {
@@ -357,9 +361,10 @@ class TextRecognizer: Identifiable {
                 }
             }
         }
+        report.append(NSLocalizedString("Energy check done.", comment: ""))
         
         // Check sanity of charging power
-        report.append(NSLocalizedString("Checking sanity of power candidates...", comment: ""))
+        report.append(NSLocalizedString("\n\nChecking sanity of power candidates...", comment: ""))
         if chargingPower.count > 1 {
             var candidates = Set(chargingPower)
             if let maxChargingPowerKW = vehicle.maxChargingPowerkW {
@@ -395,9 +400,10 @@ class TextRecognizer: Identifiable {
                 }
             }
         }
+        report.append(NSLocalizedString("Power check done.", comment: ""))
         
         // Check sanity of SOC
-        report.append(NSLocalizedString("Checking sanity of SOC candidates...", comment: ""))
+        report.append(NSLocalizedString("\n\nChecking sanity of SOC candidates...", comment: ""))
         
         // Get all candidates with very high confidence
         let veryHighSOC = soc.filter { $0.confidence == .veryHigh }
@@ -416,6 +422,17 @@ class TextRecognizer: Identifiable {
         let lowSOC = soc.filter { $0.confidence == .low }
         report.append(NSLocalizedString("- \(lowSOC.count) candidates with low confidence found.", comment: ""))
         setSOC(lowSOC)
+        
+        report.append(NSLocalizedString("SOC check done.", comment: ""))
+        
+        // Check sanity of times
+        report.append(NSLocalizedString("\n\nChecking sanity of time candidates...", comment: ""))
+        if end.isEmpty, let captureDate {
+            // Assume capture time
+            report.append(NSLocalizedString("- No end time found, assuming capture time.", comment: ""))
+            end.append(.init(confidence: .high, value: captureDate))
+        }
+        report.append(NSLocalizedString("Time check done.", comment: ""))
     }
     
     private func setSOC(_ candidates: [Candidate<Double>]) {

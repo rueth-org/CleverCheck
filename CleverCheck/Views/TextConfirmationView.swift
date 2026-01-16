@@ -12,6 +12,9 @@ struct TextConfirmationView: View {
     
     var proposedData: TextRecognizer
     
+    @Binding var enterStart: Bool
+    @Binding var start: Date
+    @Binding var end: Date
     @Binding var chargedEnergy: Measurement<UnitEnergy>
     @Binding var initialSOC: Double
     @Binding var enterInitialSOC: Bool
@@ -20,6 +23,10 @@ struct TextConfirmationView: View {
     
     @State private var showingReport: Bool = false
     
+    @State private var startCandidates: [TextRecognizer.Candidate<Date>]? = nil
+    @State private var selectedStart: TextRecognizer.Candidate<Date>? = nil
+    @State private var endCandidates: [TextRecognizer.Candidate<Date>]? = nil
+    @State private var selectedEnd: TextRecognizer.Candidate<Date>? = nil
     @State private var chargedEnergyCandidates: [TextRecognizer.Candidate<Measurement<UnitEnergy>>]? = nil
     @State private var selectedChargedEnergy: TextRecognizer.Candidate<Measurement<UnitEnergy>>? = nil
     @State private var initialSOCCandidates: [TextRecognizer.Candidate<Double>]? = nil
@@ -41,6 +48,15 @@ struct TextConfirmationView: View {
             }
             
             Button(action: {
+                if let selectedStart {
+                    start = selectedStart.value
+                    enterStart = true
+                }
+                
+                if let selectedEnd {
+                    end = selectedEnd.value
+                }
+                
                 if let selectedChargedEnergy {
                     chargedEnergy = selectedChargedEnergy.value
                 }
@@ -70,6 +86,30 @@ struct TextConfirmationView: View {
             }
             .background(Color.blue)
             .cornerRadius(25)
+            
+            if let startCandidates {
+                Picker("Start", selection: $selectedStart) {
+                    Text("Do not take over").tag(nil as TextRecognizer.Candidate<Date>?)
+                    ForEach(startCandidates, id: \.self) { data in
+                        Text(data.value.formatted()).tag(data)
+                    }
+                }
+            } else {
+                Text("No start time identified")
+                    .italic()
+            }
+            
+            if let endCandidates {
+                Picker("End", selection: $selectedEnd) {
+                    Text("Do not take over").tag(nil as TextRecognizer.Candidate<Date>?)
+                    ForEach(endCandidates, id: \.self) { data in
+                        Text(data.value.formatted()).tag(data)
+                    }
+                }
+            } else {
+                Text("No end time identified")
+                    .italic()
+            }
             
             if let chargedEnergyCandidates {
                 Picker("Charged energy", selection: $selectedChargedEnergy) {
@@ -106,10 +146,16 @@ struct TextConfirmationView: View {
                 Text("No final SOC identified")
                     .italic()
             }
-            
-            
         }
         .onAppear {
+            if !proposedData.start.isEmpty {
+                self.startCandidates = proposedData.start.sorted()
+                self.selectedStart = proposedData.start.first
+            }
+            if !proposedData.end.isEmpty {
+                self.endCandidates = proposedData.end.sorted()
+                self.selectedEnd = proposedData.end.first
+            }
             if !proposedData.chargedEnergy.isEmpty {
                 self.chargedEnergyCandidates = proposedData.chargedEnergy.sorted()
                 self.selectedChargedEnergy = self.chargedEnergyCandidates?.first

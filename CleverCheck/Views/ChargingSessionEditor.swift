@@ -165,6 +165,9 @@ struct ChargingSessionEditor: View {
                 .sheet(item: $proposedData) { data in
                     TextConfirmationView(
                         proposedData: data,
+                        enterStart: $enterStartTime,
+                        start: $startTime,
+                        end: $endTime,
                         chargedEnergy: $chargedEnergy,
                         initialSOC: $initialSOC,
                         enterInitialSOC: $enterInitialSOC,
