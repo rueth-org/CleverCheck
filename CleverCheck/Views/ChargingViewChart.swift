@@ -53,10 +53,10 @@ struct ChargingViewChart: View {
                         )
                         BarMark(
                             x: .value("End Time", pair.key),
-                            y: .value("Consumption", consumption.0)
+                            y: .value("Consumption", consumption.value)
                         )
                         .annotation(position: .top) {
-                            Text(consumption.1)
+                            Text(consumption.formattedValue)
                                 .font(.caption)
                                 .foregroundColor(.black)
                                 .padding(5)

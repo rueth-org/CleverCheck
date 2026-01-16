@@ -88,9 +88,12 @@ final class UserSettings {
     }
     
     func format(_ value: Double, withSignificantDigits: Int) -> String {
+        let integerPart = Int(floor(value)) // Get the whole number part
+        let digitCount = String(integerPart.magnitude).count // Count digits in the magnitude
+        let digits = withSignificantDigits < digitCount ? digitCount : withSignificantDigits
         let style = Decimal.FormatStyle(locale: Locale.current)
             .rounded(rule: .toNearestOrAwayFromZero)
-            .precision(.significantDigits(1...withSignificantDigits))
+            .precision(.significantDigits(1...digits))
         return style.format(Decimal(value))
     }
     

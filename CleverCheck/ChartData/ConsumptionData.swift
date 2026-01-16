@@ -59,7 +59,7 @@ struct ConsumptionData: Identifiable {
             distanceUnit: UnitLength = UserSettings.shared.distanceUnit,
             distanceMultiplier: Int = UserSettings.shared.distanceMultiplier,
             energyOverDistance: Bool = UserSettings.shared.energyOverDistance
-        ) -> (Double, String, String) {
+        ) -> (value: Double, formattedValue: String, unit: String) {
             let consumptionKWhPerKm = Measurement<UnitEnergy>(value: consumedEnergyKWh / distanceKilometers, unit: .kilowattHours)
             let consumptionEnergyUnitPerKm = consumptionKWhPerKm.converted(to: energyUnit)
             
