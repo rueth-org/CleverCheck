@@ -11,6 +11,9 @@ import Charts
 struct HomeViewChart: View {
     var homeData: HomeData
     var selectedChart: HomeView.Chart
+
+    @State private var showHomeConsumption: Bool = true
+    @State private var showChargingConsumption: Bool = true
     
     var yAxisLabel: String {
         switch selectedChart {
@@ -28,40 +31,44 @@ struct HomeViewChart: View {
         Chart {
             switch selectedChart {
             case .energy:
-                ForEach(homeData.data.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
-                    let dataSet = pair.value
+                ForEach(homeData.data.sorted(), id: \.id) { dataSet in
                     BarMark(
-                        x: .value("Month", pair.key),
-                        y: .value("Net consumption", dataSet.homeConsumptionNet.value)
+                        x: .value("Month", dataSet.timeKey),
+                        y: .value("Consumption", dataSet.consumption.value)
                     )
-                    .annotation(position: .top) {
-                        Text(UserSettings.shared.format(dataSet.homeConsumptionNet.value, withSignificantDigits: 3))
-                            .font(.caption)
-                            .foregroundColor(.black)
-                            .padding(5)
-                            .background(Color.white.opacity(0.8))
-                            .cornerRadius(5)
-                    }
+                    .foregroundStyle(by: .value("Data Type", dataSet.dataType.rawValue))
+                    /*.annotation(position: .top) {
+                        if !showChargingConsumption {
+                            Text(UserSettings.shared.format(dataSet.homeConsumptionNet.value, withSignificantDigits: 3))
+                                .font(.caption)
+                                .foregroundColor(.black)
+                                .padding(5)
+                                .background(Color.white.opacity(0.8))
+                                .cornerRadius(5)
+                        }
+                    }*/
                 }
             case .cost:
-                ForEach(homeData.data.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
-                    let dataSet = pair.value
+                ForEach(homeData.data.sorted(), id: \.id) { dataSet in
                     BarMark(
-                        x: .value("Month", pair.key),
-                        y: .value("Cost", dataSet.energyCost.amount)
+                        x: .value("Month", dataSet.timeKey),
+                        y: .value("Cost", dataSet.cost.amount)
                     )
-                    .annotation(position: .top) {
+                    .foregroundStyle(by: .value("Data Type", dataSet.dataType.rawValue))
+                    /*.annotation(position: .top) {
                         Text(UserSettings.shared.formatAsCurrencyNoSymbol(dataSet.energyCost.amount))
                             .font(.caption)
                             .foregroundColor(.black)
                             .padding(5)
                             .background(Color.white.opacity(0.8))
                             .cornerRadius(5)
-                    }
+                    }*/
                 }
             }
         }
+        .frame(minHeight: 200)
         .chartYAxisLabel(yAxisLabel)
+        .chartLegend(.visible)
         .chartOverlay { proxy in
             GeometryReader { geometry in
                 // Invisible layer that captures taps over the chart's plot area
@@ -93,6 +100,11 @@ struct HomeViewChart: View {
                             }
                     )
             }
+        }
+        
+        if selectedChart == .energy {
+            Toggle("Home consumption", isOn: $showHomeConsumption)
+            Toggle("Charging consumption", isOn: $showChargingConsumption)
         }
     }
     

@@ -35,9 +35,9 @@ struct HomeConsumptionsList: View {
                     Section(header: Text(month, format: UserSettings.shared.displayDateFormatInSection)) {
                         // The total cost for the month
                         HStack {
-                            Text("Total:")
+                            Text("Gross Total:")
                             Spacer()
-                            Text(totalCost(for: month), format: .currency(code: UserSettings.shared.currencyIdentifier))
+                            Text(totalCost(for: month).gross, format: .currency(code: UserSettings.shared.currencyIdentifier))
                             Button {
                                 self.selectedConsumptions = .init(consumptions: groupedByMonths[month]!)
                             } label: {
@@ -55,7 +55,7 @@ struct HomeConsumptionsList: View {
                                         //Display dateoFrm - dateUntil  inshort format
                                         Text("\(homeConsumption.validFrom, format: UserSettings.shared.displayDateFormat) - \(homeConsumption.validUntil, format: UserSettings.shared.displayDateFormat)")
                                         Spacer()
-                                        Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices), format: .currency(code: UserSettings.shared.currencyIdentifier))
+                                        Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).gross, format: .currency(code: UserSettings.shared.currencyIdentifier))
                                             .font(.subheadline)
                                             .foregroundColor(.secondary)
                                     }
@@ -159,12 +159,14 @@ struct HomeConsumptionsList: View {
         }
     }
     
-    private func totalCost(for month: Date) -> Double {
+    private func totalCost(for month: Date) -> (gross: Double, net: Double) {
         let monthString = UserSettings.shared.groupingDateFormatter.string(from: month)
-        var total: Double = 0.0
+        var totalGross: Double = 0.0
+        var totalNet: Double = 0.0
         for homeConsumption in homeConsumptions {
-            total += homeConsumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices)[monthString] ?? 0.0
+            totalGross += homeConsumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices)[monthString]?.gross ?? 0.0
+            totalNet += homeConsumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices)[monthString]?.net ?? 0.0
         }
-        return total
+        return (gross: totalGross, net: totalNet)
     }
 }

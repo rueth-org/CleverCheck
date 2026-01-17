@@ -9,17 +9,28 @@ import Foundation
 import SwiftData
 
 struct HomeData: Identifiable {
-    struct Data {
-        let homeConsumptionGross: Measurement<UnitEnergy>
-        let homeConsumptionNet: Measurement<UnitEnergy>
-        let energyCost: Cost
+    enum DataType: String {
+        case homeConsumption = "Home Consumption"
+        case charging = "Charging"
+    }
+    
+    struct Data: Identifiable, Comparable {
+        let id = UUID()
+        let timeKey: String
+        let dataType: DataType
+        let consumption: Measurement<UnitEnergy>
+        let cost: Cost
         
-        var grossMinusNetConsumption: Measurement<UnitEnergy> {
-            homeConsumptionGross.converted(to: .kilowattHours) - homeConsumptionNet.converted(to: .kilowattHours)
+        var specificCost: Cost {
+            .init(amount: consumption.converted(to: UserSettings.shared.energyUnit).value / cost.amount)
         }
         
-        var specificEnergyCost: Cost {
-            .init(amount: homeConsumptionNet.value / energyCost.amount)
+        static func < (lhs: HomeData.Data, rhs: HomeData.Data) -> Bool {
+            lhs.timeKey < rhs.timeKey
+        }
+        
+        static func == (lhs: HomeData.Data, rhs: HomeData.Data) -> Bool {
+            lhs.timeKey == rhs.timeKey
         }
     }
     
@@ -28,8 +39,8 @@ struct HomeData: Identifiable {
     let homeConsumptions: [HomeConsumption]
     let timeBox: TimeBox
     
-    var data: [String: Data] {
-        var result = [String: Data]()
+    var data: [Data] {
+        var result = [Data]()
         
         // Step through the months
         let calendar = Calendar.current
@@ -49,17 +60,34 @@ struct HomeData: Identifiable {
                 partialResult + consumption.netConsumptionForMonth(monthKey: monthKeyGrouping)
             }
             
+            let deltaConsumption = grossConsumption - netConsumption
+            
             // Cost
-            let cost = homeConsumptions.reduce(0) { partialResult, consumption in
-                partialResult + consumption.totalCostForMonth(monthKey: monthKeyGrouping, isGross: UserSettings.shared.displayGrossPrices, useConsumptionFromRelatedChargingSessions: true)
+            let grossCost = homeConsumptions.reduce(0) { partialResult, consumption in
+                partialResult + consumption.totalCostForMonth(monthKey: monthKeyGrouping, isGross: UserSettings.shared.displayGrossPrices, useConsumptionFromRelatedChargingSessions: true).gross
             }
             
-            // Create data set
-            result[monthKeyDisplay] = Data(
-                homeConsumptionGross: .init(value: grossConsumption, unit: UserSettings.shared.energyUnit),
-                homeConsumptionNet: .init(value: netConsumption, unit: UserSettings.shared.energyUnit),
-                energyCost: Cost(amount: cost)
-            )
+            let netCost = homeConsumptions.reduce(0) { partialResult, consumption in
+                partialResult + consumption.totalCostForMonth(monthKey: monthKeyGrouping, isGross: UserSettings.shared.displayGrossPrices, useConsumptionFromRelatedChargingSessions: true).net
+            }
+            
+            let deltaCost = grossCost - netCost
+            
+            // Create home consumption data set
+            result.append(Data(
+                timeKey: monthKeyDisplay,
+                dataType: .homeConsumption,
+                consumption: .init(value: grossConsumption, unit: UserSettings.shared.energyUnit),
+                cost: .init(amount: grossCost)
+            ))
+            
+            // Create charging data set
+            result.append(Data(
+                timeKey: monthKeyDisplay,
+                dataType: .charging,
+                consumption: .init(value: deltaConsumption, unit: UserSettings.shared.energyUnit),
+                cost: .init(amount: deltaCost)
+            ))
             
             // Increase current date by one month
             currentDate = calendar.date(byAdding: .month, value: 1, to: currentDate)!

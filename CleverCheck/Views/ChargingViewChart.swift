@@ -68,6 +68,7 @@ struct ChargingViewChart: View {
             }
             
         }
+        .frame(minHeight: 150)
         .chartYAxisLabel(yAxisLabel)
         .chartOverlay { proxy in
             GeometryReader { geometry in

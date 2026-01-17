@@ -20,11 +20,15 @@ struct HomeConsumptionAnalysis: View {
         homeConsumptions.first?.validUntil ?? Date()
     }
     
-    var costOfMonth: Double {
+    var costOfMonth: (gross: Double, net: Double) {
         let monthKey = UserSettings.shared.groupingDateFormatter.string(from: month)
-        return homeConsumptionsForLocation.reduce(0) { partialResult, consumption in
-            partialResult + consumption.totalCostForMonth(monthKey: monthKey, isGross: UserSettings.shared.displayGrossPrices)
+        let grossCost = homeConsumptionsForLocation.reduce(0) { partialResult, consumption in
+            partialResult + consumption.totalCostForMonth(monthKey: monthKey, isGross: UserSettings.shared.displayGrossPrices).gross
         }
+        let netCost = homeConsumptionsForLocation.reduce(0) { partialResult, consumption in
+            partialResult + consumption.totalCostForMonth(monthKey: monthKey, isGross: UserSettings.shared.displayGrossPrices).net
+        }
+        return (gross: grossCost, net: netCost)
     }
     
     var refundedCostOfMonth: (Measurement<UnitEnergy>, Double) {
@@ -78,21 +82,25 @@ struct HomeConsumptionAnalysis: View {
         }
     }
     
+    var chargingCostOfMonth: Double {
+        let costOfMonth = costOfMonth
+        return costOfMonth.gross - costOfMonth.net
+    }
+    
+    var chargingConsumptionOfMonth: Double {
+        grossConsumptionOfMonth - netConsumptionOfMonth
+    }
+    
     var body: some View {
         Text(month, format: UserSettings.shared.displayDateFormatInSection)
             .font(.title)
             .padding(.top)
             .padding(.horizontal)
         List {
-            Section(header: Text("This month's home consumption data")) {
-                Text("Location: \(location?.name ?? NSLocalizedString("All locations", comment: ""))")
-                    .bold()
-                HStack {
-                    Text("Net Cost:")
-                    Spacer()
-                    Text(costOfMonth.formatted(.currency(code: UserSettings.shared.currencyIdentifier)))
-                        .bold()
-                }
+            Text("Location: \(location?.name ?? NSLocalizedString("All locations", comment: ""))")
+                .bold()
+            
+            Section(header: Text("This month's gross data")) {
                 HStack {
                     Text("Total Consumption:")
                     Spacer()
@@ -100,15 +108,59 @@ struct HomeConsumptionAnalysis: View {
                         .bold()
                 }
                 HStack {
-                    Text("Net Consumption:")
+                    Text("Gross Cost:")
+                    Spacer()
+                    Text(costOfMonth.gross.formatted(.currency(code: UserSettings.shared.currencyIdentifier)))
+                        .bold()
+                }
+                HStack {
+                    Text("Specific Gross Cost:")
+                    Spacer()
+                    let specificCost = grossConsumptionOfMonth > 0 ? costOfMonth.gross / grossConsumptionOfMonth : 0
+                    Text("\(specificCost.formatted(.currency(code: UserSettings.shared.currencyIdentifier)))/\(UserSettings.shared.energyUnit.symbol)")
+                        .bold()
+                }
+            }
+            
+            Section(header: Text("This month's home consumption data")) {
+                HStack {
+                    Text("Home Consumption:")
                     Spacer()
                     Text("\(netConsumptionOfMonth.formatted()) \(UserSettings.shared.energyUnit.symbol)")
                         .bold()
                 }
                 HStack {
-                    Text("Specific Cost:")
+                    Text("Home Consumption Cost:")
                     Spacer()
-                    let specificCost = netConsumptionOfMonth > 0 ? costOfMonth / netConsumptionOfMonth : 0
+                    Text(costOfMonth.net.formatted(.currency(code: UserSettings.shared.currencyIdentifier)))
+                        .bold()
+                }
+                HStack {
+                    Text("Specific Home Consumption Cost:")
+                    Spacer()
+                    let specificCost = netConsumptionOfMonth > 0 ? costOfMonth.net / netConsumptionOfMonth : 0
+                    Text("\(specificCost.formatted(.currency(code: UserSettings.shared.currencyIdentifier)))/\(UserSettings.shared.energyUnit.symbol)")
+                        .bold()
+                }
+            }
+            
+            Section(header: Text("This month's charging data")) {
+                HStack {
+                    Text("Charging Consumption:")
+                    Spacer()
+                    Text("\(chargingConsumptionOfMonth.formatted()) \(UserSettings.shared.energyUnit.symbol)")
+                        .bold()
+                }
+                HStack {
+                    Text("Charging Cost:")
+                    Spacer()
+                    Text(chargingCostOfMonth.formatted(.currency(code: UserSettings.shared.currencyIdentifier)))
+                        .bold()
+                }
+                HStack {
+                    Text("Specific Charging Cost:")
+                    Spacer()
+                    let specificCost = chargingCostOfMonth > 0 ? chargingCostOfMonth / chargingConsumptionOfMonth : 0
                     Text("\(specificCost.formatted(.currency(code: UserSettings.shared.currencyIdentifier)))/\(UserSettings.shared.energyUnit.symbol)")
                         .bold()
                 }
@@ -140,14 +192,14 @@ struct HomeConsumptionAnalysis: View {
                             Text("\(homeConsumption.consumption.converted(to: UserSettings.shared.energyUnit).value.formatted()) \(UserSettings.shared.energyUnit.symbol)")
                         }
                         HStack {
-                            Text("Cost:")
+                            Text("Gross Cost:")
                             Spacer()
-                            Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).formatted(.currency(code: UserSettings.shared.currencyIdentifier)))
+                            Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).gross.formatted(.currency(code: UserSettings.shared.currencyIdentifier)))
                         }
                         HStack {
-                            Text("Specific Cost:")
+                            Text("Net Cost:")
                             Spacer()
-                            Text("\(homeConsumption.specificCost(isGross: UserSettings.shared.displayGrossPrices).formatted(.currency(code: UserSettings.shared.currencyIdentifier)))/\(UserSettings.shared.energyUnit.symbol)")
+                            Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).net.formatted(.currency(code: UserSettings.shared.currencyIdentifier)))
                         }
                     }
                     .padding(.vertical)
