@@ -12,8 +12,8 @@ struct HomeViewChart: View {
     var homeData: HomeData
     var selectedChart: HomeView.Chart
 
-    @State private var showHomeConsumption: Bool = true
-    @State private var showChargingConsumption: Bool = true
+    @Binding var showHomeData: Bool
+    @Binding var showChargingData: Bool
     
     var yAxisLabel: String {
         switch selectedChart {
@@ -27,42 +27,81 @@ struct HomeViewChart: View {
     // Optional callback invoked when a bar is tapped; receives the x-axis key (month) as String
     var onBarTap: ((String) -> Void)? = nil
     
+    private var filteredHomeData: [HomeData.Data] {
+        if showHomeData && showChargingData {
+            return homeData.data
+        } else if showHomeData {
+            return homeData.data.filter { $0.dataType == .homeConsumption }
+        } else if showChargingData {
+            return homeData.data.filter { $0.dataType == .charging }
+        } else {
+            return homeData.data
+        }
+    }
+
+    // Compute the aggregated sum per x-axis key (timeKey) depending on selectedChart.
+    private var aggregatedSums: [(timeKey: String, sum: Double)] {
+        // Group data by timeKey (x-axis key) and sum the relevant metric
+        let grouped = Dictionary(grouping: filteredHomeData) { $0.timeKey }
+        return grouped.map { (key, values) in
+            let total: Double
+            switch selectedChart {
+            case .energy:
+                total = values.reduce(0.0) { $0 + $1.consumption.value }
+            case .cost:
+                total = values.reduce(0.0) { $0 + $1.cost.amount }
+            }
+            return (timeKey: key, sum: total)
+        }
+        // Keep a stable order by sorting on the key which matches how bars are laid out
+        .sorted { $0.timeKey < $1.timeKey }
+    }
+    
     var body: some View {
         Chart {
             switch selectedChart {
             case .energy:
-                ForEach(homeData.data.sorted(), id: \.id) { dataSet in
+                ForEach(filteredHomeData.sorted(), id: \.id) { dataSet in
                     BarMark(
                         x: .value("Month", dataSet.timeKey),
                         y: .value("Consumption", dataSet.consumption.value)
                     )
-                    .foregroundStyle(by: .value("Data Type", dataSet.dataType.rawValue))
-                    /*.annotation(position: .top) {
-                        if !showChargingConsumption {
-                            Text(UserSettings.shared.format(dataSet.homeConsumptionNet.value, withSignificantDigits: 3))
-                                .font(.caption)
-                                .foregroundColor(.black)
-                                .padding(5)
-                                .background(Color.white.opacity(0.8))
-                                .cornerRadius(5)
-                        }
-                    }*/
+                    .foregroundStyle(by: .value("Data Type", NSLocalizedString(dataSet.dataType.rawValue, comment: "")))
                 }
             case .cost:
-                ForEach(homeData.data.sorted(), id: \.id) { dataSet in
+                ForEach(filteredHomeData.sorted(), id: \.id) { dataSet in
                     BarMark(
                         x: .value("Month", dataSet.timeKey),
                         y: .value("Cost", dataSet.cost.amount)
                     )
-                    .foregroundStyle(by: .value("Data Type", dataSet.dataType.rawValue))
-                    /*.annotation(position: .top) {
-                        Text(UserSettings.shared.formatAsCurrencyNoSymbol(dataSet.energyCost.amount))
-                            .font(.caption)
-                            .foregroundColor(.black)
-                            .padding(5)
-                            .background(Color.white.opacity(0.8))
-                            .cornerRadius(5)
-                    }*/
+                    .foregroundStyle(by: .value("Data Type", NSLocalizedString(dataSet.dataType.rawValue, comment: "")))
+                }
+            }
+
+            // Overlay PointMarks (invisible) with annotations for the aggregated total per x-axis key
+            ForEach(aggregatedSums, id: \.timeKey) { item in
+                // Use a PointMark so we can attach an annotation positioned above the stacked bars
+                PointMark(
+                    x: .value("Month", item.timeKey),
+                    y: .value("Total", item.sum)
+                )
+                .symbol(.circle)
+                .opacity(0) // hide the symbol itself
+                .annotation(position: .top, alignment: .center) {
+                    // Format the sum according to the selected chart type
+                    Group {
+                        switch selectedChart {
+                        case .energy:
+                            Text(UserSettings.shared.format(item.sum, withSignificantDigits: 3))
+                        case .cost:
+                            Text(UserSettings.shared.formatAsCurrencyNoSymbol(item.sum))
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundColor(.black)
+                    .padding(4)
+                    .background(Color.white.opacity(0.8))
+                    .cornerRadius(6)
                 }
             }
         }
@@ -102,10 +141,10 @@ struct HomeViewChart: View {
             }
         }
         
-        if selectedChart == .energy {
-            Toggle("Home consumption", isOn: $showHomeConsumption)
-            Toggle("Charging consumption", isOn: $showChargingConsumption)
-        }
+        Toggle("Home consumption", isOn: $showHomeData)
+            .disabled(showChargingData == false && showHomeData == true)
+        Toggle("Charging", isOn: $showChargingData)
+            .disabled(showChargingData == true && showHomeData == false)
     }
     
     // Called when a bar is tapped. String is the "End Time" key from the x-axis.
@@ -116,3 +155,4 @@ struct HomeViewChart: View {
         onBarTap?(key)
     }
 }
+

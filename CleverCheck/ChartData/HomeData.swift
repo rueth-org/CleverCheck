@@ -10,7 +10,7 @@ import SwiftData
 
 struct HomeData: Identifiable {
     enum DataType: String {
-        case homeConsumption = "Home Consumption"
+        case homeConsumption = "Home consumption"
         case charging = "Charging"
     }
     
@@ -77,8 +77,8 @@ struct HomeData: Identifiable {
             result.append(Data(
                 timeKey: monthKeyDisplay,
                 dataType: .homeConsumption,
-                consumption: .init(value: grossConsumption, unit: UserSettings.shared.energyUnit),
-                cost: .init(amount: grossCost)
+                consumption: .init(value: netConsumption, unit: UserSettings.shared.energyUnit),
+                cost: .init(amount: netCost)
             ))
             
             // Create charging data set

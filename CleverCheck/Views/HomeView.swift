@@ -28,6 +28,9 @@ struct HomeView: View {
         allowedResolutions: [.yearly],
         selectIndividualItem: { _ in }
     )
+    @State private var showHomeData: Bool = true
+    @State private var showChargingData: Bool = true
+    
     @State private var showingHomeConsumptionAnalysis: Bool = false
     
     enum Chart {
@@ -66,9 +69,15 @@ struct HomeView: View {
                     .pickerStyle(.palette)
                     
                     // The data part
-                    HomeViewChart(homeData: homeData, selectedChart: selectedChart, onBarTap: { dateKey in
-                        timeBox.switchResolution(dateKey)
-                    })
+                    HomeViewChart(
+                        homeData: homeData,
+                        selectedChart: selectedChart,
+                        showHomeData: $showHomeData,
+                        showChargingData: $showChargingData,
+                        onBarTap: { dateKey in
+                            timeBox.switchResolution(dateKey)
+                        }
+                    )
                     .id(homeData.id)
                 } else {
                     Text("Select location").italic()
