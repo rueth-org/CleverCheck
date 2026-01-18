@@ -22,7 +22,12 @@ struct HomeView: View {
     @State private var navigationPath = NavigationPath()
     @State private var selectedLocation: Location? = nil
     @State private var selectedConsumptions: ConsumptionContainer? = nil
-    @State private var timeBox: TimeBox? = nil
+    @State private var timeBox = TimeBox(
+        selectedDate: Date.now.startOfMonth,
+        selectedResolution: .yearly,
+        allowedResolutions: [.yearly],
+        selectIndividualItem: { _ in }
+    )
     @State private var showingHomeConsumptionAnalysis: Bool = false
     
     enum Chart {
@@ -35,7 +40,7 @@ struct HomeView: View {
     }, sort: \Location.name) private var locations: [Location]
     
     var homeData: HomeData? {
-        if let selectedLocation, let timeBox {
+        if let selectedLocation {
             return try? HomeData(modelContext: modelContext, location: selectedLocation, timeBox: timeBox)
         } else {
             return nil
@@ -45,7 +50,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             List {
-                if let homeData, let timeBox {
+                if let homeData {
                     // The date selection part
                     Text(selectedLocation?.name ?? "No location selected")
                         .font(Font.title.bold())
@@ -64,6 +69,7 @@ struct HomeView: View {
                     HomeViewChart(homeData: homeData, selectedChart: selectedChart, onBarTap: { dateKey in
                         timeBox.switchResolution(dateKey)
                     })
+                    .id(homeData.id)
                 } else {
                     Text("Select location").italic()
                 }
@@ -157,12 +163,7 @@ struct HomeView: View {
                 }
             }
             
-            self.timeBox = TimeBox(
-                selectedDate: Date.now.startOfMonth,
-                selectedResolution: .yearly,
-                allowedResolutions: [.yearly],
-                selectIndividualItem: selectMonth
-            )
+            timeBox.selectIndividualItem = selectMonth
         }
     }
     
@@ -188,4 +189,3 @@ struct HomeView: View {
         }
     }
 }
-
