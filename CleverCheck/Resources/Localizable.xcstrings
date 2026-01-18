@@ -2106,6 +2106,22 @@
         }
       }
     },
+    "Financial settings" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Økonomiske indstillinger"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finanzielle Einstellungen"
+          }
+        }
+      }
+    },
     "Flatrate" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3888,6 +3904,22 @@
         }
       }
     },
+    "Reference SOC" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reference-SOC"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Referenzladestand"
+          }
+        }
+      }
+    },
     "Refunded" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4289,22 +4321,6 @@
         }
       }
     },
-    "Speed" : {
-      "localizations" : {
-        "da" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hastighed"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geschwindigkeit"
-          }
-        }
-      }
-    },
     "Start" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4390,6 +4406,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bild aufnehmen"
+          }
+        }
+      }
+    },
+    "The reference SOC is used to calculate the average consumption of your vehicle. Consumption calculation will only be done, when you charge your vehicle to exactly this SOC and at the same time enter a mileage." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reference-SOC'en bruges til at beregne dit køretøjs gennemsnitlige forbrug. Forbrugsberegningen udføres kun, når du oplader dit køretøj til præcis denne SOC og samtidig indtaster et kilometertal."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Referenzladestand (SOC) dient zur Berechnung des durchschnittlichen Verbrauchs Ihres Fahrzeugs. Die Verbrauchsberechnung erfolgt nur, wenn Sie Ihr Fahrzeug exakt auf diesen Ladezustand aufladen und gleichzeitig den Kilometerstand eingeben."
           }
         }
       }
@@ -4582,6 +4614,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Typ"
+          }
+        }
+      }
+    },
+    "Units" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enheder"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einheiten"
           }
         }
       }

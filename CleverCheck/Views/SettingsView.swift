@@ -8,8 +8,6 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
-
-#if canImport(UIKit)
 import UIKit
 
 struct ShareSheet: UIViewControllerRepresentable {
@@ -27,49 +25,6 @@ struct ShareSheet: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
-
-#elseif canImport(AppKit)
-import AppKit
-
-struct MacSharePicker: NSViewRepresentable {
-    let items: [Any]
-    @Binding var isPresented: Bool
-    let completion: ((Bool, Error?) -> Void)?
-
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView(frame: .zero)
-        DispatchQueue.main.async {
-            let picker = NSSharingServicePicker(items: items)
-            picker.delegate = context.coordinator
-            picker.show(relativeTo: view.bounds, of: view, preferredEdge: .minY)
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {}
-
-    class Coordinator: NSObject, NSSharingServicePickerDelegate, NSSharingServiceDelegate {
-        let parent: MacSharePicker
-        init(_ parent: MacSharePicker) { self.parent = parent }
-
-        func sharingServicePicker(_ picker: NSSharingServicePicker, delegateFor item: Any) -> NSSharingServiceDelegate? {
-            return self
-        }
-
-        func sharingService(_ sharingService: NSSharingService, didShareItems items: [Any]) {
-            parent.completion?(true, nil)
-            DispatchQueue.main.async { parent.isPresented = false }
-        }
-
-        func sharingService(_ sharingService: NSSharingService, didFailToShareItems items: [Any], error: Error) {
-            parent.completion?(false, error)
-            DispatchQueue.main.async { parent.isPresented = false }
-        }
-    }
-}
-#endif
 
 struct SettingsView: View {
     enum NavigationDestination: Hashable {
@@ -103,6 +58,11 @@ struct SettingsView: View {
     // Export/share state
     @State private var isSharing: Bool = false
     @State private var exportFileURL: URL? = nil
+    
+    // Settings
+    @State private var isEditingSOC: Bool = false
+    private let minSOC: Double = 0.5
+    private let maxSOC: Double = 1.0
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -120,6 +80,53 @@ struct SettingsView: View {
                     Button("Charging Cost Plans") {
                         navigationPath.append(NavigationDestination.ChargingCostPlans)
                     }
+                }
+                
+                Section(header: Text("Charging")) {
+                    VStack {
+                        Text("The reference SOC is used to calculate the average consumption of your vehicle. Consumption calculation will only be done, when you charge your vehicle to exactly this SOC and at the same time enter a mileage.")
+                            .font(.footnote)
+                            .padding(.bottom)
+                        HStack {
+                            Text("Reference SOC")
+                            Spacer()
+                            Text(UserSettings.shared.referenceSOC.formatted(.percent))
+                                .foregroundColor(isEditingSOC ? .red : .primary)
+                        }
+                        Slider(
+                            value: UserSettings.shared.$referenceSOC,
+                            in: 0.5...1.0,
+                            step: 0.05
+                        ) {
+                            Text("Reference SOC")
+                        } minimumValueLabel: {
+                            Text(minSOC.formatted(.percent))
+                                .font(.caption)
+                        } maximumValueLabel: {
+                            Text(maxSOC.formatted(.percent))
+                                .font(.caption)
+                        } onEditingChanged: { editing in
+                            isEditingSOC = editing
+                        }
+                    }
+                }
+                
+                Section(header: Text("Units")) {
+                    /*
+                     @AppStorage("measurementSystem") var measurementSystem: String = Locale.current.measurementSystem.identifier
+                     @AppStorage("energyUnitSymbol") var energyUnitSymbol: String = "kWh"
+                     @AppStorage("powerUnitSymbol") var powerUnitSymbol: String = "kW"
+                     @AppStorage("energyOverDistance") var energyOverDistance: Bool = true
+                     @AppStorage("distanceMultiplier") var distanceMultiplier: Int = 100
+                     */
+                }
+                
+                Section(header: Text("Financial settings")) {
+                    /*
+                     @AppStorage("currencyIdentifier") var currencyIdentifier: String = Locale.current.currency?.identifier ?? "EUR"
+                     @AppStorage("vatRate") var vatRate: Double = 0.25
+                     @AppStorage("displayGrossPrices") var displayGrossPrices: Bool = true
+                     */
                 }
                 
                 Section(header: Text("Maintenance")) {
@@ -256,7 +263,6 @@ struct SettingsView: View {
                     .foregroundColor(.blue)
                     .sheet(isPresented: $isSharing) {
                         if let url = exportFileURL {
-                            #if canImport(UIKit)
                             ShareSheet(activityItems: [url]) { completed, err in
                                 if completed {
                                     // remove temp file after successful share
@@ -270,22 +276,6 @@ struct SettingsView: View {
                                 showImportResult = true
                                 isSharing = false
                             }
-                            #elseif canImport(AppKit)
-                            MacSharePicker(items: [url], isPresented: $isSharing) { completed, err in
-                                if completed {
-                                    do { try FileManager.default.removeItem(at: url); exportFileURL = nil } catch { print("Failed to remove temp export file: \(error)") }
-                                    importMessage = "Export shared. Temporary file removed."
-                                } else if let err = err {
-                                    importMessage = "Share failed: \(err.localizedDescription)"
-                                } else {
-                                    importMessage = "Share cancelled."
-                                }
-                                showImportResult = true
-                                isSharing = false
-                            }
-                            #else
-                            Text("Sharing not supported on this platform")
-                            #endif
                         } else {
                             Text("No file to share")
                         }

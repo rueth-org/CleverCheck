@@ -54,7 +54,7 @@ struct CarEditor: View {
                     in: 0.5...1.0,
                     step: 0.05
                 ) {
-                    Text("Speed")
+                    Text("Default SOC")
                 } minimumValueLabel: {
                     Text(minSOC.formatted(.percent))
                         .font(.caption)
