@@ -69,7 +69,7 @@ struct ConsumptionData: Identifiable {
             let value = energyOverDistance ? convertedEnergyPerDistance : 1.0 / convertedEnergyPerDistance
             
             // Compose the unit string
-            let unitString = energyOverDistance ? "\(energyUnit.symbol)/\(distanceMultiplier != 1 ? String(distanceMultiplier) : "")\(distanceUnit.symbol)" : "\(distanceUnit.symbol)/\(energyUnit.symbol)"
+            let unitString = UserSettings.shared.consumptionUnitSymbol
             
             return (value, UserSettings.shared.format(value, withSignificantDigits: 3), unitString)
         }

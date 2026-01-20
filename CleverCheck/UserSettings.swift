@@ -12,7 +12,63 @@ import SwiftData
 final class UserSettings {
     static let shared = UserSettings()
     
-    @AppStorage("measurementSystem") var measurementSystem: String = Locale.current.measurementSystem.identifier
+    enum EnergyUnit: String, CaseIterable, Identifiable {
+        case kWh
+        case cal
+        case J
+        case kJ
+        case kCal
+        
+        var id: String { rawValue }
+        
+        var unit: UnitEnergy {
+            switch self {
+            case .kWh: return .kilowattHours
+            case .cal: return .calories
+            case .J: return .joules
+            case .kJ: return .kilojoules
+            case .kCal: return .kilocalories
+            }
+        }
+        
+        var symbol: String { rawValue }
+    }
+    
+    enum PowerUnit: String, CaseIterable, Identifiable {
+        case TW
+        case GW
+        case MW
+        case kW
+        case W
+        case mW
+        case µW
+        case nW
+        case pW
+        case fW
+        case hp
+        
+        var id: String { rawValue }
+        
+        var unit: UnitPower {
+            switch self {
+            case .TW: return .terawatts
+            case .GW: return .gigawatts
+            case .MW: return .megawatts
+            case .kW: return .kilowatts
+            case .W: return .watts
+            case .mW: return .milliwatts
+            case .µW: return .microwatts
+            case .nW: return .nanowatts
+            case .pW: return .picowatts
+            case .fW: return .femtowatts
+            case .hp: return .horsepower
+            }
+        }
+        
+        var symbol: String { rawValue }
+    }
+    
+    @AppStorage("measurementSystem") var measurementSystemIdentifier: String = Locale.current.measurementSystem.identifier
     @AppStorage("currencyIdentifier") var currencyIdentifier: String = Locale.current.currency?.identifier ?? "EUR"
     @AppStorage("energyUnitSymbol") var energyUnitSymbol: String = "kWh"
     @AppStorage("powerUnitSymbol") var powerUnitSymbol: String = "kW"
@@ -27,11 +83,15 @@ final class UserSettings {
     // TODO make Show Archived Cars/Plans... persistent
     
     var consumptionUnitSymbol: String {
-        energyOverDistance ? "\(energyUnit.symbol)/\(distanceMultiplier != 1 ? String(distanceMultiplier) : "")\(distanceUnit.symbol)" : "\(distanceUnit.symbol)/\(energyUnit.symbol)"
+        if energyOverDistance {
+            "\(energyUnit.symbol)/\(distanceMultiplier != 1 ? String(distanceMultiplier) : "")\(distanceUnit.symbol)"
+        } else {
+            "\(distanceMultiplier != 1 ? String(distanceMultiplier) : "")\(distanceUnit.symbol)/\(energyUnit.symbol)"
+        }
     }
     
     var distanceUnit: UnitLength {
-        switch measurementSystem {
+        switch measurementSystemIdentifier {
         case Locale.MeasurementSystem.metric.identifier:
             return .kilometers
         case Locale.MeasurementSystem.us.identifier, Locale.MeasurementSystem.uk.identifier:
@@ -88,6 +148,7 @@ final class UserSettings {
     }
     
     func format(_ value: Double, withSignificantDigits: Int) -> String {
+        if value == .infinity || value == .greatestFiniteMagnitude { return "-" }
         let integerPart = Int(floor(value)) // Get the whole number part
         let digitCount = String(integerPart.magnitude).count // Count digits in the magnitude
         let digits = withSignificantDigits < digitCount ? digitCount : withSignificantDigits
@@ -160,3 +221,4 @@ final class UserSettings {
         }
     }
 }
+

@@ -604,7 +604,7 @@ class TextRecognizer: Identifiable {
         let parts = s.components(separatedBy: ":")
         
         if parts.count == 2 {
-            // There are two parts, one before and one after the colong
+            // There are two parts, one before and one after the colon
             if let part1 = TextRecognizer.parseLocalizedDouble(parts[0]), let part2 = TextRecognizer.parseLocalizedDouble(parts[1]) {
                 var duration: Duration
                 if part1 == 0 {

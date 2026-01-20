@@ -308,7 +308,7 @@ struct DataEncoder {
 
         // User settings snapshot
         let settingsDTO = UserSettingsDTO(
-            measurementSystem: UserSettings.shared.measurementSystem,
+            measurementSystem: UserSettings.shared.measurementSystemIdentifier,
             currencyIdentifier: UserSettings.shared.currencyIdentifier,
             energyUnitSymbol: UserSettings.shared.energyUnitSymbol,
             powerUnitSymbol: UserSettings.shared.powerUnitSymbol,

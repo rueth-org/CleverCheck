@@ -60,9 +60,21 @@ struct SettingsView: View {
     @State private var exportFileURL: URL? = nil
     
     // Settings
+    @AppStorage("measurementSystem") private var measurementSystemIdentifier: String = Locale.current.measurementSystem.identifier
+    @AppStorage("currencyIdentifier") private var currencyIdentifier: String = Locale.current.currency?.identifier ?? "EUR"
+    @AppStorage("energyUnitSymbol") private var energyUnitSymbol: String = "kWh"
+    @AppStorage("powerUnitSymbol") private var powerUnitSymbol: String = "kW"
+    @AppStorage("energyOverDistance") private var energyOverDistance: Bool = true
+    @AppStorage("distanceMultiplier") private var distanceMultiplier: Int = 100
+    @AppStorage("vatRate") private var vatRate: Double = 0.25
+    @AppStorage("displayGrossPrices") private var displayGrossPrices: Bool = true
+    @AppStorage("referenceSOC") private var referenceSOC: Double = 0.8
+    
     @State private var isEditingSOC: Bool = false
     private let minSOC: Double = 0.5
     private let maxSOC: Double = 1.0
+    
+    @State private var isEditingVATRate: Bool = false
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -84,17 +96,17 @@ struct SettingsView: View {
                 
                 Section(header: Text("Charging")) {
                     VStack {
-                        Text("The reference SOC is used to calculate the average consumption of your vehicle. Consumption calculation will only be done, when you charge your vehicle to exactly this SOC and at the same time enter a mileage.")
-                            .font(.footnote)
-                            .padding(.bottom)
                         HStack {
                             Text("Reference SOC")
                             Spacer()
-                            Text(UserSettings.shared.referenceSOC.formatted(.percent))
+                            Text(referenceSOC.formatted(.percent))
                                 .foregroundColor(isEditingSOC ? .red : .primary)
                         }
+                        Text("The reference SOC is used to calculate the average consumption of your vehicle. Consumption calculation will only be done, when you charge your vehicle to exactly this SOC and at the same time enter a mileage.")
+                            .font(.footnote)
+                            .padding(.vertical)
                         Slider(
-                            value: UserSettings.shared.$referenceSOC,
+                            value: $referenceSOC,
                             in: 0.5...1.0,
                             step: 0.05
                         ) {
@@ -112,21 +124,43 @@ struct SettingsView: View {
                 }
                 
                 Section(header: Text("Units")) {
-                    /*
-                     @AppStorage("measurementSystem") var measurementSystem: String = Locale.current.measurementSystem.identifier
-                     @AppStorage("energyUnitSymbol") var energyUnitSymbol: String = "kWh"
-                     @AppStorage("powerUnitSymbol") var powerUnitSymbol: String = "kW"
-                     @AppStorage("energyOverDistance") var energyOverDistance: Bool = true
-                     @AppStorage("distanceMultiplier") var distanceMultiplier: Int = 100
-                     */
+                    Picker("Measurement system", selection: $measurementSystemIdentifier) {
+                        ForEach(Locale.MeasurementSystem.measurementSystems, id: \.self) { system in
+                            Text(NSLocalizedString(system.identifier, comment: "")).tag(system.identifier)
+                        }
+                    }
+                    Picker("Energy unit", selection: $energyUnitSymbol) {
+                        ForEach(UserSettings.EnergyUnit.allCases, id: \.id) { energyUnit in
+                            Text(energyUnit.symbol).tag(energyUnit.symbol)
+                        }
+                    }
+                    Picker("Power unit", selection: $powerUnitSymbol) {
+                        ForEach(UserSettings.PowerUnit.allCases, id: \.id) { powerUnit in
+                            Text(powerUnit.symbol).tag(powerUnit.symbol)
+                        }
+                    }
+                    Toggle("Show energy over distance", isOn: $energyOverDistance)
+                    Picker("Distance multiplier", selection: $distanceMultiplier) {
+                        Text("1").tag(1)
+                        Text("10").tag(10)
+                        Text("100").tag(100)
+                    }
                 }
                 
                 Section(header: Text("Financial settings")) {
-                    /*
-                     @AppStorage("currencyIdentifier") var currencyIdentifier: String = Locale.current.currency?.identifier ?? "EUR"
-                     @AppStorage("vatRate") var vatRate: Double = 0.25
-                     @AppStorage("displayGrossPrices") var displayGrossPrices: Bool = true
-                     */
+                    Picker("Currency", selection: $currencyIdentifier) {
+                        ForEach(Locale.commonISOCurrencyCodes, id: \.self) { identifier in
+                            Text(identifier).tag(identifier)
+                        }
+                    }
+                    HStack {
+                        Text("VAT rate")
+                        Spacer()
+                        TextField("VAT rate", value: $vatRate, format: .percent)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    Toggle("Display gross prices", isOn: $displayGrossPrices)
                 }
                 
                 Section(header: Text("Maintenance")) {
