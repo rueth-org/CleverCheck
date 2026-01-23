@@ -80,6 +80,16 @@ final class UserSettings {
     @AppStorage("selectedCarId") var selectedCarId: String?
     @AppStorage("selectedLocationId") var selectedLocationId: String?
     
+    /// Stores the instance of CurrencyConverterService after async initialization
+    var currencyConverterService: CurrencyConverterService?
+    
+    // MARK: - Async Initializers
+    /// Call this method to asynchronously and safely initialize the currencyConverterService property
+    @MainActor
+    func loadCurrencyConverterService() async throws {
+        self.currencyConverterService = try await CurrencyConverterService.makeService()
+    }
+    
     // TODO make Show Archived Cars/Plans... persistent
     
     var consumptionUnitSymbol: String {

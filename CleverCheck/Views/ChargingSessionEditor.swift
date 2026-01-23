@@ -391,10 +391,10 @@ struct ChargingSessionEditor: View {
                 self.endTime = chargingSession.endTime
                 self.chargedEnergy = chargingSession.chargedEnergy
                 if let cost = chargingSession.chargingCost {
-                    self.cost = cost
+                    self.cost = cost.converted(to: UserSettings.shared.currencyIdentifier) ?? cost
                 }
                 if let specificChargingCost = chargingSession.specificChargingCost {
-                    self.specificCost = specificChargingCost
+                    self.specificCost = specificChargingCost.converted(to: UserSettings.shared.currencyIdentifier) ?? specificChargingCost
                 }
                 self.enterCost = chargingSession.costCalculationMethod
                 if let mileage = chargingSession.mileage {

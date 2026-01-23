@@ -88,7 +88,7 @@ struct PriceElementEditor: View {
             if let priceElement {
                 // Edit the incoming price element
                 label = priceElement.label
-                amount = priceElement.amount
+                amount = priceElement.convertedAmount
                 amountIsGross = priceElement.isGross
                 elementType = priceElement.type
                 vatRate = priceElement.vatRate

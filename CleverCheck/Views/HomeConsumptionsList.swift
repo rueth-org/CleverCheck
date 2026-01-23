@@ -35,9 +35,9 @@ struct HomeConsumptionsList: View {
                     Section(header: Text(month, format: UserSettings.shared.displayDateFormatInSection)) {
                         // The total cost for the month
                         HStack {
-                            Text("Gross Total:")
+                            Text("Net Total:")
                             Spacer()
-                            Text(totalCost(for: month).gross, format: .currency(code: UserSettings.shared.currencyIdentifier))
+                            Text(totalCost(for: month).net, format: .currency(code: UserSettings.shared.currencyIdentifier))
                             Button {
                                 self.selectedConsumptions = .init(consumptions: groupedByMonths[month]!)
                             } label: {
@@ -55,7 +55,7 @@ struct HomeConsumptionsList: View {
                                         //Display dateoFrm - dateUntil  inshort format
                                         Text("\(homeConsumption.validFrom, format: UserSettings.shared.displayDateFormat) - \(homeConsumption.validUntil, format: UserSettings.shared.displayDateFormat)")
                                         Spacer()
-                                        Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).gross, format: .currency(code: UserSettings.shared.currencyIdentifier))
+                                        Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).net, format: .currency(code: UserSettings.shared.currencyIdentifier))
                                             .font(.subheadline)
                                             .foregroundColor(.secondary)
                                     }

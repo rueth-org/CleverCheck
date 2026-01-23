@@ -114,33 +114,28 @@ struct ChargingCostPlanEditor: View {
                 
                 switch plan.planType {
                 case .individual:
-                    if let price = plan.defaultEnergyPrice {
-                        // Check if user has changed energy unit and convert if yes
-                        if plan.energyUnitSymbol == UserSettings.shared.energyUnitSymbol {
-                            // Use price without conversion
-                            individualDefaultPrice = price
+                    if let originalPrice = plan.defaultEnergyPrice {
+                        if let price = originalPrice.converted(to: UserSettings.shared.currencyIdentifier) {
+                            convertEnergyUnit(plan, price)
                         } else {
-                            // Convert to new unit
-                            if let defaultPrice = UserSettings.shared.convertEnergyPrice(amount: price.amount, from: plan.energyUnitSymbol, to: UserSettings.shared.energyUnitSymbol) {
-                                individualDefaultPrice = Cost(amount: defaultPrice, currency: price.currency)
-                                energyUnitSymbol = UserSettings.shared.energyUnitSymbol
-                            } else {
-                                // The energy unit symbol is unknown, assume default
-                                individualDefaultPrice = price
-                                energyUnitSymbol = UserSettings.shared.energyUnitSymbol
-                                
-                                // Inform the user
-                                activeAlert = SimpleAlert(type: .error(message: "Unknown energy unit: \(plan.energyUnitSymbol). Assuming default: \(UserSettings.shared.energyUnitSymbol). Please check your values."))
-                                showingAlert = true
-                            }
+                            // Conversion error, inform user and use original value
+                            activeAlert = SimpleAlert(type: .fatalError(message: "Could not convert currency, showing original currency \(originalPrice.currency)."))
+                            showingAlert = true
+                            convertEnergyUnit(plan, originalPrice)
                         }
-                        enterIndividualDefaultPrice = true
                     } else {
                         enterIndividualDefaultPrice = false
                     }
                 case .flatrate:
-                    if let rate = plan.monthlyRate {
-                        flatratePrice = rate
+                    if let originalRate = plan.monthlyRate {
+                        if let rate = originalRate.converted(to: UserSettings.shared.currencyIdentifier) {
+                            flatratePrice = rate
+                        } else {
+                            // Conversion error, inform user and use original value
+                            activeAlert = SimpleAlert(type: .fatalError(message: "Could not convert currency, showing original currency \(originalRate.currency)."))
+                            showingAlert = true
+                            flatratePrice = originalRate
+                        }
                     }
                 case .homeConsumption:
                     guard (plan.charger?.location) != nil else {
@@ -293,6 +288,29 @@ struct ChargingCostPlanEditor: View {
         navigationPath.removeLast()
     }
     
+    fileprivate func convertEnergyUnit(_ plan: ChargingCostPlan, _ price: Cost) {
+        // Check if user has changed energy unit and convert if yes
+        if plan.energyUnitSymbol == UserSettings.shared.energyUnitSymbol {
+            // Use price without conversion
+            individualDefaultPrice = price
+        } else {
+            // Convert to new unit
+            if let defaultPrice = UserSettings.shared.convertEnergyPrice(amount: price.amount, from: plan.energyUnitSymbol, to: UserSettings.shared.energyUnitSymbol) {
+                individualDefaultPrice = Cost(amount: defaultPrice, currency: price.currency)
+                energyUnitSymbol = UserSettings.shared.energyUnitSymbol
+            } else {
+                // The energy unit symbol is unknown, assume default
+                individualDefaultPrice = price
+                energyUnitSymbol = UserSettings.shared.energyUnitSymbol
+                
+                // Inform the user
+                activeAlert = SimpleAlert(type: .error(message: "Unknown energy unit: \(plan.energyUnitSymbol). Assuming default: \(UserSettings.shared.energyUnitSymbol). Please check your values."))
+                showingAlert = true
+            }
+        }
+        enterIndividualDefaultPrice = true
+    }
+    
     @ViewBuilder
     private func planDataView() -> some View {
         switch selectedPlanType {
@@ -300,13 +318,12 @@ struct ChargingCostPlanEditor: View {
             // Default cost
             if enterIndividualDefaultPrice {
                 HStack {
-                    Text("Default price")
+                    Text("Default price per \(energyUnitSymbol)")
                     Spacer()
-                    TextField("", value: $individualDefaultPrice.amount, format: .number)
+                    TextField("", value: $individualDefaultPrice.amount, format: .currency(code: individualDefaultPrice.currency))
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .focused($focusedField, equals: .individualDefaultPrice)
-                    Text("\(individualDefaultPrice.currency)/\(energyUnitSymbol)")
                     Button {
                         deleteIndividualDefaultPrice()
                     } label: {
@@ -332,10 +349,9 @@ struct ChargingCostPlanEditor: View {
             HStack {
                 Text("Monthly price")
                 Spacer()
-                TextField("", value: $flatratePrice.amount, format: .number)
+                TextField("", value: $flatratePrice.amount, format: .currency(code: flatratePrice.currency))
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
-                Text(flatratePrice.currency)
             }
         case ChargingCostPlan.PlanType.homeConsumption.description:
             HStack {

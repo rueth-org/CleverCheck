@@ -1,0 +1,15 @@
+{
+  "originHash" : "46fecffff40a33559d42d4fb3a5019ea6dd7f444bbcdd7ad6324e560746965b2",
+  "pins" : [
+    {
+      "identity" : "currency-converter",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pixyzehn/currency-converter.git",
+      "state" : {
+        "revision" : "310549b2d64491deb18675a62374c9b3f8ee5724",
+        "version" : "0.2.6"
+      }
+    }
+  ],
+  "version" : 3
+}

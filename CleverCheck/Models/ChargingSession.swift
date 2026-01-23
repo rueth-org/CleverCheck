@@ -74,20 +74,25 @@ final class ChargingSession: Comparable {
     var totalChargingCost: Cost {
         switch costCalculationMethod {
         case .none: return .init(amount: 0.0)
-        case .absolute: return self.chargingCost ?? .init(amount: 0.0)
+        case .absolute:
+            if let chargingCost {
+                return chargingCost.converted(to: UserSettings.shared.currencyIdentifier) ?? chargingCost
+            } else {
+                return .init(amount: 0.0)
+            }
         case .specific:
             var totalCost = 0.0
             if let specificChargingCost {
-                totalCost += specificChargingCost.amount * chargedEnergy(in: UserSettings.shared.energyUnit).value
+                totalCost += (specificChargingCost.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? specificChargingCost.amount) * chargedEnergy(in: UserSettings.shared.energyUnit).value
             }
             return .init(amount: totalCost)
         case .both:
             var totalCost = 0.0
             if let specificChargingCost {
-                totalCost += specificChargingCost.amount * chargedEnergy(in: UserSettings.shared.energyUnit).value
+                totalCost += (specificChargingCost.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? specificChargingCost.amount) * chargedEnergy(in: UserSettings.shared.energyUnit).value
             }
             if let chargingCost {
-                totalCost += chargingCost.amount
+                totalCost += chargingCost.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? chargingCost.amount
             }
             return .init(amount: totalCost)
         }
@@ -170,3 +175,4 @@ final class ChargingSession: Comparable {
         lhs.endTime < rhs.endTime
     }
 }
+

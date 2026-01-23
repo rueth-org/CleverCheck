@@ -51,28 +51,32 @@ final class PriceElement: Identifiable, Equatable {
     var type: PriceElementType = PriceElementType.byConsumption(energyUnitSymbol: UserSettings.shared.energyUnitSymbol)
     var vatRate: Double = 0.25
     
+    var convertedAmount: Cost {
+        amount.converted(to: UserSettings.shared.currencyIdentifier) ?? amount
+    }
+    
     var netAmount: Double {
         if isGross {
-            return amount.amount / (1 + vatRate)
+            return convertedAmount.amount / (1 + vatRate)
         } else {
-            return amount.amount
+            return convertedAmount.amount
         }
     }
     
     var grossAmount: Double {
         if isGross {
-            return amount.amount
+            return convertedAmount.amount
         } else {
-            return amount.amount * (1 + vatRate)
+            return convertedAmount.amount * (1 + vatRate)
         }
     }
     
     var unitDescription: String {
-        "\(amount.currency)\(type.unitExtension)"
+        "\(convertedAmount.currency)\(type.unitExtension)"
     }
     
     var amountDescription: String {
-        return "\(UserSettings.shared.format(self.amount.amount, withSignificantDigits: 4)) \(unitDescription)"
+        return "\(UserSettings.shared.format(self.convertedAmount.amount, withSignificantDigits: 4)) \(unitDescription)"
     }
     
     var netGrossDescription: String {

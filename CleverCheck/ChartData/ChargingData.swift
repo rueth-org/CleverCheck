@@ -68,7 +68,7 @@ struct ChargingData: Identifiable {
 
     var totalChargingCost: Cost {
         let totalCost = chargingSessions.map({ $0.totalChargingCost.amount }).reduce(0, +)
-        return .init(amount: totalCost)
+        return .init(amount: totalCost).converted(to: UserSettings.shared.currencyIdentifier) ?? .init(amount: totalCost)
     }
     
     init(modelContext: ModelContext, vehicle: Car, timeBox: TimeBox) throws {

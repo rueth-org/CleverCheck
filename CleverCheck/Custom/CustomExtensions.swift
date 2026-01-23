@@ -135,3 +135,10 @@ extension DateFormatter {
         return formatter
     }()
 }
+
+extension Measurement<UnitEnergy> {
+    func formatted() -> String {
+        let value = UserSettings.shared.format(self.value, withSignificantDigits: 4)
+        return "\(value) \(self.unit.symbol)"
+    }
+}

@@ -10,6 +10,9 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    
+    @State private var showingAlert: Bool = false
+    @State private var activeAlert: SimpleAlert?
         
     var body: some View {
         TabView {
@@ -23,6 +26,16 @@ struct ContentView: View {
             
             Tab("Settings", systemImage: "gear") {
                 SettingsView()
+            }
+        }
+        .task {
+            do {
+                // Initialize currencyConverterService
+                try await UserSettings.shared.loadCurrencyConverterService()
+            } catch {
+                // Conversion failed, show warning and display original price
+                activeAlert = SimpleAlert(type: .fatalError(message: "Could not load currency converter service. Costs will be shown in their original currency."))
+                showingAlert = true
             }
         }
     }

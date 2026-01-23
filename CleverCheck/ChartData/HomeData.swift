@@ -21,10 +21,6 @@ struct HomeData: Identifiable {
         let consumption: Measurement<UnitEnergy>
         let cost: Cost
         
-        var specificCost: Cost {
-            .init(amount: consumption.converted(to: UserSettings.shared.energyUnit).value / cost.amount)
-        }
-        
         static func < (lhs: HomeData.Data, rhs: HomeData.Data) -> Bool {
             lhs.timeKey < rhs.timeKey
         }
