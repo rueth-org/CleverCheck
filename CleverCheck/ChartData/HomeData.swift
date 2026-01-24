@@ -40,6 +40,7 @@ struct HomeData: Identifiable {
         
         // Step through the months
         let calendar = Calendar.current
+        debugPrint("Time period: \(timeBox.timePeriod.start) - \(timeBox.timePeriod.end)")
         var currentDate = timeBox.timePeriod.start
         while currentDate <= timeBox.timePeriod.end {
             // Get the monthly contributions from each home consumption (one may span several months)

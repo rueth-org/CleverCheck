@@ -76,7 +76,7 @@ struct HomeConsumptionsView: View {
     init(
         navigationPath: Binding<NavigationPath>,
         selectedLocation: Binding<Location?>,
-        timeBox: TimeBox?,
+        timeBox: TimeBox,
         selectedConsumptions: Binding<HomeView.ConsumptionContainer?>
     ) {
         self._navigationPath = navigationPath

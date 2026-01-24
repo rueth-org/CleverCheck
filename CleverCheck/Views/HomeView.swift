@@ -22,7 +22,7 @@ struct HomeView: View {
     @State private var navigationPath = NavigationPath()
     @State private var selectedLocation: Location? = nil
     @State private var selectedConsumptions: ConsumptionContainer? = nil
-    @State private var timeBox = TimeBox(
+    @State private var timeBox: TimeBox = TimeBox(
         selectedDate: Date.now.startOfMonth,
         selectedResolution: .yearly,
         allowedResolutions: [.yearly],
@@ -161,7 +161,6 @@ struct HomeView: View {
                 }
             }
         }
-        
         .sheet(item: $selectedConsumptions) { selectedConsumptions in
             HomeConsumptionAnalysis(
                 homeConsumptions: selectedConsumptions.consumptions,
@@ -217,3 +216,4 @@ struct HomeView: View {
         }
     }
 }
+

@@ -133,7 +133,7 @@ struct HomeConsumptionEditor: View {
                                 Text(priceElement.netGrossDescription)
                             }
                         }
-                        swipeActions {
+                        .swipeActions {
                             Button(role: .destructive) {
                                 delete(for: priceElement)
                             } label: {
