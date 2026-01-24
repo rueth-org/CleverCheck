@@ -36,12 +36,12 @@ class TextRecognizer: Identifiable {
         let confidence: Confidence
         let value: T
         
-        static func == (lhs: TextRecognizer.Candidate<T>, rhs: TextRecognizer.Candidate<T>) -> Bool {
-            lhs.confidence.rawValue == rhs.confidence.rawValue
-        }
-        
         static func < (lhs: TextRecognizer.Candidate<T>, rhs: TextRecognizer.Candidate<T>) -> Bool {
             lhs.confidence.rawValue < rhs.confidence.rawValue
+        }
+        
+        static func == (lhs: Candidate<T>, rhs: Candidate<T>) -> Bool {
+            lhs.confidence == rhs.confidence && lhs.value == rhs.value
         }
         
         func hash(into hasher: inout Hasher) {
