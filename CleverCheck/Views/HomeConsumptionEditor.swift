@@ -160,24 +160,6 @@ struct HomeConsumptionEditor: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-        .navigationDestination(for: NavigationDestination.self) { destination in
-            switch destination {
-            case .NewPriceElement(let homeConsumption, let energyUnitSymbol):
-                PriceElementEditor(
-                    navigationPath: $navigationPath,
-                    priceElement: nil,
-                    homeConsumption: homeConsumption,
-                    energyUnitSymbol: energyUnitSymbol
-                )
-            case .EditPriceElement(let homeConsumption, let priceElement, let energyUnitSymbol):
-                PriceElementEditor(
-                    navigationPath: $navigationPath,
-                    priceElement: priceElement,
-                    homeConsumption: homeConsumption,
-                    energyUnitSymbol: energyUnitSymbol
-                )
-            }
-        }
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(editorTitle)

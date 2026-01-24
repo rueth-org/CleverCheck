@@ -63,6 +63,13 @@ struct HomeConsumptionsList: View {
                                     .foregroundColor(.secondary)
                                 }
                             }
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    delete(homeConsumption)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                             .swipeActions(edge: .leading) {
                                 Button {
                                     duplicate(homeConsumption)
@@ -71,14 +78,6 @@ struct HomeConsumptionsList: View {
                                 }
                                 .tint(.yellow)
                             }
-                        }
-                        .onDelete { offsets in
-                            // Map offsets to the correct indices in homeConsumptions
-                            let allConsumptionsInMonth = groupedByMonths[month]!
-                            let indicesToDelete = offsets.map { index in
-                                homeConsumptions.firstIndex(of: allConsumptionsInMonth[index])!
-                            }
-                            deleteHomeConsumption(at: IndexSet(indicesToDelete))
                         }
                     }
                 }
@@ -145,18 +144,12 @@ struct HomeConsumptionsList: View {
         modelContext.insert(newConsumption)
     }
     
-    private func deleteHomeConsumption(at offsets: IndexSet) {
-        // TODO check if can be deleted
-        for offset in offsets {
-            // Find home consumption in our query
-            let homeConsumption = homeConsumptions[offset]
-
-            // Delete it from the context
-            withAnimation {
-                modelContext.delete(homeConsumption)
-            }
-            try? modelContext.save()
+    private func delete(_ homeConsumption: HomeConsumption) {
+        // Delete it from the context
+        withAnimation {
+            modelContext.delete(homeConsumption)
         }
+        try? modelContext.save()
     }
     
     private func totalCost(for month: Date) -> (gross: Double, net: Double) {

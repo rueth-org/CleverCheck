@@ -142,6 +142,24 @@ struct HomeView: View {
                     LocationEditor(navigationPath: $navigationPath, location: location)
                 }
             }
+            .navigationDestination(for: HomeConsumptionEditor.NavigationDestination.self) { destination in
+                switch destination {
+                case .NewPriceElement(let homeConsumption, let energyUnitSymbol):
+                    PriceElementEditor(
+                        navigationPath: $navigationPath,
+                        priceElement: nil,
+                        homeConsumption: homeConsumption,
+                        energyUnitSymbol: energyUnitSymbol
+                    )
+                case .EditPriceElement(let homeConsumption, let priceElement, let energyUnitSymbol):
+                    PriceElementEditor(
+                        navigationPath: $navigationPath,
+                        priceElement: priceElement,
+                        homeConsumption: homeConsumption,
+                        energyUnitSymbol: energyUnitSymbol
+                    )
+                }
+            }
         }
         
         .sheet(item: $selectedConsumptions) { selectedConsumptions in
