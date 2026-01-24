@@ -149,6 +149,7 @@ struct HomeView: View {
                 homeConsumptions: selectedConsumptions.consumptions,
                 location: selectedLocation
             )
+            .presentationDragIndicator(.visible)
         }
         .onAppear {
             if !locations.isEmpty {

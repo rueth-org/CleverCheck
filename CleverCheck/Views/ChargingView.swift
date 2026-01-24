@@ -139,6 +139,7 @@ struct ChargingView: View {
         .sheet(item: $selectedSession) { _ in
             if let chargingData {
                 ChargingSessionDetails(navigationPath: $navigationPath, selectedSession: $selectedSession, vehicle: selectedCar, allSessions: chargingData.chargingSessions)
+                    .presentationDragIndicator(.visible)
             }
         }
         .onAppear {

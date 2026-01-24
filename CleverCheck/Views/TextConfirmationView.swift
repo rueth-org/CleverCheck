@@ -162,11 +162,11 @@ struct TextConfirmationView: View {
         .onAppear {
             if !proposedData.start.isEmpty {
                 self.startCandidates = proposedData.start.sorted()
-                self.selectedStart = proposedData.start.first
+                self.selectedStart = self.startCandidates?.first
             }
             if !proposedData.end.isEmpty {
                 self.endCandidates = proposedData.end.sorted()
-                self.selectedEnd = proposedData.end.first
+                self.selectedEnd = self.endCandidates?.first
             }
             if !proposedData.chargedEnergy.isEmpty {
                 self.chargedEnergyCandidates = proposedData.chargedEnergy.sorted()
