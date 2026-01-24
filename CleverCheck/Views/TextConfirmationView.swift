@@ -22,6 +22,7 @@ struct TextConfirmationView: View {
     @Binding var enterFinalSOC: Bool
     
     @State private var showingReport: Bool = false
+    @State private var showingImage: Bool = false
     
     @State private var startCandidates: [TextRecognizer.Candidate<Date>]? = nil
     @State private var selectedStart: TextRecognizer.Candidate<Date>? = nil
@@ -41,10 +42,21 @@ struct TextConfirmationView: View {
                     .font(.headline)
                 Spacer()
                 Button {
+                    showingImage = true
+                } label: {
+                    Image(systemName: "photo")
+                        .imageScale(.large)
+                        .foregroundStyle(.link)
+                }
+                .buttonStyle(.plain)
+                Button {
                     showingReport = true
                 } label: {
                     Image(systemName: "info.circle")
+                        .imageScale(.large)
+                        .foregroundStyle(.link)
                 }
+                .buttonStyle(.plain)
             }
             
             Button(action: {
@@ -171,6 +183,23 @@ struct TextConfirmationView: View {
         }
         .sheet(isPresented: $showingReport) {
             TextConfirmationReport(report: proposedData.report)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showingImage) {
+            VStack {
+                if let uiImage = proposedData.image.image as UIImage? {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .padding()
+                } else {
+                    Text("No image available").italic()
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
     }
 }
+
