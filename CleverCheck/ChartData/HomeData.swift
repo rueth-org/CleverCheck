@@ -102,7 +102,7 @@ struct HomeData: Identifiable {
         let end = timeBox.timePeriod.end
         let descriptor = FetchDescriptor<HomeConsumption>(
             predicate: #Predicate { consumption in
-                consumption.validUntil >= start && consumption.validUntil < end
+                consumption.validUntil >= start && consumption.validUntil <= end
             },
             sortBy: [
                 .init(\.validUntil)
