@@ -105,7 +105,7 @@ struct HomeViewChart: View {
                 }
             }
         }
-        .frame(minHeight: 200)
+        .frame(minHeight: 150)
         .chartYAxisLabel(yAxisLabel)
         .chartLegend(.visible)
         .chartOverlay { proxy in
@@ -140,11 +140,18 @@ struct HomeViewChart: View {
                     )
             }
         }
-        
-        Toggle("Home consumption", isOn: $showHomeData)
-            .disabled(showChargingData == false && showHomeData == true)
-        Toggle("Charging", isOn: $showChargingData)
-            .disabled(showChargingData == true && showHomeData == false)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Menu {
+                    Toggle("Home consumption", isOn: $showHomeData)
+                        .disabled(showChargingData == false && showHomeData == true)
+                    Toggle("Charging", isOn: $showChargingData)
+                        .disabled(showChargingData == true && showHomeData == false)
+                } label: {
+                    Label("Filter", systemImage: "slider.horizontal.3")
+                }
+            }
+        }
     }
     
     // Called when a bar is tapped. String is the "End Time" key from the x-axis.

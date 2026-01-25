@@ -79,6 +79,9 @@ struct HomeView: View {
                         }
                     )
                     .id(homeData.id)
+                    
+                    // The summary data
+                    HomeViewSummary(homeData: homeData)
                 } else {
                     Text("Select location").italic()
                 }

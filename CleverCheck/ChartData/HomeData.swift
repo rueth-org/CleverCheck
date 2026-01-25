@@ -40,7 +40,6 @@ struct HomeData: Identifiable {
         
         // Step through the months
         let calendar = Calendar.current
-        debugPrint("Time period: \(timeBox.timePeriod.start) - \(timeBox.timePeriod.end)")
         var currentDate = timeBox.timePeriod.start
         while currentDate <= timeBox.timePeriod.end {
             // Get the monthly contributions from each home consumption (one may span several months)
@@ -91,6 +90,30 @@ struct HomeData: Identifiable {
         }
         
         return result
+    }
+    
+    var consumedEnergy: (total: Measurement<UnitEnergy>, charging: Measurement<UnitEnergy>) {
+        let totalEnergy = homeConsumptions
+            .filter { $0.consumptionIncludedElsewhere == false }
+            .map({ $0.consumption.converted(to: UserSettings.shared.energyUnit).value }).reduce(0, +)
+        let chargedEnergy = homeConsumptions
+            .filter { $0.consumptionIncludedElsewhere == true }
+            .map({ $0.consumption.converted(to: UserSettings.shared.energyUnit).value}).reduce(0, +)
+        return (
+            total: .init(value: totalEnergy, unit: UserSettings.shared.energyUnit),
+            charging: .init(value: chargedEnergy, unit: UserSettings.shared.energyUnit)
+        )
+    }
+    
+    var cost: (home: Cost, charging: Cost) {
+        let allCost = homeConsumptions.map { $0.totalCost(isGross: UserSettings.shared.displayGrossPrices) }
+        let gross = allCost.reduce(0.0) { $0 + $1.gross }
+        let net = allCost.reduce(0.0) { $0 + $1.net }
+        
+        return (
+            home: .init(amount: net),
+            charging: .init(amount: gross - net)
+        )
     }
     
     init(modelContext: ModelContext, location: Location, timeBox: TimeBox) throws {
