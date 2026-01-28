@@ -71,6 +71,18 @@ struct ChargingSessionEditor: View {
         }
     }
     
+    private var totalChargingCost: Cost {
+        switch enterCost {
+        case .none: return .init(amount: 0.0)
+        case .absolute:
+            return cost
+        case .specific:
+            return .init(amount: specificCost.amount * chargedEnergy.value)
+        case .both:
+            return .init(amount: specificCost.amount * chargedEnergy.value + cost.amount)
+        }
+    }
+    
     private var editorTitle: String {
         chargingSession == nil ? NSLocalizedString("New Session", comment: "") : NSLocalizedString("Edit Session", comment: "")
     }
@@ -241,6 +253,15 @@ struct ChargingSessionEditor: View {
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                 }
+            }
+            
+            if enterCost != .none {
+                HStack {
+                    Text("Total cost")
+                    Spacer()
+                    Text("\(totalChargingCost.formatted())")
+                }
+                .foregroundStyle(.secondary)
             }
             
             // Mileage (optional)

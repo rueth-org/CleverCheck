@@ -97,6 +97,11 @@ struct ChargingSessionsView: View {
                                     Text(chargingSession.chargingCostPlan?.descriptionShortNoCar ?? "Unknown plan")
                                         .font(.subheadline)
                                     Spacer()
+                                    let totalChargingCost = chargingSession.totalChargingCost
+                                    if totalChargingCost.amount > 0 {
+                                        Text(totalChargingCost.converted(to: UserSettings.shared.currencyIdentifier)?.formatted() ?? "")
+                                            .italic()
+                                    }
                                 }
                             }
                         }

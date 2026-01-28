@@ -68,7 +68,7 @@ final class ChargingSession: Comparable {
     }
     
     var chargedEnergyFormatted: String {
-        String(format: "%.1f \(UserSettings.shared.energyUnit.symbol)", chargedEnergy.converted(to: UserSettings.shared.energyUnit).value)
+        chargedEnergy.converted(to: UserSettings.shared.energyUnit).formatted(.measurement(width: .narrow, usage: .asProvided))
     }
     
     var totalChargingCost: Cost {
@@ -85,7 +85,8 @@ final class ChargingSession: Comparable {
             if let specificChargingCost {
                 totalCost += (specificChargingCost.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? specificChargingCost.amount) * chargedEnergy(in: UserSettings.shared.energyUnit).value
             }
-            return .init(amount: totalCost)
+            let convertedTotalCost = UserSettings.shared.convertEnergyPrice(amount: totalCost, from: .kilowattHours, to: UserSettings.shared.energyUnit)
+            return .init(amount: convertedTotalCost)
         case .both:
             var totalCost = 0.0
             if let specificChargingCost {
@@ -94,7 +95,8 @@ final class ChargingSession: Comparable {
             if let chargingCost {
                 totalCost += chargingCost.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? chargingCost.amount
             }
-            return .init(amount: totalCost)
+            let convertedTotalCost = UserSettings.shared.convertEnergyPrice(amount: totalCost, from: .kilowattHours, to: UserSettings.shared.energyUnit)
+            return .init(amount: convertedTotalCost)
         }
     }
     
