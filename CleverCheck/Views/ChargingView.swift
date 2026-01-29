@@ -100,7 +100,7 @@ struct ChargingView: View {
                 // Filter menu
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        MenuCarSelector(selectedCar: $selectedCar, timeBox: .constant(nil), allCars: vehicles)
+                        MenuCarSelector(selectedCar: $selectedCar, allCars: vehicles)
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .foregroundColor(selectedCar == nil ? .primary : .blue)

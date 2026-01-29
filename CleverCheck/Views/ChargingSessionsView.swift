@@ -65,9 +65,9 @@ struct ChargingSessionsView: View {
     
     var body: some View {
         VStack {
-            if let timePeriod = timeBox?.formattedTime {
-                Text(timePeriod)
-                    .font(.subheadline)
+            if let timeBox {
+                TimeBoxPicker(timeBox: timeBox)
+                    .padding(.horizontal)
             }
         }
         List(groupedSessions.keys.sorted(), id: \.self) { carDescription in
@@ -123,7 +123,7 @@ struct ChargingSessionsView: View {
             // New filter menu in the toolbar to replace the inline Picker
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    MenuCarSelector(selectedCar: $selectedCar, timeBox: $timeBox, allCars: vehicles)
+                    MenuCarSelector(selectedCar: $selectedCar, allCars: vehicles)
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                         .foregroundColor(selectedCar == nil ? .primary : .blue)

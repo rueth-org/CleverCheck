@@ -34,9 +34,11 @@ struct HomeConsumptionsView: View {
         VStack {
             Text(selectedLocation?.name ?? NSLocalizedString("All locations", comment: ""))
                 .font(.headline)
-            if let timePeriod = timeBox?.formattedTime {
-                Text(timePeriod)
-                    .font(.subheadline)
+            VStack {
+                if let timeBox {
+                    TimeBoxPicker(timeBox: timeBox)
+                        .padding(.horizontal)
+                }
             }
             HomeConsumptionsList(navigationPath: $navigationPath, timeBox: timeBox, associatedLocation: selectedLocation, selectedConsumptions: $selectedConsumptions)
         }
@@ -50,7 +52,7 @@ struct HomeConsumptionsView: View {
                 
                 // Filter by location
                 Menu {
-                    MenuHomeSelector(selectedHome: $selectedLocation, timeBox: $timeBox, allHomes: locations)
+                    MenuHomeSelector(selectedHome: $selectedLocation, allHomes: locations)
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                         .foregroundColor(selectedLocation == nil ? .primary : .blue)

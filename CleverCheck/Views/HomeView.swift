@@ -110,7 +110,7 @@ struct HomeView: View {
                 // Filter menu
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        MenuHomeSelector(selectedHome: $selectedLocation, timeBox: .constant(nil), allHomes: locations)
+                        MenuHomeSelector(selectedHome: $selectedLocation, allHomes: locations)
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .foregroundColor(selectedLocation == nil ? .primary : .blue)
