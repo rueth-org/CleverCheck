@@ -36,60 +36,64 @@ struct HomeData: Identifiable {
     let timeBox: TimeBox
     
     var data: [Data] {
-        var result = [Data]()
-        
-        // Step through the months
-        let calendar = Calendar.current
-        var currentDate = timeBox.timePeriod.start
-        while currentDate <= timeBox.timePeriod.end {
-            // Get the monthly contributions from each home consumption (one may span several months)
-            let monthKeyDisplay = timeBox.getKeyForDate(currentDate)
-            let monthKeyGrouping = UserSettings.shared.groupingDateFormatter.string(from: currentDate)
+        if let timePeriod = timeBox.timePeriod {
+            var result = [Data]()
             
-            // Gross consumption
-            let grossConsumption = homeConsumptions.reduce(0) { partialResult, consumption in
-                partialResult + consumption.consumptionForMonth(monthKey: monthKeyGrouping, includeIfIncludedElsewhere: false)
+            // Step through the months
+            let calendar = Calendar.current
+            var currentDate = timePeriod.start
+            while currentDate <= timePeriod.end {
+                // Get the monthly contributions from each home consumption (one may span several months)
+                let monthKeyDisplay = timeBox.getKeyForDate(currentDate)
+                let monthKeyGrouping = UserSettings.shared.groupingDateFormatter.string(from: currentDate)
+                
+                // Gross consumption
+                let grossConsumption = homeConsumptions.reduce(0) { partialResult, consumption in
+                    partialResult + consumption.consumptionForMonth(monthKey: monthKeyGrouping, includeIfIncludedElsewhere: false)
+                }
+                
+                // Net consumption
+                let netConsumption = homeConsumptions.reduce(0) { partialResult, consumption in
+                    partialResult + consumption.netConsumptionForMonth(monthKey: monthKeyGrouping)
+                }
+                
+                let deltaConsumption = grossConsumption - netConsumption
+                
+                // Cost
+                let grossCost = homeConsumptions.reduce(0) { partialResult, consumption in
+                    partialResult + consumption.totalCostForMonth(monthKey: monthKeyGrouping, isGross: UserSettings.shared.displayGrossPrices, useConsumptionFromRelatedChargingSessions: true).gross
+                }
+                
+                let netCost = homeConsumptions.reduce(0) { partialResult, consumption in
+                    partialResult + consumption.totalCostForMonth(monthKey: monthKeyGrouping, isGross: UserSettings.shared.displayGrossPrices, useConsumptionFromRelatedChargingSessions: true).net
+                }
+                
+                let deltaCost = grossCost - netCost
+                
+                // Create home consumption data set
+                result.append(Data(
+                    timeKey: monthKeyDisplay,
+                    dataType: .homeConsumption,
+                    consumption: .init(value: netConsumption, unit: UserSettings.shared.energyUnit),
+                    cost: .init(amount: netCost)
+                ))
+                
+                // Create charging data set
+                result.append(Data(
+                    timeKey: monthKeyDisplay,
+                    dataType: .charging,
+                    consumption: .init(value: deltaConsumption, unit: UserSettings.shared.energyUnit),
+                    cost: .init(amount: deltaCost)
+                ))
+                
+                // Increase current date by one month
+                currentDate = calendar.date(byAdding: .month, value: 1, to: currentDate)!
             }
             
-            // Net consumption
-            let netConsumption = homeConsumptions.reduce(0) { partialResult, consumption in
-                partialResult + consumption.netConsumptionForMonth(monthKey: monthKeyGrouping)
-            }
-            
-            let deltaConsumption = grossConsumption - netConsumption
-            
-            // Cost
-            let grossCost = homeConsumptions.reduce(0) { partialResult, consumption in
-                partialResult + consumption.totalCostForMonth(monthKey: monthKeyGrouping, isGross: UserSettings.shared.displayGrossPrices, useConsumptionFromRelatedChargingSessions: true).gross
-            }
-            
-            let netCost = homeConsumptions.reduce(0) { partialResult, consumption in
-                partialResult + consumption.totalCostForMonth(monthKey: monthKeyGrouping, isGross: UserSettings.shared.displayGrossPrices, useConsumptionFromRelatedChargingSessions: true).net
-            }
-            
-            let deltaCost = grossCost - netCost
-            
-            // Create home consumption data set
-            result.append(Data(
-                timeKey: monthKeyDisplay,
-                dataType: .homeConsumption,
-                consumption: .init(value: netConsumption, unit: UserSettings.shared.energyUnit),
-                cost: .init(amount: netCost)
-            ))
-            
-            // Create charging data set
-            result.append(Data(
-                timeKey: monthKeyDisplay,
-                dataType: .charging,
-                consumption: .init(value: deltaConsumption, unit: UserSettings.shared.energyUnit),
-                cost: .init(amount: deltaCost)
-            ))
-            
-            // Increase current date by one month
-            currentDate = calendar.date(byAdding: .month, value: 1, to: currentDate)!
+            return result
+        } else {
+            return []
         }
-        
-        return result
     }
     
     var consumedEnergy: (total: Measurement<UnitEnergy>, charging: Measurement<UnitEnergy>) {
@@ -120,17 +124,26 @@ struct HomeData: Identifiable {
         self.modelContext = modelContext
         self.timeBox = timeBox
         
-        // Get all consumptions ending in time period and belonging to the location
-        let start = timeBox.timePeriod.start
-        let end = timeBox.timePeriod.end
-        let descriptor = FetchDescriptor<HomeConsumption>(
-            predicate: #Predicate { consumption in
-                consumption.validUntil >= start && consumption.validUntil <= end
-            },
-            sortBy: [
-                .init(\.validUntil)
-            ]
-        )
+        var descriptor: FetchDescriptor<HomeConsumption>
+        if let timePeriod = timeBox.timePeriod {
+            // Get all consumptions ending in time period and belonging to the location
+            let start = timePeriod.start
+            let end = timePeriod.end
+            descriptor = FetchDescriptor<HomeConsumption>(
+                predicate: #Predicate { consumption in
+                    consumption.validUntil >= start && consumption.validUntil <= end
+                },
+                sortBy: [
+                    .init(\.validUntil)
+                ]
+            )
+        } else {
+            descriptor = FetchDescriptor<HomeConsumption>(
+                sortBy: [
+                    .init(\.validUntil)
+                ]
+            )
+        }
         let allConsumptionsInPeriod = try modelContext.fetch(descriptor)
         
         // Filter by location

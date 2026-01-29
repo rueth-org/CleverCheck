@@ -18,7 +18,7 @@ struct ChargingSessionsView: View {
     @Binding var navigationPath: NavigationPath
     @Binding var selectedCar: Car?
     
-    @State var timeBox: TimeBox? = nil
+    @State var timeBox: TimeBox
     
     @Query private var vehicles: [Car]
     
@@ -34,7 +34,7 @@ struct ChargingSessionsView: View {
                 if let chargingCostPlans = vehicle.chargingCostPlans {
                     for chargingCostPlan in chargingCostPlans {
                         chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions?.filter { session in
-                            if let period = timeBox?.timePeriod {
+                            if let period = timeBox.timePeriod {
                                 return period.start <= session.endTime && session.endTime <= period.end
                             } else {
                                 return true
@@ -50,7 +50,7 @@ struct ChargingSessionsView: View {
             if let chargingCostPlans = selectedCar?.chargingCostPlans {
                 for chargingCostPlan in chargingCostPlans {
                     chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions?.filter { session in
-                        if let period = timeBox?.timePeriod {
+                        if let period = timeBox.timePeriod {
                             return period.start <= session.endTime && session.endTime <= period.end
                         } else {
                             return true
@@ -65,10 +65,8 @@ struct ChargingSessionsView: View {
     
     var body: some View {
         VStack {
-            if let timeBox {
-                TimeBoxPicker(timeBox: timeBox)
-                    .padding(.horizontal)
-            }
+            TimeBoxPicker(timeBox: timeBox)
+                .padding(.horizontal)
         }
         List(groupedSessions.keys.sorted(), id: \.self) { carDescription in
             Section(header: Text(carDescription)) {
@@ -149,7 +147,7 @@ struct ChargingSessionsView: View {
     init(
         navigationPath: Binding<NavigationPath>,
         selectedCar: Binding<Car?>,
-        timeBox: TimeBox?
+        timeBox: TimeBox
     ) {
         self._navigationPath = navigationPath
         self._selectedCar = selectedCar

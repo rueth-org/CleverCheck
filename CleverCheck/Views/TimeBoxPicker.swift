@@ -9,6 +9,7 @@ import SwiftUI
 
 struct TimeBoxPicker: View {
     @Bindable var timeBox: TimeBox
+    var canBeRemoved: Bool = true
     
     var body: some View {
         switch timeBox.selectedResolution {
@@ -22,6 +23,16 @@ struct TimeBoxPicker: View {
                 Spacer()
                 
                 Text(timeBox.formattedTime)
+                
+                if canBeRemoved {
+                    Button(action: {
+                        timeBox.selectedResolution = .none
+                    }) {
+                        Image(systemName: "xmark.circle")
+                            .foregroundStyle(.link)
+                    }
+                    .buttonStyle(.plain)
+                }
                 
                 Spacer()
                 
@@ -56,6 +67,16 @@ struct TimeBoxPicker: View {
                 } else {
                     Text(verbatim: "\(Calendar.current.component(.year, from: timeBox.selectedDate))")
                         .foregroundStyle(Color.primary)
+                }
+                
+                if canBeRemoved {
+                    Button(action: {
+                        timeBox.selectedResolution = .none
+                    }) {
+                        Image(systemName: "xmark.circle")
+                            .foregroundStyle(.link)
+                    }
+                    .buttonStyle(.plain)
                 }
                 
                 Spacer()
@@ -104,12 +125,44 @@ struct TimeBoxPicker: View {
                         .foregroundStyle(Color.primary)
                 }
                 
+                if canBeRemoved {
+                    Button(action: {
+                        timeBox.selectedResolution = .none
+                    }) {
+                        Image(systemName: "xmark.circle")
+                            .foregroundStyle(.link)
+                    }
+                    .buttonStyle(.plain)
+                }
+                
                 Spacer()
                 
                 Button(action: timeBox.increaseDay) {
                     Image(systemName: "chevron.right")
                 }
                 .buttonStyle(.plain)
+            }
+        case .none:
+            HStack(alignment: .center) {
+                Spacer()
+                
+                Text("All time")
+                
+                Button(action: {
+                    if timeBox.allowedResolutions.contains(.yearly) {
+                        timeBox.selectedResolution = .yearly
+                    } else if timeBox.allowedResolutions.contains(.monthly) {
+                        timeBox.selectedResolution = .monthly
+                    } else if timeBox.allowedResolutions.contains(.daily) {
+                        timeBox.selectedResolution = .daily
+                    }
+                }) {
+                    Image(systemName: "calendar")
+                        .foregroundStyle(.link)
+                }
+                .buttonStyle(.plain)
+                
+                Spacer()
             }
         }
     }
@@ -121,6 +174,7 @@ class TimeBox {
         case yearly
         case monthly
         case daily
+        case none
     }
     
     var selectedDate: Date
@@ -172,14 +226,12 @@ class TimeBox {
         return result
     }
     
-    var timePeriod: (start: Date, end: Date) {
+    var timePeriod: (start: Date, end: Date)? {
         switch selectedResolution {
-        case .daily:
-            return (selectedDate.startOfDay, selectedDate.endOfDay)
-        case .monthly:
-            return (selectedDate.startOfMonth, selectedDate.endOfMonth)
-        case .yearly:
-            return (selectedDate.startOfYear, selectedDate.endOfYear)
+        case .daily: return (selectedDate.startOfDay, selectedDate.endOfDay)
+        case .monthly: return (selectedDate.startOfMonth, selectedDate.endOfMonth)
+        case .yearly: return (selectedDate.startOfYear, selectedDate.endOfYear)
+        case .none: return nil
         }
     }
     
@@ -188,6 +240,7 @@ class TimeBox {
         case .daily: return DateFormatter().longDayMonthYear.string(from: selectedDate)
         case .monthly: return DateFormatter().longMonthYear.string(from: selectedDate)
         case .yearly: return DateFormatter().year.string(from: selectedDate)
+        case .none: return ""
         }
     }
     
@@ -326,6 +379,7 @@ class TimeBox {
                     selectIndividualItem(newDate)
                 }
             }
+        case .none: break
         }
         
         if !switched, let newDate {
@@ -339,6 +393,7 @@ class TimeBox {
         case .yearly: return DateFormatter.chartDisplayDateYearly.string(from: date)
         case .monthly: return DateFormatter.chartDisplayDateMonthly.string(from: date)
         case .daily: return DateFormatter.chartDisplayDateDaily.string(from: date)
+        case .none: return ""
         }
     }
 }

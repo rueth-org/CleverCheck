@@ -87,7 +87,7 @@ struct HomeConsumptionsList: View {
     
     init(
         navigationPath: Binding<NavigationPath>,
-        timeBox: TimeBox?,
+        timeBox: TimeBox,
         associatedLocation: Location?,
         selectedConsumptions: Binding<HomeView.ConsumptionContainer?>
     ) {
@@ -96,7 +96,7 @@ struct HomeConsumptionsList: View {
         
         var predicate: Predicate<HomeConsumption>
         if let id = associatedLocation?.persistentModelID {
-            if let timePeriod = timeBox?.timePeriod {
+            if let timePeriod = timeBox.timePeriod {
                 let start = timePeriod.start
                 let end = timePeriod.end
                 predicate = #Predicate<HomeConsumption> { homeConsumption in

@@ -17,7 +17,7 @@ struct ChargingView: View {
     @State private var navigationPath = NavigationPath()
     @State private var selectedCar: Car? = nil
     @State private var selectedSession: ChargingSession? = nil
-    @State private var timeBox: TimeBox? = nil
+    @State private var timeBox: TimeBox
     
     enum Chart {
         case charging, consumption
@@ -27,7 +27,7 @@ struct ChargingView: View {
     @Query private var vehicles: [Car]
     
     var chargingData: ChargingData? {
-        if let selectedCar, let timeBox {
+        if let selectedCar {
             return try? ChargingData(modelContext: modelContext, vehicle: selectedCar, timeBox: timeBox)
         } else {
             return nil
@@ -37,7 +37,7 @@ struct ChargingView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             List {
-                if let chargingData, let timeBox {
+                if let chargingData {
                     
                     // The date selection part
                     
@@ -164,12 +164,7 @@ struct ChargingView: View {
                 }
             }
             
-            self.timeBox = TimeBox(
-                selectedDate: Date.now.startOfMonth,
-                selectedResolution: .monthly,
-                allowedResolutions: [.daily, .monthly, .yearly],
-                selectIndividualItem: selectIndividualSession
-            )
+            self.timeBox.selectIndividualItem = selectIndividualSession
         }
     }
     
@@ -182,6 +177,12 @@ struct ChargingView: View {
             filter: predicate,
             sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]
         )
+        _timeBox = State(initialValue: TimeBox(
+            selectedDate: Date.now.startOfMonth,
+            selectedResolution: .monthly,
+            allowedResolutions: [.daily, .monthly, .yearly],
+            selectIndividualItem: { _ in }
+        ))
     }
     
     private func addSession() {

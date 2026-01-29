@@ -19,7 +19,7 @@ struct HomeConsumptionsView: View {
     @Binding var selectedLocation: Location?
     @Binding var selectedConsumptions: HomeView.ConsumptionContainer?
     
-    @State private var timeBox: TimeBox? = nil
+    @State private var timeBox: TimeBox
     
     @Query(filter: #Predicate<Location> { location in
         location.isArchived == false
@@ -35,10 +35,8 @@ struct HomeConsumptionsView: View {
             Text(selectedLocation?.name ?? NSLocalizedString("All locations", comment: ""))
                 .font(.headline)
             VStack {
-                if let timeBox {
-                    TimeBoxPicker(timeBox: timeBox)
-                        .padding(.horizontal)
-                }
+                TimeBoxPicker(timeBox: timeBox)
+                    .padding(.horizontal)
             }
             HomeConsumptionsList(navigationPath: $navigationPath, timeBox: timeBox, associatedLocation: selectedLocation, selectedConsumptions: $selectedConsumptions)
         }

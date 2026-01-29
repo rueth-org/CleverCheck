@@ -63,6 +63,7 @@ struct ChargingData: Identifiable {
                 result[dayKey, default: 0] += cost.amount
             }
             return result
+        case .none: return [:]
         }
     }
 
@@ -87,19 +88,29 @@ struct ChargingData: Identifiable {
         self.relatedPlans = try modelContext.fetch(planDescriptor)
         
         if !relatedPlans.isEmpty {
-            // Compute concrete date range outside the predicate so it can be captured.
-            let start = timeBox.timePeriod.start
-            let end = timeBox.timePeriod.end
-
-            // Get all sessions in time period
-            let sessionDescriptor = FetchDescriptor<ChargingSession>(
-                predicate: #Predicate { session in
-                    start <= session.endTime && session.endTime <= end
-                },
-                sortBy: [
-                    .init(\.endTime)
-                ]
-            )
+            var sessionDescriptor: FetchDescriptor<ChargingSession>
+            if let timePeriod = timeBox.timePeriod {
+                // Compute concrete date range outside the predicate so it can be captured.
+                let start = timePeriod.start
+                let end = timePeriod.end
+                
+                // Get all sessions in time period
+                sessionDescriptor = FetchDescriptor<ChargingSession>(
+                    predicate: #Predicate { session in
+                        start <= session.endTime && session.endTime <= end
+                    },
+                    sortBy: [
+                        .init(\.endTime)
+                    ]
+                )
+            } else {
+                // Get all sessions
+                sessionDescriptor = FetchDescriptor<ChargingSession>(
+                    sortBy: [
+                        .init(\.endTime)
+                    ]
+                )
+            }
             let allSessionsInPeriod = try modelContext.fetch(sessionDescriptor)
             
             // Filter by charging cost plans related to the vehicle
