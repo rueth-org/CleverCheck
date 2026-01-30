@@ -22,11 +22,25 @@ struct TimeBoxPicker: View {
                 
                 Spacer()
                 
+                if timeBox.allowedResolutions.contains(.monthly) || timeBox.allowedResolutions.contains(.daily) {
+                    Button(action: {
+                        if timeBox.allowedResolutions.contains(.monthly) {
+                            timeBox.switchToMonthly()
+                        } else {
+                            timeBox.switchToDaily()
+                        }
+                    }) {
+                        Image(systemName: "calendar.badge.plus")
+                            .foregroundStyle(.link)
+                    }
+                    .buttonStyle(.plain)
+                }
+                
                 Text(timeBox.formattedTime)
                 
                 if canBeRemoved {
                     Button(action: {
-                        timeBox.selectedResolution = .none
+                        timeBox.switchToNone()
                     }) {
                         Image(systemName: "xmark.circle")
                             .foregroundStyle(.link)
@@ -50,6 +64,16 @@ struct TimeBoxPicker: View {
                 
                 Spacer()
                 
+                if timeBox.allowedResolutions.contains(.daily) {
+                    Button(action: {
+                        timeBox.switchToDaily()
+                    }) {
+                        Image(systemName: "calendar.badge.plus")
+                            .foregroundStyle(.link)
+                    }
+                    .buttonStyle(.plain)
+                }
+                
                 Picker("Month", selection: $timeBox.selectedDate) {
                     ForEach(timeBox.monthPickerList, id: \.self) { date in
                         Text(DateFormatter.displayAbbreviatedMonthOnly.string(from: date)).tag(date)
@@ -71,7 +95,7 @@ struct TimeBoxPicker: View {
                 
                 if canBeRemoved {
                     Button(action: {
-                        timeBox.selectedResolution = .none
+                        timeBox.switchToNone()
                     }) {
                         Image(systemName: "xmark.circle")
                             .foregroundStyle(.link)
@@ -127,7 +151,7 @@ struct TimeBoxPicker: View {
                 
                 if canBeRemoved {
                     Button(action: {
-                        timeBox.selectedResolution = .none
+                        timeBox.switchToNone()
                     }) {
                         Image(systemName: "xmark.circle")
                             .foregroundStyle(.link)
@@ -146,21 +170,21 @@ struct TimeBoxPicker: View {
             HStack(alignment: .center) {
                 Spacer()
                 
-                Text("All time")
-                
                 Button(action: {
                     if timeBox.allowedResolutions.contains(.yearly) {
-                        timeBox.selectedResolution = .yearly
+                        timeBox.switchToYearly()
                     } else if timeBox.allowedResolutions.contains(.monthly) {
-                        timeBox.selectedResolution = .monthly
+                        timeBox.switchToMonthly()
                     } else if timeBox.allowedResolutions.contains(.daily) {
-                        timeBox.selectedResolution = .daily
+                        timeBox.switchToDaily()
                     }
                 }) {
-                    Image(systemName: "calendar")
+                    Image(systemName: "calendar.badge.plus")
                         .foregroundStyle(.link)
                 }
                 .buttonStyle(.plain)
+                
+                Text("All time")
                 
                 Spacer()
             }
@@ -317,6 +341,20 @@ class TimeBox {
         }
     }
     
+    func switchToDaily() {
+        if allowedResolutions.contains(.daily) {
+            withAnimation {
+                self.selectedResolution = .daily
+            }
+        }
+    }
+    
+    func switchToNone() {
+        withAnimation {
+            self.selectedResolution = .none
+        }
+    }
+    
     func switchResolution(_ dateKey: String) {
         var switched = false
         let calendar = Calendar.current
@@ -397,3 +435,4 @@ class TimeBox {
         }
     }
 }
+
