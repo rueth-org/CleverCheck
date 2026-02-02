@@ -76,21 +76,10 @@ struct TimeBoxPicker: View {
                     .buttonStyle(.plain)
                 }
                 
-                Picker("Month", selection: $timeBox.selectedDate) {
+                Picker("Month", selection: $timeBox.referenceDate) {
                     ForEach(timeBox.monthPickerList, id: \.self) { date in
                         Text(DateFormatter.displayAbbreviatedMonthOnly.string(from: date)).tag(date)
                     }
-                }
-                .onChange(of: timeBox.selectedDate) {
-                    // Only the month has changed, so take year and day from lastDate
-                    let year = timeBox.lastDate.year ?? Calendar.current.component(.year, from: timeBox.selectedDate)
-                    let month = Calendar.current.component(.month, from: timeBox.selectedDate)
-                    let day = TimeBox.getCorrectDay(
-                        day: timeBox.lastDate.day ?? Calendar.current.component(.day, from: timeBox.selectedDate),
-                        month: month,
-                        year: year
-                    )
-                    timeBox.lastDate = DateComponents(year: year, month: month, day: day)
                 }
                 .labelsHidden()
                 .pickerStyle(.menu)
@@ -132,17 +121,10 @@ struct TimeBoxPicker: View {
                 
                 Spacer()
                 
-                Picker("Day", selection: $timeBox.selectedDate) {
+                Picker("Day", selection: $timeBox.referenceDate) {
                     ForEach(timeBox.dayPickerList, id: \.self) { date in
                         Text(DateFormatter.chartDisplayDateMonthly.string(from: date)).tag(date)
                     }
-                }
-                .onChange(of: timeBox.selectedDate) {
-                    // Only the day has changed, so take year and month from oldDate
-                    let year = timeBox.lastDate.year ?? Calendar.current.component(.year, from: timeBox.selectedDate)
-                    let month = timeBox.lastDate.month ?? Calendar.current.component(.month, from: timeBox.selectedDate)
-                    let day = Calendar.current.component(.day, from: timeBox.selectedDate)
-                    timeBox.lastDate = DateComponents(year: year, month: month, day: day)
                 }
                 .labelsHidden()
                 .pickerStyle(.menu)
@@ -225,25 +207,48 @@ class TimeBox {
     var selectedResolution: Resolution
     @ObservationIgnored var allowedResolutions: [Resolution]
     var selectIndividualItem: (_ date: Date) -> ()
-    @ObservationIgnored var lastDate: DateComponents
     
     var referenceDate: Date {
-        var date = selectedDate
-        let calendar = Calendar.current
-        if selectedResolution == .yearly {
-            let year = calendar.component(.year, from: selectedDate)
-            date = DateComponents(calendar: calendar, year: year, month: 1, day: 1).date!
-        } else if selectedResolution == .monthly {
-            let year = calendar.component(.year, from: selectedDate)
-            let month = calendar.component(.month, from: selectedDate)
-            date = DateComponents(calendar: calendar, year: year, month: month, day: 1).date!
-        } else if selectedResolution == .daily {
-            let year = calendar.component(.year, from: selectedDate)
-            let month = calendar.component(.month, from: selectedDate)
-            let day = calendar.component(.day, from: selectedDate)
-            date = DateComponents(calendar: calendar, year: year, month: month, day: day).date!
+        set {
+            let calendar = Calendar.current
+            if selectedResolution == .yearly {
+                // We only change the year and check if the day is still valid
+                let year = calendar.component(.year, from: newValue)
+                let month = calendar.component(.month, from: selectedDate)
+                let day = TimeBox.getCorrectDay(day: calendar.component(.day, from: selectedDate), month: month, year: year)
+                self.selectedDate = DateComponents(calendar: calendar, year: year, month: month, day: day).date!
+            } else if selectedResolution == .monthly {
+                // We only change the month and check if the day is still valid
+                let year = calendar.component(.year, from: selectedDate)
+                let month = calendar.component(.month, from: newValue)
+                let day = TimeBox.getCorrectDay(day: calendar.component(.day, from: selectedDate), month: month, year: year)
+                self.selectedDate = DateComponents(calendar: calendar, year: year, month: month, day: day).date!
+            } else if selectedResolution == .daily {
+                // We only change the day
+                let year = calendar.component(.year, from: selectedDate)
+                let month = calendar.component(.month, from: selectedDate)
+                let day = calendar.component(.day, from: newValue)
+                self.selectedDate = DateComponents(calendar: calendar, year: year, month: month, day: day).date!
+            }
         }
-        return date
+        get {
+            var date = selectedDate
+            let calendar = Calendar.current
+            if selectedResolution == .yearly {
+                let year = calendar.component(.year, from: selectedDate)
+                date = DateComponents(calendar: calendar, year: year, month: 1, day: 1).date!
+            } else if selectedResolution == .monthly {
+                let year = calendar.component(.year, from: selectedDate)
+                let month = calendar.component(.month, from: selectedDate)
+                date = DateComponents(calendar: calendar, year: year, month: month, day: 1).date!
+            } else if selectedResolution == .daily {
+                let year = calendar.component(.year, from: selectedDate)
+                let month = calendar.component(.month, from: selectedDate)
+                let day = calendar.component(.day, from: selectedDate)
+                date = DateComponents(calendar: calendar, year: year, month: month, day: day).date!
+            }
+            return date
+        }
     }
     
     var monthPickerList: [Date] {
@@ -299,82 +304,56 @@ class TimeBox {
         self.selectedResolution = selectedResolution
         self.allowedResolutions = allowedResolutions
         self.selectIndividualItem = selectIndividualItem
-        self.lastDate = TimeBox.setLastDate(from: selectedDate)
     }
     
     func increaseDay() {
         withAnimation {
             selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
         }
-        lastDate = TimeBox.setLastDate(from: selectedDate)
     }
     
     func decreaseDay() {
         withAnimation {
             selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
         }
-        lastDate = TimeBox.setLastDate(from: selectedDate)
     }
     
     func increaseMonth() {
         withAnimation {
             selectedDate = Calendar.current.date(byAdding: .month, value: 1, to: selectedDate)!
         }
-        lastDate = TimeBox.setLastDate(from: selectedDate)
     }
     
     func decreaseMonth() {
         withAnimation {
             selectedDate = Calendar.current.date(byAdding: .month, value: -1, to: selectedDate)!
         }
-        lastDate = TimeBox.setLastDate(from: selectedDate)
     }
     
     func increaseYear() {
         withAnimation {
             selectedDate = Calendar.current.date(byAdding: .year, value: 1, to: selectedDate)!
         }
-        lastDate = TimeBox.setLastDate(from: selectedDate)
     }
     
     func decreaseYear() {
         withAnimation {
             selectedDate = Calendar.current.date(byAdding: .year, value: -1, to: selectedDate)!
         }
-        lastDate = TimeBox.setLastDate(from: selectedDate)
     }
     
-    /// Switches the resolution to yearly, coming from none. The lastDate is unchanged.
-    /// The selectedDate needs to be the 1st of January of the selected year.
-    /// The new selectedDate is set to:
-    /// - the year of the lastDate
-    /// - the month of the lastDate
-    /// - the minimum of the day of the lastDate or the number of days of the new month
+    /// Switches the resolution to yearly
     func switchToYearly() {
         if allowedResolutions.contains(.yearly) {
-            // Set correct date - we always need first of January of the year
-            let year = lastDate.year
-            let firstDayOfYear = Calendar.current.date(from: DateComponents(year: year, month: 1, day: 1))!
-            self.selectedDate = firstDayOfYear
             withAnimation {
                 self.selectedResolution = .yearly
             }
         }
     }
     
-    /// Switches the resolution to monthly, coming either from yearly or none. The lastDate is unchanged.
-    /// The selectedDate needs to be the 1st day of the selected month.
-    /// The new selectedDate is set to:
-    /// - the year of the lastDate
-    /// - the month of the lastDate
-    /// - day: 1
+    /// Switches the resolution to monthly
     func switchToMonthly() {
         if allowedResolutions.contains(.monthly) {
-            // Set correct date - we always need the first day of the month
-            let year = lastDate.year
-            let month = lastDate.month
-            let firstDayOfMonth = Calendar.current.date(from: DateComponents(year: year, month: month, day: 1))!
-            self.selectedDate = firstDayOfMonth
             withAnimation {
                 self.selectedResolution = .monthly
             }
@@ -384,7 +363,6 @@ class TimeBox {
     /// Switches the resolution to daily, coming from yearly, monthly or noe. The selectedDate is the current lastDate, which is left unchanged.
     func switchToDaily() {
         if allowedResolutions.contains(.daily) {
-            selectedDate = Calendar.current.date(from: lastDate)!
             withAnimation {
                 self.selectedResolution = .daily
             }
@@ -398,14 +376,8 @@ class TimeBox {
     }
     
     /// Switches the resolution to the next finer resolution based on the passed dateKey.
-    /// To switch from yearly to monthly, the dateKey needs to be parsable as month (1 to 12). The newDate is set to:
-    /// - the year as previously
-    /// - the month as parsed
-    /// - the minimum of the day of the lastDate or the number of days of the new month
-    /// To switch from monthly to daily, the dateKey needs to be parsable as day (1 to 31). The newDate is set to:
-    /// - the year as previously
-    /// - the month as previously
-    /// - the day as parsed
+    /// To switch from yearly to monthly, the dateKey needs to be parsable as month (1 to 12).
+    /// To switch from monthly to daily, the dateKey needs to be parsable as day (1 to 31).
     /// From daily, the function tries to switch to an individual item by using the function selectIndividualItem.
     /// - Parameter dateKey: The date key as described above.
     func switchResolution(_ dateKey: String) {
@@ -417,26 +389,21 @@ class TimeBox {
             // Switch to the month tapped and stored in dateKey as String (double-digit integer)
             let year = calendar.component(.year, from: selectedDate)
             let month = Int(dateKey) ?? calendar.component(.month, from: Date.now)
+            let day = TimeBox.getCorrectDay(day: calendar.component(.day, from: selectedDate), month: month, year: year)
             newDate = DateComponents(
                 calendar: calendar,
                 year: year,
                 month: month,
-                day: 1
+                day: day
             ).date
             if allowedResolutions.contains(.monthly), let newDate {
                 switched = true
-                
-                // Set lastDate
-                let day = TimeBox.getCorrectDay(day: lastDate.day ?? 1, month: month, year: year)
-                lastDate = DateComponents(year: year, month: month, day: day)
-                
                 withAnimation {
                     selectedDate = newDate
                     selectedResolution = .monthly
                 }
             }
         case .monthly:
-            // TODO this produces a runtime error: Picker: the selection "2025-12-17 23:00:00 +0000" is invalid and does not have an associated tag, this will give undefined results.
             // Switch to the day tapped and stored in dateKey as String (double-digit integer)
             let year = calendar.component(.year, from: selectedDate)
             let month = calendar.component(.month, from: selectedDate)
@@ -449,10 +416,6 @@ class TimeBox {
             ).date
             if allowedResolutions.contains(.daily), let newDate {
                 switched = true
-                
-                // Set lastDate
-                lastDate = DateComponents(year: year, month: month, day: day)
-                
                 withAnimation {
                     selectedDate = newDate
                     selectedResolution = .daily
@@ -495,19 +458,6 @@ class TimeBox {
         case .daily: return DateFormatter.chartDisplayDateDaily.string(from: date)
         case .none: return ""
         }
-    }
-    
-    private static func setLastDate(from selectedDate: Date) -> DateComponents {
-        let calendar = Calendar.current
-        let year = calendar.component(.year, from: selectedDate)
-        let month = calendar.component(.month, from: selectedDate)
-        let day = calendar.component(.day, from: selectedDate)
-        return DateComponents(
-            calendar: calendar,
-            year: year,
-            month: month,
-            day: day
-        )
     }
     
     /// Gets the correct day for the given month of the given year.

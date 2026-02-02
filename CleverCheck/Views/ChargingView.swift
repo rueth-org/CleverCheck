@@ -178,7 +178,7 @@ struct ChargingView: View {
             sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]
         )
         _timeBox = State(initialValue: TimeBox(
-            selectedDate: Date.now.startOfMonth,
+            selectedDate: Date.now,
             selectedResolution: .monthly,
             allowedResolutions: [.daily, .monthly, .yearly],
             selectIndividualItem: { _ in }

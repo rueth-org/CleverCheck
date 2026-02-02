@@ -23,7 +23,7 @@ struct HomeView: View {
     @State private var selectedLocation: Location? = nil
     @State private var selectedConsumptions: ConsumptionContainer? = nil
     @State private var timeBox: TimeBox = TimeBox(
-        selectedDate: Date.now.startOfMonth,
+        selectedDate: Date.now,
         selectedResolution: .yearly,
         allowedResolutions: [.yearly],
         selectIndividualItem: { _ in }
