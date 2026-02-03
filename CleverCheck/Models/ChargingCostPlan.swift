@@ -52,6 +52,16 @@ public final class ChargingCostPlan {
     var descriptionLong: String {
         "\(descriptionShort) (\(planType.description))"
     }
+
+    var totalChargedEnergy: Measurement<UnitEnergy> {
+        guard let chargingSessions else { return .init(value: 0.0, unit: .kilowattHours) }
+        return chargingSessions.reduce(.init(value: 0.0, unit: .kilowattHours)) { $0 + ($1.chargedEnergy) }
+    }
+    
+    var totalChargingCost: Cost {
+        guard let chargingSessions else { return .init(amount: 0.0) }
+        return chargingSessions.reduce(.init(amount: 0.0)) { $0 + ($1.totalChargingCost) }
+    }
     
     init(
         car: Car,

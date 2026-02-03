@@ -38,3 +38,18 @@ struct Cost: Codable {
     }
 }
 
+extension Cost: AdditiveArithmetic {
+    static var zero: Cost = Cost(amount: 0.0)
+    
+    static func + (lhs: Cost, rhs: Cost) -> Cost {
+        let lhsConverted = lhs.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? 0.0
+        let rhsConverted = rhs.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? 0.0
+        return Cost(amount: lhsConverted + rhsConverted)
+    }
+    
+    static func - (lhs: Cost, rhs: Cost) -> Cost {
+        let lhsConverted = lhs.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? 0.0
+        let rhsConverted = rhs.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? 0.0
+        return Cost(amount: lhsConverted - rhsConverted)
+    }
+}

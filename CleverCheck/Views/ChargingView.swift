@@ -19,6 +19,8 @@ struct ChargingView: View {
     @State private var selectedSession: ChargingSession? = nil
     @State private var timeBox: TimeBox
     
+    @State private var showCarInfo: Bool = false
+    
     enum Chart {
         case charging, consumption
     }
@@ -41,8 +43,23 @@ struct ChargingView: View {
                     
                     // The date selection part
                     
-                    Text(selectedCar?.description ?? "No car selected")
-                        .font(Font.title.bold())
+                    HStack {
+                        Text(selectedCar?.description ?? "No car selected")
+                            .font(Font.title.bold())
+                        Spacer()
+                        if let selectedCar {
+                            Button(action: {
+                                showCarInfo = true
+                            }) {
+                                Image(systemName: "info.circle")
+                            }
+                            .sheet(isPresented: $showCarInfo) {
+                                CarInfo(car: selectedCar)
+                                    .presentationDetents([.medium, .large])
+                                    .presentationDragIndicator(.visible)
+                            }
+                        }
+                    }
                     
                     // The date picker
                     TimeBoxPicker(timeBox: timeBox)
