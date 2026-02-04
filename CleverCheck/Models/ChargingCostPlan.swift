@@ -53,16 +53,6 @@ public final class ChargingCostPlan {
         "\(descriptionShort) (\(planType.description))"
     }
 
-    var totalChargedEnergy: Measurement<UnitEnergy> {
-        guard let chargingSessions else { return .init(value: 0.0, unit: .kilowattHours) }
-        return chargingSessions.reduce(.init(value: 0.0, unit: .kilowattHours)) { $0 + ($1.chargedEnergy) }
-    }
-    
-    var totalChargingCost: Cost {
-        guard let chargingSessions else { return .init(amount: 0.0) }
-        return chargingSessions.reduce(.init(amount: 0.0)) { $0 + ($1.totalChargingCost) }
-    }
-    
     init(
         car: Car,
         charger: Charger,
@@ -77,6 +67,22 @@ public final class ChargingCostPlan {
         self.defaultEnergyPrice = defaultEnergyPrice
         self.monthlyRate = monthlyRate
         self.includedInOtherPlan = includedInOtherPlan
+    }
+    
+    func totalChargedEnergy(in timeBox: TimeBox) -> Measurement<UnitEnergy> {
+        guard let chargingSessions else { return .init(value: 0.0, unit: .kilowattHours) }
+        let filteredSessions = chargingSessions.filter { session in
+            timeBox.contains(session.endTime)
+        }
+        return filteredSessions.reduce(.init(value: 0.0, unit: .kilowattHours)) { $0 + ($1.chargedEnergy) }
+    }
+    
+    func totalChargingCost(in timeBox: TimeBox) -> Cost {
+        guard let chargingSessions else { return .init(amount: 0.0) }
+        let filteredSessions = chargingSessions.filter { session in
+            timeBox.contains(session.endTime)
+        }
+        return filteredSessions.reduce(.init(amount: 0.0)) { $0 + ($1.totalChargingCost) }
     }
 }
 

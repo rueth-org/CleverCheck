@@ -306,6 +306,15 @@ class TimeBox {
         self.selectIndividualItem = selectIndividualItem
     }
     
+    func contains(_ date: Date) -> Bool {
+        switch selectedResolution {
+        case .daily: return Calendar.current.isDate(date, inSameDayAs: selectedDate)
+        case .monthly: return Calendar.current.isDate(date, equalTo: selectedDate, toGranularity: .month)
+        case .yearly: return Calendar.current.isDate(date, equalTo: selectedDate, toGranularity: .year)
+        case .none: return true
+        }
+    }
+    
     func increaseDay() {
         withAnimation {
             selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!

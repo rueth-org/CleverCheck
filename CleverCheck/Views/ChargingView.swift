@@ -51,10 +51,10 @@ struct ChargingView: View {
                             Button(action: {
                                 showCarInfo = true
                             }) {
-                                Image(systemName: "info.circle")
+                                Image(systemName: "chart.pie")
                             }
                             .sheet(isPresented: $showCarInfo) {
-                                CarInfo(car: selectedCar)
+                                CarInfo(car: selectedCar, timeBox: timeBox)
                                     .presentationDetents([.medium, .large])
                                     .presentationDragIndicator(.visible)
                             }

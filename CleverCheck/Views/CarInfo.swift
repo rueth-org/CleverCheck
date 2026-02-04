@@ -10,14 +10,21 @@ import Charts
 
 struct CarInfo: View {
     let car: Car
+    let timeBox: TimeBox
     
     var body: some View {
         DotIndicatorScrollView(tabViews: [
             VStack {
-                let chargedEnergyDict = car.chargedEnergy
+                let chargedEnergyDict = car.chargedEnergy(in: timeBox)
+                let totalChargedEnergy = chargedEnergyDict.values.reduce(Measurement<UnitEnergy>(value: 0.0, unit: .kilowattHours), +)
                 Text("Charged energy")
                     .font(.headline)
-                    .padding()
+                    .padding(.top)
+                    .padding(.horizontal)
+                Text(timeBox.formattedTime)
+                    .font(.subheadline)
+                    .padding(.horizontal)
+                    .padding(.bottom)
                 Chart(chargedEnergyDict.keys.sorted(), id: \.self) { key in
                     SectorMark(
                         angle: .value(
@@ -46,7 +53,7 @@ struct CarInfo: View {
                         if let anchor = chartProxy.plotFrame {
                             let frame = geometry[anchor]
                             VStack {
-                                Text(car.totalChargedEnergy.converted(to: UserSettings.shared.energyUnit).formatted())
+                                Text(totalChargedEnergy.converted(to: UserSettings.shared.energyUnit).formatted())
                                     .font(.headline)
                             }
                             .position(x: frame.midX, y: frame.midY)
@@ -56,10 +63,16 @@ struct CarInfo: View {
                 .padding()
             },
             VStack {
-                let chargingCostDict = car.chargingCost
+                let chargingCostDict = car.chargingCost(in: timeBox)
+                let totalChargingCost = chargingCostDict.values.reduce(Cost(amount: 0.0, currency: UserSettings.shared.currencyIdentifier), +)
                 Text("Direct charging cost")
                     .font(.headline)
-                    .padding()
+                    .padding(.top)
+                    .padding(.horizontal)
+                Text(timeBox.formattedTime)
+                    .font(.subheadline)
+                    .padding(.horizontal)
+                    .padding(.bottom)
                 Chart(chargingCostDict.keys.sorted(), id: \.self) { key in
                     SectorMark(
                         angle: .value(
@@ -88,7 +101,7 @@ struct CarInfo: View {
                         if let anchor = chartProxy.plotFrame {
                             let frame = geometry[anchor]
                             VStack {
-                                Text(car.totalChargingCost.converted(to: UserSettings.shared.currencyIdentifier)?.formatted() ?? "")
+                                Text(totalChargingCost.converted(to: UserSettings.shared.currencyIdentifier)?.formatted() ?? "")
                                     .font(.headline)
                             }
                             .position(x: frame.midX, y: frame.midY)
