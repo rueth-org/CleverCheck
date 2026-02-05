@@ -69,6 +69,21 @@ public final class ChargingCostPlan {
         self.includedInOtherPlan = includedInOtherPlan
     }
     
+    func chargedEnergy(in timeBox: TimeBox) -> [String: Measurement<UnitEnergy>] {
+        guard let chargingSessions else { return [:] }
+        let filteredSessions = chargingSessions.filter { session in
+            timeBox.contains(session.endTime)
+        }
+        var result = [String: Measurement<UnitEnergy>]()
+        for session in filteredSessions {
+            let key = timeBox.getKeyForDate(session.endTime)
+            let existing = result[key] ?? Measurement<UnitEnergy>(value: 0.0, unit: .kilowattHours)
+            // Sum energies; ChargingCostPlan.totalChargedEnergy returns a Measurement in kWh
+            result[key] = existing + session.chargedEnergy
+        }
+        return result
+    }
+    
     func totalChargedEnergy(in timeBox: TimeBox) -> Measurement<UnitEnergy> {
         guard let chargingSessions else { return .init(value: 0.0, unit: .kilowattHours) }
         let filteredSessions = chargingSessions.filter { session in

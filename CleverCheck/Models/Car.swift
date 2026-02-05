@@ -10,6 +10,18 @@ import SwiftData
 
 @Model
 final class Car {
+    struct EnergyData: Identifiable {
+        let id = UUID()
+        let description: String
+        let chargedEnergy: Measurement<UnitEnergy>
+    }
+    
+    struct CostData: Identifiable {
+        let id = UUID()
+        let description: String
+        let cost: Cost
+    }
+    
     var id: UUID = UUID()
     var make: String = ""
     var model: String = ""
@@ -31,27 +43,51 @@ final class Car {
         self.defaultSOC = defaultSOC
     }
     
-    func chargedEnergy(in timeBox: TimeBox) -> [String: Measurement<UnitEnergy>] {
-        guard let chargingCostPlans else { return [:] }
-        var result: [String: Measurement<UnitEnergy>] = [:]
+    func chargingSessions(in timeBox: TimeBox) -> [ChargingSession] {
+        guard let chargingCostPlans else { return [] }
+        return chargingCostPlans.flatMap { $0.chargingSessions ?? [] }.filter { timeBox.contains($0.endTime) }
+    }
+    
+    func chargedEnergy(in timeBox: TimeBox) -> [EnergyData] {
+        guard let chargingCostPlans else { return [] }
+        var result = [EnergyData]()
         for plan in chargingCostPlans {
-            let key = plan.descriptionShortNoCar
-            let existing = result[key] ?? Measurement<UnitEnergy>(value: 0.0, unit: .kilowattHours)
-            // Sum energies; ChargingCostPlan.totalChargedEnergy returns a Measurement in kWh
-            result[key] = existing + plan.totalChargedEnergy(in: timeBox)
+            result.append(EnergyData(description: plan.descriptionShortNoCar, chargedEnergy: plan.totalChargedEnergy(in: timeBox)))
         }
         return result
     }
     
-    func chargingCost(in timeBox: TimeBox) -> [String: Cost] {
+    func chargedEnergyPerPeriod(in timeBox: TimeBox) -> [String: [EnergyData]] {
         guard let chargingCostPlans else { return [:] }
-        var result: [String: Cost] = [:]
+        var result = [String: [EnergyData]]()
         for plan in chargingCostPlans {
-            let key = plan.descriptionShortNoCar
-            let existing = result[key] ?? Cost(amount: 0.0, currency: UserSettings.shared.currencyIdentifier)
-            // Sum cost
-            result[key] = existing + plan.totalChargingCost(in: timeBox)
+            let chargedEnergyPerPeriod = plan.chargedEnergy(in: timeBox)
+            for key in chargedEnergyPerPeriod.keys {
+                let energyDataSet = EnergyData(description: plan.descriptionShortNoCar, chargedEnergy: chargedEnergyPerPeriod[key]!)
+                if result[key] == nil {
+                    result[key] = [energyDataSet]
+                } else {
+                    result[key]?.append(energyDataSet)
+                }
+            }
         }
         return result
+    }
+    
+    func chargingCost(in timeBox: TimeBox) -> [CostData] {
+        guard let chargingCostPlans else { return [] }
+        var result = [CostData]()
+        for plan in chargingCostPlans {
+            result.append(CostData(description: plan.descriptionShortNoCar, cost: plan.totalChargingCost(in: timeBox)))
+        }
+        return result
+    }
+    
+    func consumptionData(in timeBox: TimeBox, modelContext: ModelContext) -> ConsumptionData? {
+        guard let chargingCostPlans else { return nil }
+        let chargingSessions = chargingSessions(in: timeBox)
+        if chargingSessions.isEmpty { return nil }
+        
+        return try? ConsumptionData(modelContext: modelContext, timeBox: timeBox, relatedPlans: chargingCostPlans, sessions: chargingSessions)
     }
 }

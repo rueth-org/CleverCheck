@@ -25,18 +25,20 @@ struct DotIndicatorScrollView: View {
             // Dots indicator matching the number of tabs
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
+                    Spacer()
                     ForEach(tabViews.indices, id: \.self) { index in
                         Circle()
                             .frame(width: index == currentStep ? 12 : 8,
                                    height: index == currentStep ? 12 : 8)
                             .foregroundStyle(.blue.opacity(index == currentStep ? 1 : 0.5))
                     }
+                    Spacer()
                 }
                 .padding()
                 .scrollTargetLayout()
             }
             .background(.clear, in: RoundedRectangle(cornerRadius: 30))
-            .frame(maxWidth: 60)
+            .frame(maxWidth: 120)
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: Binding($currentStep), anchor: .center)
             .allowsTightening(false)

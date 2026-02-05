@@ -28,69 +28,32 @@ struct ChargingView: View {
     
     @Query private var vehicles: [Car]
     
-    var chargingData: ChargingData? {
-        if let selectedCar {
-            return try? ChargingData(modelContext: modelContext, vehicle: selectedCar, timeBox: timeBox)
-        } else {
-            return nil
-        }
-    }
-    
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            List {
-                if let chargingData {
-                    
-                    // The date selection part
-                    
+            VStack {
+                if let selectedCar {
                     HStack {
-                        Text(selectedCar?.description ?? "No car selected")
+                        Text(selectedCar.description)
                             .font(Font.title.bold())
-                        Spacer()
-                        if let selectedCar {
-                            Button(action: {
-                                showCarInfo = true
-                            }) {
-                                Image(systemName: "chart.pie")
-                            }
-                            .sheet(isPresented: $showCarInfo) {
-                                CarInfo(car: selectedCar, timeBox: timeBox)
-                                    .presentationDetents([.medium, .large])
-                                    .presentationDragIndicator(.visible)
-                            }
-                        }
-                    }
+                    }.padding(.horizontal)
                     
                     // The date picker
                     TimeBoxPicker(timeBox: timeBox)
+                        .padding(.horizontal)
                     
                     // The data part
-                    if chargingData.chargingSessions.isEmpty {
-                        HStack {
-                            Spacer()
-                            Text("No data")
-                                .italic()
-                                .foregroundStyle(Color.secondary)
-                            Spacer()
-                        }
-                    } else {
-                        // The picker to choose which data to display
-                        Picker("Choose data set", selection: $selectedChart) {
-                            Text("Charging data").tag(Chart.charging)
-                            Text("Consumption").tag(Chart.consumption)
-                        }
-                        .pickerStyle(.palette)
-                        
-                        ChargingViewChart(chargingData: chargingData, selectedChart: selectedChart, onBarTap: { dateKey in
-                            timeBox.switchResolution(dateKey)
-                        })
-                        
-                        // The summary data
-                        ChargingViewSummary(chargingData: chargingData)
-                    }
+                    ChargingViewChart(car: selectedCar, timeBox: timeBox, onBarTap: { dateKey in
+                        timeBox.switchResolution(dateKey)
+                    })
+                    .padding(.horizontal)
                 } else {
-                    Text("Select vehicle to show data").italic()
+                    Text("Select vehicle to show data")
+                        .italic()
+                        .padding()
                 }
+                
+                // The spacer to move the charging sessions button to the bottom of the screen
+                Spacer()
                 
                 // The charging sessions button
                 Button(action: {
@@ -154,8 +117,8 @@ struct ChargingView: View {
             }
         }
         .sheet(item: $selectedSession) { _ in
-            if let chargingData {
-                ChargingSessionDetails(navigationPath: $navigationPath, selectedSession: $selectedSession, vehicle: selectedCar, allSessions: chargingData.chargingSessions)
+            if let selectedCar {
+                ChargingSessionDetails(navigationPath: $navigationPath, selectedSession: $selectedSession, vehicle: selectedCar, allSessions: selectedCar.chargingSessions(in: timeBox))
                     .presentationDragIndicator(.visible)
             }
         }
@@ -211,14 +174,15 @@ struct ChargingView: View {
     }
     
     private func selectIndividualSession(date: Date) {
-        if let chargingData {
+        if let selectedCar {
+            let chargingSessions = selectedCar.chargingSessions(in: timeBox)
             // Try to identify session
-            if chargingData.chargingSessions.count == 1 {
+            if chargingSessions.count == 1 {
                 // There is only one session
-                selectedSession = chargingData.chargingSessions.first!
+                selectedSession = chargingSessions.first!
             } else {
                 // Try to match endTime
-                for session in chargingData.chargingSessions {
+                for session in chargingSessions {
                     if session.endTime == date {
                         selectedSession = session
                         break

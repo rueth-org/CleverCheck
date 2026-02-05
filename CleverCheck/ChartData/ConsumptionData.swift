@@ -150,11 +150,14 @@ struct ConsumptionData: Identifiable {
             throw DataError(message: "No sessions available")
         }
         
+        // Sort sessions
+        let sortedSessions = sessions.sorted(by: { $0.endTime < $1.endTime })
+        
         self.timeBox = timeBox
-        self.sessions = sessions
+        self.sessions = sortedSessions
         
         // Identify the last session for the vehicle (via related plans) with a mileage and the reference SOC before the first session in scope
-        let firstSessionEndTime = sessions.first!.endTime
+        let firstSessionEndTime = sortedSessions.first!.endTime
         let previousReferenceSessionsWithFinalSOC = try modelContext.fetch(FetchDescriptor<ChargingSession>(
             predicate: #Predicate { session in
                 session.mileageKilometer != nil && session.endTime < firstSessionEndTime && session.finalSOC != nil
