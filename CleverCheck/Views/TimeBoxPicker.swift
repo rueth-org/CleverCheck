@@ -76,9 +76,10 @@ struct TimeBoxPicker: View {
                     .buttonStyle(.plain)
                 }
                 
-                Picker("Month", selection: $timeBox.referenceDate) {
+                Picker("Month", selection: $timeBox.referenceMonth) {
                     ForEach(timeBox.monthPickerList, id: \.self) { date in
-                        Text(DateFormatter.displayAbbreviatedMonthOnly.string(from: date)).tag(date)
+                        let month = Calendar.current.component(.month, from: date)
+                        Text(DateFormatter.displayAbbreviatedMonthOnly.string(from: date)).tag(month)
                     }
                 }
                 .labelsHidden()
@@ -121,9 +122,10 @@ struct TimeBoxPicker: View {
                 
                 Spacer()
                 
-                Picker("Day", selection: $timeBox.referenceDate) {
+                Picker("Day", selection: $timeBox.referenceDay) {
                     ForEach(timeBox.dayPickerList, id: \.self) { date in
-                        Text(DateFormatter.chartDisplayDateMonthly.string(from: date)).tag(date)
+                        let day = Calendar.current.component(.day, from: date)
+                        Text(DateFormatter.chartDisplayDateMonthly.string(from: date)).tag(day)
                     }
                 }
                 .labelsHidden()
@@ -274,6 +276,36 @@ class TimeBox {
             result.append(dateTag)
         }
         return result
+    }
+
+    // New computed properties to provide stable Picker bindings (month/day integers) instead of raw Date equality which can fail due to time components/timezones.
+    var referenceMonth: Int {
+        get {
+            return Calendar.current.component(.month, from: referenceDate)
+        }
+        set {
+            let calendar = Calendar.current
+            let year = calendar.component(.year, from: selectedDate)
+            let month = newValue
+            let day = TimeBox.getCorrectDay(day: calendar.component(.day, from: selectedDate), month: month, year: year)
+            self.selectedDate = DateComponents(calendar: calendar, year: year, month: month, day: day).date!
+        }
+    }
+
+    var referenceDay: Int {
+        get {
+            return Calendar.current.component(.day, from: referenceDate)
+        }
+        set {
+            let calendar = Calendar.current
+            let year = calendar.component(.year, from: selectedDate)
+            let month = calendar.component(.month, from: selectedDate)
+            let day = newValue
+            // Ensure day is valid for the current month
+            let range = calendar.range(of: .day, in: .month, for: selectedDate)!
+            let safeDay = min(max(day, range.lowerBound), range.upperBound)
+            self.selectedDate = DateComponents(calendar: calendar, year: year, month: month, day: safeDay).date!
+        }
     }
     
     var timePeriod: (start: Date, end: Date)? {
