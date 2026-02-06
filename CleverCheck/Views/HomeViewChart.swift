@@ -14,7 +14,10 @@ struct HomeViewChart: View {
 
     @Binding var showHomeData: Bool
     @Binding var showChargingData: Bool
-    
+
+    // pending tap location relative to the TapLocationView bounds
+    @State private var pendingTapLocation: CGPoint? = nil
+
     var yAxisLabel: String {
         switch selectedChart {
         case .energy:
@@ -23,10 +26,10 @@ struct HomeViewChart: View {
             UserSettings.shared.currencyIdentifier
         }
     }
-    
+
     // Optional callback invoked when a bar is tapped; receives the x-axis key (month) as String
     var onBarTap: ((String) -> Void)? = nil
-    
+
     private var filteredHomeData: [HomeData.Data] {
         if showHomeData && showChargingData {
             return homeData.data
@@ -41,7 +44,6 @@ struct HomeViewChart: View {
 
     // Compute the aggregated sum per x-axis key (timeKey) depending on selectedChart.
     private var aggregatedSums: [(timeKey: String, sum: Double)] {
-        // Group data by timeKey (x-axis key) and sum the relevant metric
         let grouped = Dictionary(grouping: filteredHomeData) { $0.timeKey }
         return grouped.map { (key, values) in
             let total: Double
@@ -53,10 +55,9 @@ struct HomeViewChart: View {
             }
             return (timeKey: key, sum: total)
         }
-        // Keep a stable order by sorting on the key which matches how bars are laid out
         .sorted { $0.timeKey < $1.timeKey }
     }
-    
+
     var body: some View {
         Chart {
             switch selectedChart {
@@ -78,17 +79,14 @@ struct HomeViewChart: View {
                 }
             }
 
-            // Overlay PointMarks (invisible) with annotations for the aggregated total per x-axis key
             ForEach(aggregatedSums, id: \.timeKey) { item in
-                // Use a PointMark so we can attach an annotation positioned above the stacked bars
                 PointMark(
                     x: .value("Month", item.timeKey),
                     y: .value("Total", item.sum)
                 )
                 .symbol(.circle)
-                .opacity(0) // hide the symbol itself
+                .opacity(0)
                 .annotation(position: .top, alignment: .center) {
-                    // Format the sum according to the selected chart type
                     Group {
                         switch selectedChart {
                         case .energy:
@@ -110,34 +108,44 @@ struct HomeViewChart: View {
         .chartLegend(.visible)
         .chartOverlay { proxy in
             GeometryReader { geometry in
-                // Invisible layer that captures taps over the chart's plot area
-                Rectangle()
-                    .fill(Color.clear)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onEnded { value in
-                                if let plotFrameAnchor = proxy.plotFrame {
-                                    let plotFrame = geometry[plotFrameAnchor]
-                                    let location = value.location
-                                    // location is in the overlay's coordinate space (same as geometry),
-                                    // so subtract the plot area's origin to get x inside the plot area.
-                                    let xInPlot = location.x - plotFrame.origin.x
+                ZStack {
+                    if let plotFrameAnchor = proxy.plotFrame {
+                        let plotFrame = geometry[plotFrameAnchor]
 
-                                    // Ask the proxy for the underlying x-axis value at that x position.
-                                    // The value might be a String (our current chart uses String keys),
-                                    // but handle Date and Number too.
-                                    if let key = proxy.value(atX: xInPlot, as: String.self) {
-                                        barTapped(key)
-                                    } else if let date = proxy.value(atX: xInPlot, as: Date.self) {
-                                        let key = homeData.timeBox.getKeyForDate(date)
-                                        barTapped(key)
-                                    } else if let number = proxy.value(atX: xInPlot, as: Double.self) {
-                                        barTapped(String(number))
-                                    }
-                                }
+                        // id changes when x-axis keys or plot size change -> recreate UIView
+                        let chartKeyId: String = {
+                            let keys = filteredHomeData.map { $0.timeKey }.sorted()
+                            if !keys.isEmpty {
+                                return keys.joined(separator: "|")
+                            } else {
+                                return aggregatedSums.map { $0.timeKey }.joined(separator: "|")
                             }
-                    )
+                        }()
+
+                        TapLocationView { loc in
+                            // loc is relative to the TapLocationView bounds (we size it to plotFrame)
+                            pendingTapLocation = loc
+                        }
+                        .id(chartKeyId + "_\(Int(plotFrame.size.width))_\(Int(plotFrame.size.height))")
+                        .frame(width: plotFrame.size.width, height: plotFrame.size.height)
+                        .position(x: plotFrame.midX, y: plotFrame.midY)
+                        .onChange(of: pendingTapLocation) { _old, newLoc in
+                            guard let loc = newLoc else { return }
+                            let xInPlot = loc.x
+
+                            if let key = proxy.value(atX: xInPlot, as: String.self) {
+                                barTapped(key)
+                            } else if let date = proxy.value(atX: xInPlot, as: Date.self) {
+                                let key = homeData.timeBox.getKeyForDate(date)
+                                barTapped(key)
+                            } else if let number = proxy.value(atX: xInPlot, as: Double.self) {
+                                barTapped(String(number))
+                            }
+
+                            pendingTapLocation = nil
+                        }
+                    }
+                }
             }
         }
         .toolbar {
@@ -153,13 +161,9 @@ struct HomeViewChart: View {
             }
         }
     }
-    
-    // Called when a bar is tapped. String is the "End Time" key from the x-axis.
+
     func barTapped(_ key: String) {
-        // Debug print for development to verify taps
-        debugPrint("ChargingViewChart barTapped: \(key)")
-        // Forward to external observer if provided.
+        debugPrint("HomeViewChart barTapped: \(key)")
         onBarTap?(key)
     }
 }
-

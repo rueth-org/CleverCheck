@@ -13,7 +13,10 @@ struct ChargingViewChart: View {
     
     let car: Car
     let timeBox: TimeBox
-    
+
+    // State to receive tap locations from the UIViewRepresentable and process them
+    @State private var pendingTapLocation: CGPoint? = nil
+
     var chargedEnergyDataPerPeriod: [String: [Car.EnergyData]] {
         car.chargedEnergyPerPeriod(in: timeBox)
     }
@@ -254,34 +257,47 @@ struct ChargingViewChart: View {
     
     fileprivate func readTappedPosition(_ proxy: ChartProxy) -> GeometryReader<some View> {
         return GeometryReader { geometry in
-            // Invisible layer that captures taps over the chart's plot area
-            Rectangle()
-                .fill(Color.clear)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onEnded { value in
-                            if let plotFrameAnchor = proxy.plotFrame {
-                                let plotFrame = geometry[plotFrameAnchor]
-                                let location = value.location
-                                // location is in the overlay's coordinate space (same as geometry),
-                                // so subtract the plot area's origin to get x inside the plot area.
-                                let xInPlot = location.x - plotFrame.origin.x
-                                
-                                // Ask the proxy for the underlying x-axis value at that x position.
-                                // The value might be a String (our current chart uses String keys),
-                                // but handle Date and Number too.
-                                if let key = proxy.value(atX: xInPlot, as: String.self) {
-                                    barTapped(key)
-                                } else if let date = proxy.value(atX: xInPlot, as: Date.self) {
-                                    let key = timeBox.getKeyForDate(date)
-                                    barTapped(key)
-                                } else if let number = proxy.value(atX: xInPlot, as: Double.self) {
-                                    barTapped(String(number))
-                                }
-                            }
+            ZStack {
+                if let plotFrameAnchor = proxy.plotFrame {
+                    let plotFrame = geometry[plotFrameAnchor]
+
+                    // Create an id based on current x-axis keys so the UIView gets recreated
+                    let chartKeyId: String = {
+                        if !chargedEnergyDataPerPeriod.isEmpty {
+                            return chargedEnergyDataPerPeriod.keys.sorted().joined(separator: "|")
+                        } else if let consumptionData = consumptionData, !consumptionData.consumptions.isEmpty {
+                            return consumptionData.consumptions.keys.sorted().joined(separator: "|")
+                        } else {
+                            return aggregatedEnergySums.map{ $0.timeKey }.joined(separator: "|")
                         }
-                )
+                    }()
+
+                    // TapLocationView only writes the tap point into state. We process it below
+                    // in an onChange handler that runs with the current `proxy` and `geometry`.
+                    TapLocationView { loc in
+                        // loc.x is relative to the TapLocationView bounds (which match the plot area)
+                        pendingTapLocation = loc
+                    }
+                    .id(chartKeyId + "_\(Int(plotFrame.size.width))_\(Int(plotFrame.size.height))")
+                    .frame(width: plotFrame.size.width, height: plotFrame.size.height)
+                    .position(x: plotFrame.midX, y: plotFrame.midY)
+                    .onChange(of: pendingTapLocation) { _old, newLoc in
+                        guard let loc = newLoc else { return }
+                        let xInPlot = loc.x
+
+                        if let key = proxy.value(atX: xInPlot, as: String.self) {
+                            barTapped(key)
+                        } else if let date = proxy.value(atX: xInPlot, as: Date.self) {
+                            let key = timeBox.getKeyForDate(date)
+                            barTapped(key)
+                        } else if let number = proxy.value(atX: xInPlot, as: Double.self) {
+                            barTapped(String(number))
+                        }
+
+                        pendingTapLocation = nil
+                    }
+                }
+            }
         }
     }
     
@@ -293,4 +309,3 @@ struct ChargingViewChart: View {
         onBarTap?(key)
     }
 }
-

@@ -21,11 +21,6 @@ struct ChargingView: View {
     
     @State private var showCarInfo: Bool = false
     
-    enum Chart {
-        case charging, consumption
-    }
-    @State private var selectedChart: Chart = .charging
-    
     @Query private var vehicles: [Car]
     
     var body: some View {
