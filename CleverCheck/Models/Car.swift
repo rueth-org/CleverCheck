@@ -43,9 +43,13 @@ final class Car {
         self.defaultSOC = defaultSOC
     }
     
-    func chargingSessions(in timeBox: TimeBox) -> [ChargingSession] {
+    func chargingSessions(in timeBox: TimeBox?) -> [ChargingSession] {
         guard let chargingCostPlans else { return [] }
-        return chargingCostPlans.flatMap { $0.chargingSessions ?? [] }.filter { timeBox.contains($0.endTime) }
+        if let timeBox {
+            return chargingCostPlans.flatMap { $0.chargingSessions ?? [] }.filter { timeBox.contains($0.endTime) }
+        } else {
+            return chargingCostPlans.flatMap { $0.chargingSessions ?? [] }
+        }
     }
     
     func chargedEnergy(in timeBox: TimeBox) -> [EnergyData] {
@@ -90,4 +94,30 @@ final class Car {
         
         return try? ConsumptionData(modelContext: modelContext, timeBox: timeBox, relatedPlans: chargingCostPlans, sessions: chargingSessions)
     }
+    
+    func averageEnergyPerPercentPoint(in timeBox: TimeBox? = nil) -> Measurement<UnitEnergy>? {
+        let chargingSessions = self.chargingSessions(in: timeBox)
+        let sessionsWithPercentAndEnergy = chargingSessions.filter { session in
+            if let initial = session.initialSOC, let final = session.finalSOC {
+                return final > initial && session.chargedEnergyKWh > 0
+            }
+            return false
+        }
+
+        let values: [Double] = sessionsWithPercentAndEnergy.compactMap { session in
+            guard let initial = session.initialSOC, let final = session.finalSOC, final > initial else { return nil }
+            let percentDiff = final - initial
+            if percentDiff == 0 { return nil }
+            return session.chargedEnergyKWh / percentDiff
+        }
+
+        guard !values.isEmpty else {
+            // Return 0 kWh per percent point if no valid sessions
+            return nil
+        }
+
+        let average = values.reduce(0, +) / Double(values.count)
+        return Measurement(value: average, unit: UnitEnergy.kilowattHours)
+    }
 }
+

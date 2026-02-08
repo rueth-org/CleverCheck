@@ -224,6 +224,14 @@ struct ChargingSessionEditor: View {
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                 Text(chargedEnergy.unit.symbol)
+                Button(action: {
+                    if let estimate = calculateEnergy() {
+                        self.chargedEnergy = estimate
+                    }
+                }) {
+                    Image(systemName: "questionmark.circle")
+                }
+                .disabled(!enterInitialSOC || !enterFinalSOC || finalSOC < initialSOC)
             }
             
             // Cost
@@ -658,6 +666,19 @@ struct ChargingSessionEditor: View {
         navigationPath.removeLast()
         modelContext.delete(chargingSession)
         try? modelContext.save()
+    }
+    
+    private func calculateEnergy() -> Measurement<UnitEnergy>? {
+        if let avgPerPP = selectedCar?.averageEnergyPerPercentPoint() {
+            return .init(
+                value: (finalSOC - initialSOC) * avgPerPP.converted(to: UserSettings.shared.energyUnit).value,
+                unit: UserSettings.shared.energyUnit
+            )
+        } else {
+            activeAlert = SimpleAlert(type: .warning(message: "An estimation of the charged energy requires initial SOC less than final SOC."))
+            showingAlert = true
+            return nil
+        }
     }
     
     @MainActor private func getDataFromImage(_ sourceType: UIImagePickerController.SourceType) async {
