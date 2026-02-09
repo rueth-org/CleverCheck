@@ -13,6 +13,12 @@ struct ChargingSessionEditor: View {
         case mileage, initialSOC, finalSOC
     }
     
+    private enum CostType {
+        case cost
+        case specificCost
+    }
+    @State private var costType: CostType = .cost
+    
     static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -74,15 +80,23 @@ struct ChargingSessionEditor: View {
         }
     }
     
-    private var totalChargingCost: Cost {
+    private var totalChargingCost: Cost? {
         switch enterCost {
         case .none: return .init(amount: 0.0)
         case .absolute:
-            return cost
+            return cost.converted(to: UserSettings.shared.currencyIdentifier)
         case .specific:
-            return .init(amount: specificCost.amount * chargedEnergy.value)
+            if let convertedCost = specificCost.converted(to: UserSettings.shared.currencyIdentifier) {
+                return .init(amount: convertedCost.amount * chargedEnergy.value)
+            } else {
+                return nil
+            }
         case .both:
-            return .init(amount: specificCost.amount * chargedEnergy.value + cost.amount)
+            if let cost = cost.converted(to: UserSettings.shared.currencyIdentifier), let convertedCost = specificCost.converted(to: UserSettings.shared.currencyIdentifier) {
+                return .init(amount: cost.amount + convertedCost.amount * chargedEnergy.value)
+            } else {
+                return nil
+            }
         }
     }
     
@@ -253,6 +267,7 @@ struct ChargingSessionEditor: View {
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                     Button(action: {
+                        costType = .cost
                         isShowingCurrencySelector = true
                     }) {
                         Image(systemName: "arrow.2.circlepath.circle")
@@ -265,10 +280,11 @@ struct ChargingSessionEditor: View {
                 HStack {
                     Text("Specific cost")
                     Spacer()
-                    TextField("", value: $specificCost.amount, format: .currency(code: cost.currency))
+                    TextField("", value: $specificCost.amount, format: .currency(code: specificCost.currency))
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                     Button(action: {
+                        costType = .specificCost
                         isShowingCurrencySelector = true
                     }) {
                         Image(systemName: "arrow.2.circlepath.circle")
@@ -280,7 +296,7 @@ struct ChargingSessionEditor: View {
                 HStack {
                     Text("Total cost")
                     Spacer()
-                    Text("\(totalChargingCost.formatted())")
+                    Text("\(totalChargingCost?.formatted() ?? "-")")
                 }
                 .foregroundStyle(.secondary)
             }
@@ -433,10 +449,10 @@ struct ChargingSessionEditor: View {
                 self.endTime = chargingSession.endTime
                 self.chargedEnergy = chargingSession.chargedEnergy
                 if let cost = chargingSession.chargingCost {
-                    self.cost = cost.converted(to: UserSettings.shared.currencyIdentifier) ?? cost
+                    self.cost = cost
                 }
                 if let specificChargingCost = chargingSession.specificChargingCost {
-                    self.specificCost = specificChargingCost.converted(to: UserSettings.shared.currencyIdentifier) ?? specificChargingCost
+                    self.specificCost = specificChargingCost
                 }
                 self.enterCost = chargingSession.costCalculationMethod
                 if let mileage = chargingSession.mileage {
@@ -700,8 +716,20 @@ struct ChargingSessionEditor: View {
     }
     
     private func changeCurrency(to currencyIdentifier: String) {
-        self.cost = self.cost.converted(to: currencyIdentifier) ?? self.cost
-        self.specificCost = self.specificCost.converted(to: currencyIdentifier) ?? self.specificCost
+        switch costType {
+        case .cost:
+            if self.cost.amount == 0 {
+                self.cost = .init(amount: 0, currency: currencyIdentifier)
+            } else {
+                self.cost = self.cost.converted(to: currencyIdentifier) ?? self.cost
+            }
+        case .specificCost:
+            if self.specificCost.amount == 0 {
+                self.specificCost = .init(amount: 0, currency: currencyIdentifier)
+            } else {
+                self.specificCost = self.specificCost.converted(to: currencyIdentifier) ?? self.specificCost
+            }
+        }
     }
     
     @MainActor private func getDataFromImage(_ sourceType: UIImagePickerController.SourceType) async {
@@ -729,7 +757,7 @@ struct ChargingSessionEditor: View {
     private func currencyPicker() -> some View {
         VStack {
             Picker("Currency", selection: $selectedCurrency) {
-                ForEach(UserSettings.shared.preferredCurrencies, id: \.self) { code in
+                ForEach(UserSettings.shared.preferredCurrencies.sorted(), id: \.self) { code in
                     Text(verbatim: code).tag(code)
                 }
             }
