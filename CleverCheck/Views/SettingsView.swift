@@ -38,7 +38,10 @@ struct SettingsView: View {
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
     @Query private var chargingSessions: [ChargingSession]
     @State private var navigationPath = NavigationPath()
-
+    
+    // Observe UserSettings singleton so UI updates when preferredCurrencies change
+    @ObservedObject private var userSettings = UserSettings.shared
+    
     @State private var showingDeleteAllAlert = false
     @State private var confirmDeletion = ""
     
@@ -75,7 +78,8 @@ struct SettingsView: View {
     private let maxSOC: Double = 1.0
     
     @State private var isEditingVATRate: Bool = false
-
+    @State private var showingCurrencySelector: Bool = false
+    
     var body: some View {
         NavigationStack(path: $navigationPath) {
             Form {
@@ -161,6 +165,17 @@ struct SettingsView: View {
                             .multilineTextAlignment(.trailing)
                     }
                     Toggle("Display gross prices", isOn: $displayGrossPrices)
+                    HStack {
+                        Text("Preferred currencies: \(userSettings.preferredCurrencies.sorted().joined(separator: ", "))")
+                        Button(action: {
+                            showingCurrencySelector = true
+                        }) {
+                            Image(systemName: "pencil.circle")
+                        }
+                        .sheet(isPresented: $showingCurrencySelector) {
+                            currencySelector()
+                        }
+                    }
                 }
                 
                 Section(header: Text("Maintenance")) {
@@ -214,7 +229,7 @@ struct SettingsView: View {
                         }
                     }
                     .foregroundColor(.blue)
-
+                    
                     Button("Import Home Consumptions (JSON)") {
                         isImportingHomeConsumptionFile = true
                     }
@@ -276,7 +291,7 @@ struct SettingsView: View {
                         }
                     }
                     .foregroundColor(.blue)
-
+                    
                     // Export button: create a backup JSON and present share sheet so user picks destination
                     Button("Export all data (JSON)") {
                         Task {
@@ -446,6 +461,40 @@ struct SettingsView: View {
         if confirmDeletion == "DELETE ALL" {
             modelContext.container.deleteAllData()
             try? modelContext.save()
+        }
+    }
+    
+    @ViewBuilder
+    private func currencySelector() -> some View {
+        VStack {
+            Text("Select the currencies to be included:")
+                .font(.caption)
+                .padding()
+            List {
+                ForEach(Locale.Currency.isoCurrencies.filter{ $0.isISOCurrency }.map(\.identifier), id: \.self) { code in
+                    HStack {
+                        Button(action: {
+                            if userSettings.preferredCurrencies.contains(where: { $0 == code }) {
+                                // Remove the selected currency
+                                userSettings.preferredCurrencies.removeAll(where: { $0 == code })
+                            } else {
+                                // Add the selected currency
+                                userSettings.preferredCurrencies.append(code)
+                            }
+                        }) {
+                            HStack {
+                                if userSettings.preferredCurrencies.contains(where: { $0 == code }) {
+                                    Image(systemName: "checkmark.square")
+                                } else {
+                                    Image(systemName: "square")
+                                }
+                                Text(verbatim: code)
+                            }
+                        }
+                        
+                    }
+                }
+            }
         }
     }
 }

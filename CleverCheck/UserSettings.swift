@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 import SwiftData
 
-final class UserSettings {
+final class UserSettings: ObservableObject {
     static let shared = UserSettings()
     
     enum EnergyUnit: String, CaseIterable, Identifiable {
@@ -76,9 +76,28 @@ final class UserSettings {
     @AppStorage("distanceMultiplier") var distanceMultiplier: Int = 100
     @AppStorage("vatRate") var vatRate: Double = 0.25
     @AppStorage("displayGrossPrices") var displayGrossPrices: Bool = true
+    
+    @AppStorage("selectedCarId") private var selectedCarIdRaw: String = ""
+    var selectedCarId: String? {
+        get { selectedCarIdRaw.isEmpty ? nil : selectedCarIdRaw }
+        set { selectedCarIdRaw = newValue ?? "" }
+    }
+    
+    @AppStorage("selectedLocationId") private var selectedLocationIdRaw: String = ""
+    var selectedLocationId: String? {
+        get { selectedLocationIdRaw.isEmpty ? nil : selectedLocationIdRaw }
+        set { selectedLocationIdRaw = newValue ?? "" }
+    }
+    
+    @AppStorage("preferredCurrencies") private var preferredCurrenciesRaw: String = "DKK,PLN,RON,SEK,CZK,HUF,GBP,CHF,NOK,BAM,RSD,ALL"
+    @Published var preferredCurrencies: [String] = [] {
+        didSet {
+            // Sync to AppStorage string when changed
+            preferredCurrenciesRaw = preferredCurrencies.joined(separator: ",")
+        }
+    }
+    
     @AppStorage("referenceSOC") var referenceSOC: Double = 0.8
-    @AppStorage("selectedCarId") var selectedCarId: String?
-    @AppStorage("selectedLocationId") var selectedLocationId: String?
     
     /// Stores the instance of CurrencyConverterService after async initialization
     var currencyConverterService: CurrencyConverterService?
@@ -154,7 +173,8 @@ final class UserSettings {
     }
     
     private init() {
-        // Empty on purpose
+        // Initialize published property from stored string
+        preferredCurrencies = preferredCurrenciesRaw.split(separator: ",").map { String($0) }
     }
     
     func format(_ value: Double, withSignificantDigits: Int) -> String {
@@ -231,4 +251,3 @@ final class UserSettings {
         }
     }
 }
-

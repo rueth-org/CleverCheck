@@ -57,6 +57,9 @@ struct ChargingSessionEditor: View {
     
     @State private var isShowingHomeConsumptionPickerSheet: Bool = false
     
+    @State private var isShowingCurrencySelector: Bool = false
+    @State private var selectedCurrency: String = UserSettings.shared.currencyIdentifier
+    
     @State private var proposedData: TextRecognizer? = nil
     
     @FocusState private var focusedField: Field?
@@ -249,6 +252,11 @@ struct ChargingSessionEditor: View {
                     TextField("", value: $cost.amount, format: .currency(code: cost.currency))
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
+                    Button(action: {
+                        isShowingCurrencySelector = true
+                    }) {
+                        Image(systemName: "arrow.2.circlepath.circle")
+                    }
                 }
             }
             
@@ -260,6 +268,11 @@ struct ChargingSessionEditor: View {
                     TextField("", value: $specificCost.amount, format: .currency(code: cost.currency))
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
+                    Button(action: {
+                        isShowingCurrencySelector = true
+                    }) {
+                        Image(systemName: "arrow.2.circlepath.circle")
+                    }
                 }
             }
             
@@ -473,6 +486,11 @@ struct ChargingSessionEditor: View {
                 ignoreDate: $ignoreDate
             )
         }
+        .sheet(isPresented: $isShowingCurrencySelector) {
+            currencyPicker()
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
         .alert(
             activeAlert?.title() ?? "Notice",
             isPresented: $showingAlert,
@@ -681,6 +699,11 @@ struct ChargingSessionEditor: View {
         }
     }
     
+    private func changeCurrency(to currencyIdentifier: String) {
+        self.cost = self.cost.converted(to: currencyIdentifier) ?? self.cost
+        self.specificCost = self.specificCost.converted(to: currencyIdentifier) ?? self.specificCost
+    }
+    
     @MainActor private func getDataFromImage(_ sourceType: UIImagePickerController.SourceType) async {
         if let car = selectedCar {
             do {
@@ -701,4 +724,23 @@ struct ChargingSessionEditor: View {
             }
         }
     }
+    
+    @ViewBuilder
+    private func currencyPicker() -> some View {
+        VStack {
+            Picker("Currency", selection: $selectedCurrency) {
+                ForEach(UserSettings.shared.preferredCurrencies, id: \.self) { code in
+                    Text(verbatim: code).tag(code)
+                }
+            }
+            .pickerStyle(.wheel)
+            .onChange(of: selectedCurrency) {
+                changeCurrency(to: selectedCurrency)
+            }
+            
+            Text("Miss a currency? Add it in settings!")
+                .font(.caption)
+        }
+    }
 }
+
