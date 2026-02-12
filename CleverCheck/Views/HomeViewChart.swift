@@ -33,27 +33,30 @@ struct HomeViewChart: View {
         }
     }
 
-    // Compute the aggregated sum per x-axis key (timeKey) depending on selectedChart.
-    private var aggregatedEnergySums: [(timeKey: String, sum: Double)] {
-        let grouped = Dictionary(grouping: filteredHomeData) { $0.timeKey }
-        return grouped.map { (key, values) in
-            let total = values.reduce(0.0) { $0 + $1.consumption.value }
-            return (timeKey: key, sum: total)
-        }
-        .sorted { $0.timeKey < $1.timeKey }
-    }
-    
-    // Compute the aggregated sum per x-axis key (timeKey) depending on selectedChart.
-    private var aggregatedCostSums: [(timeKey: String, sum: Double)] {
-        let grouped = Dictionary(grouping: filteredHomeData) { $0.timeKey }
-        return grouped.map { (key, values) in
-            let total = values.reduce(0.0) { $0 + $1.cost.amount }
-            return (timeKey: key, sum: total)
-        }
-        .sorted { $0.timeKey < $1.timeKey }
-    }
-
     var body: some View {
+        // Capture filtered data once to avoid multiple computed-property evaluations
+        let data = filteredHomeData
+        let sortedData = data.sorted()
+
+        // Compute aggregated sums from the single captured data set
+        let aggregatedEnergySumsLocal: [(timeKey: String, sum: Double)] = {
+            let grouped = Dictionary(grouping: data) { $0.timeKey }
+            return grouped.map { (key, values) in
+                let total = values.reduce(0.0) { $0 + $1.consumption.value }
+                return (timeKey: key, sum: total)
+            }
+            .sorted { $0.timeKey < $1.timeKey }
+        }()
+
+        let aggregatedCostSumsLocal: [(timeKey: String, sum: Double)] = {
+            let grouped = Dictionary(grouping: data) { $0.timeKey }
+            return grouped.map { (key, values) in
+                let total = values.reduce(0.0) { $0 + $1.cost.amount }
+                return (timeKey: key, sum: total)
+            }
+            .sorted { $0.timeKey < $1.timeKey }
+        }()
+
         let tabViews: [AnyView] = [
             AnyView(
                 VStack {
@@ -62,7 +65,7 @@ struct HomeViewChart: View {
                         .padding(.top)
                         .padding(.horizontal)
                     Chart {
-                        ForEach(filteredHomeData.sorted(), id: \.id) { dataSet in
+                        ForEach(sortedData, id: \.id) { dataSet in
                             BarMark(
                                 x: .value("Month", dataSet.timeKey),
                                 y: .value("Consumption", dataSet.consumption.value)
@@ -70,7 +73,7 @@ struct HomeViewChart: View {
                             .foregroundStyle(by: .value("Data Type", NSLocalizedString(dataSet.dataType.rawValue, comment: "")))
                         }
                         
-                        ForEach(aggregatedEnergySums, id: \.timeKey) { item in
+                        ForEach(aggregatedEnergySumsLocal, id: \.timeKey) { item in
                             PointMark(
                                 x: .value("Month", item.timeKey),
                                 y: .value("Total", item.sum)
@@ -92,7 +95,7 @@ struct HomeViewChart: View {
                     .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
                     .chartLegend(.visible)
                     .chartOverlay { proxy in
-                        readTappedPosition(proxy, aggregatedSums: aggregatedEnergySums)
+                        readTappedPosition(proxy, aggregatedSums: aggregatedEnergySumsLocal, data: data)
                     }
                 }
             ),
@@ -103,7 +106,7 @@ struct HomeViewChart: View {
                         .padding(.top)
                         .padding(.horizontal)
                     Chart {
-                        ForEach(filteredHomeData.sorted(), id: \.id) { dataSet in
+                        ForEach(sortedData, id: \.id) { dataSet in
                             BarMark(
                                 x: .value("Month", dataSet.timeKey),
                                 y: .value("Cost", dataSet.cost.amount)
@@ -111,7 +114,7 @@ struct HomeViewChart: View {
                             .foregroundStyle(by: .value("Data Type", NSLocalizedString(dataSet.dataType.rawValue, comment: "")))
                         }
                         
-                        ForEach(aggregatedCostSums, id: \.timeKey) { item in
+                        ForEach(aggregatedCostSumsLocal, id: \.timeKey) { item in
                             PointMark(
                                 x: .value("Month", item.timeKey),
                                 y: .value("Total", item.sum)
@@ -133,7 +136,7 @@ struct HomeViewChart: View {
                     .chartYAxisLabel(UserSettings.shared.currencyIdentifier)
                     .chartLegend(.visible)
                     .chartOverlay { proxy in
-                        readTappedPosition(proxy, aggregatedSums: aggregatedCostSums)
+                        readTappedPosition(proxy, aggregatedSums: aggregatedCostSumsLocal, data: data)
                     }
                 }
             )
@@ -154,7 +157,7 @@ struct HomeViewChart: View {
             }
     }
     
-    fileprivate func readTappedPosition(_ proxy: ChartProxy, aggregatedSums: [(timeKey: String, sum: Double)]) -> GeometryReader<some View> {
+    fileprivate func readTappedPosition(_ proxy: ChartProxy, aggregatedSums: [(timeKey: String, sum: Double)], data: [Location.Data]) -> GeometryReader<some View> {
         return GeometryReader { geometry in
             ZStack {
                 if let plotFrameAnchor = proxy.plotFrame {
@@ -162,7 +165,7 @@ struct HomeViewChart: View {
 
                     // id changes when x-axis keys or plot size change -> recreate UIView
                     let chartKeyId: String = {
-                        let keys = filteredHomeData.map { $0.timeKey }.sorted()
+                        let keys = data.map { $0.timeKey }.sorted()
                         if !keys.isEmpty {
                             return keys.joined(separator: "|")
                         } else {

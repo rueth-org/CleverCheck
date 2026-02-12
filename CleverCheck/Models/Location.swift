@@ -58,12 +58,25 @@ final class Location: Identifiable {
     }
     
     func data(in timeBox: TimeBox) -> [Data] {
+        // Build a cache key using essential inputs that influence the result
+        let startTs = timeBox.timePeriod?.start.timeIntervalSince1970 ?? 0
+        let endTs = timeBox.timePeriod?.end.timeIntervalSince1970 ?? 0
+        let key = "loc:" + id.uuidString + "|res:\(timeBox.selectedResolution)|start:\(startTs)|end:\(endTs)|gross:\(UserSettings.shared.displayGrossPrices)|energyUnit:\(UserSettings.shared.energyUnit.symbol)"
+
+        // Try cached value
+        if let cached = Location.cachedData(forKey: key) {
+            return cached
+        }
+
         guard let timePeriod = timeBox.timePeriod else { return [] }
         let homeConsumptions = homeConsumptions(in: timeBox)
         var result = [Data]()
 
         // Fast-path when no consumptions
-        if homeConsumptions.isEmpty { return [] }
+        if homeConsumptions.isEmpty {
+            Location.storeCachedData(result, forKey: key)
+            return []
+        }
 
         // Precompute per-consumption month dictionaries to avoid repeated work inside the month loop
         var grossPerConsumption: [[String: Double]] = []
@@ -122,9 +135,59 @@ final class Location: Identifiable {
             currentDate = calendar.date(byAdding: .month, value: 1, to: currentDate)!
         }
 
+        // Store in cache before returning
+        Location.storeCachedData(result, forKey: key)
         return result
     }
-    
+
+    // MARK: - Simple in-memory cache for data(in:)
+    private struct CacheEntry {
+        let timestamp: Date
+        let data: [Data]
+    }
+
+    private static var cache: [String: CacheEntry] = [:]
+    private static let cacheQueue = DispatchQueue(label: "CleverCheck.Location.data.cache", attributes: .concurrent)
+    private static let cacheTTL: TimeInterval = 60 // seconds
+
+    private static func cachedData(forKey key: String) -> [Data]? {
+        var entry: CacheEntry?
+        cacheQueue.sync {
+            entry = cache[key]
+        }
+        if let entry = entry {
+            if Date().timeIntervalSince(entry.timestamp) <= cacheTTL {
+                return entry.data
+            } else {
+                // expired; remove it
+                cacheQueue.async(flags: .barrier) {
+                    cache.removeValue(forKey: key)
+                }
+            }
+        }
+        return nil
+    }
+
+    private static func storeCachedData(_ data: [Data], forKey key: String) {
+        let entry = CacheEntry(timestamp: Date(), data: data)
+        cacheQueue.async(flags: .barrier) {
+            cache[key] = entry
+        }
+    }
+
+    /// Public helper to manually invalidate the cache for a specific key or all keys
+    static func invalidateCache(forKey key: String? = nil) {
+        if let key = key {
+            cacheQueue.async(flags: .barrier) {
+                cache.removeValue(forKey: key)
+            }
+        } else {
+            cacheQueue.async(flags: .barrier) {
+                cache.removeAll()
+            }
+        }
+    }
+
     func consumedEnergy(in timeBox: TimeBox) -> (total: Measurement<UnitEnergy>, charging: Measurement<UnitEnergy>) {
         let homeConsumptions = homeConsumptions(in: timeBox)
         let totalEnergy = homeConsumptions
@@ -144,7 +207,7 @@ final class Location: Identifiable {
         let allCost = homeConsumptions.map { $0.totalCost(isGross: UserSettings.shared.displayGrossPrices) }
         let gross = allCost.reduce(0.0) { $0 + $1.gross }
         let net = allCost.reduce(0.0) { $0 + $1.net }
-        
+
         return (
             home: .init(amount: net),
             charging: .init(amount: gross - net)
