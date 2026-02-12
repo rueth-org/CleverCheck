@@ -32,7 +32,7 @@ struct HomeViewChart: View {
             return location.data(in: timeBox)
         }
     }
-
+    
     var body: some View {
         // Capture filtered data once to avoid multiple computed-property evaluations
         let data = filteredHomeData
@@ -99,6 +99,9 @@ struct HomeViewChart: View {
                     }
                 }
             ),
+            
+            AnyView(energyChart()),
+            
             AnyView(
                 VStack {
                     Text("Cost")
@@ -139,7 +142,11 @@ struct HomeViewChart: View {
                         readTappedPosition(proxy, aggregatedSums: aggregatedCostSumsLocal, data: data)
                     }
                 }
-            )
+            ),
+            
+            AnyView(costChart()),
+            
+            AnyView(HomeViewSummary(location: location, timeBox: timeBox))
         ]
                 
         return DotIndicatorScrollView(tabViews: tabViews)
@@ -203,5 +210,107 @@ struct HomeViewChart: View {
     func barTapped(_ key: String) {
         debugPrint("HomeViewChart barTapped: \(key)")
         onBarTap?(key)
+    }
+    
+    @ViewBuilder
+    private func energyChart() -> some View {
+        VStack {
+            Text("Total consumption")
+                .font(.headline)
+                .padding(.top)
+                .padding(.horizontal)
+
+            // Aggregate filteredHomeData by dataType so the sector chart shows two sectors
+            let unit = UserSettings.shared.energyUnit
+            let grouped = Dictionary(grouping: filteredHomeData, by: { $0.dataType })
+            let aggregated: [(dataType: String, sum: Double)] = grouped.map { (key, values) in
+                let total = values.reduce(0.0) { acc, item in
+                    acc + item.consumption.converted(to: unit).value
+                }
+                return (dataType: NSLocalizedString(key.rawValue, comment: ""), sum: total)
+            }
+
+            Chart(aggregated, id: \.dataType) { item in
+                SectorMark(
+                    angle: .value("Energy", item.sum),
+                    innerRadius: .ratio(0.6)
+                )
+                .foregroundStyle(by: .value("Data Type", item.dataType))
+                .annotation(position: .overlay) {
+                    // Show the aggregated value formatted using the chosen unit
+                    let measurement = Measurement(value: item.sum, unit: unit)
+                    Text(measurement.formatted())
+                        .font(.caption)
+                        .foregroundColor(.black)
+                        .padding(5)
+                        .background(Color.white.opacity(0.8))
+                        .cornerRadius(5)
+                }
+            }
+            .chartBackground { chartProxy in
+                GeometryReader { geometry in
+                    if let anchor = chartProxy.plotFrame {
+                        let frame = geometry[anchor]
+                        VStack {
+                            Text(filteredHomeData.map(\.consumption).reduce(.init(value: 0, unit: .kilowattHours), +).converted(to: .kilowattHours).formatted())
+                                .font(.headline)
+                        }
+                        .position(x: frame.midX, y: frame.midY)
+                    }
+                }
+            }
+            .padding()
+        }
+    }
+    
+    @ViewBuilder
+    private func costChart() -> some View {
+        VStack {
+            Text("Total cost")
+                .font(.headline)
+                .padding(.top)
+                .padding(.horizontal)
+
+            // Aggregate filteredHomeData by dataType so the sector chart shows two sectors
+            let currency = UserSettings.shared.currencyIdentifier
+            let grouped = Dictionary(grouping: filteredHomeData, by: { $0.dataType })
+            let aggregated: [(dataType: String, sum: Double)] = grouped.map { (key, values) in
+                let total = values.reduce(0.0) { acc, item in
+                    acc + (item.cost.converted(to: currency)?.amount ?? 0.0)
+                }
+                return (dataType: NSLocalizedString(key.rawValue, comment: ""), sum: total)
+            }
+
+            Chart(aggregated, id: \.dataType) { item in
+                SectorMark(
+                    angle: .value("Cost", item.sum),
+                    innerRadius: .ratio(0.6)
+                )
+                .foregroundStyle(by: .value("Data Type", item.dataType))
+                .annotation(position: .overlay) {
+                    // Show the aggregated value formatted using the chosen unit
+                    let amount = Cost(amount: item.sum, currency: currency)
+                    Text(amount.formatted())
+                        .font(.caption)
+                        .foregroundColor(.black)
+                        .padding(5)
+                        .background(Color.white.opacity(0.8))
+                        .cornerRadius(5)
+                }
+            }
+            .chartBackground { chartProxy in
+                GeometryReader { geometry in
+                    if let anchor = chartProxy.plotFrame {
+                        let frame = geometry[anchor]
+                        VStack {
+                            Text(filteredHomeData.map(\.cost).reduce(.init(amount: 0, currency: currency), +).converted(to: currency)?.formatted() ?? "-")
+                                .font(.headline)
+                        }
+                        .position(x: frame.midX, y: frame.midY)
+                    }
+                }
+            }
+            .padding()
+        }
     }
 }

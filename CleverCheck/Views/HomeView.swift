@@ -62,9 +62,6 @@ struct HomeView: View {
                     )
                     .id(selectedLocation.id)
                     .padding(.horizontal)
-                    
-                    // The summary data
-                    //HomeViewSummary(homeData: homeData)
                 } else {
                     Text("Select location")
                         .italic()
