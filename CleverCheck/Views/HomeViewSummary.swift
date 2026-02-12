@@ -8,11 +8,12 @@
 import SwiftUI
 
 struct HomeViewSummary: View {
-    let homeData: HomeData
+    let location: Location
+    let timeBox: TimeBox
     
     var body: some View {
-        let consumedEnergy = homeData.consumedEnergy
-        let cost = homeData.cost
+        let consumedEnergy = location.consumedEnergy(in: timeBox)
+        let cost = location.cost(in: timeBox)
         
         Section(header: Text("Total")) {
             HStack {

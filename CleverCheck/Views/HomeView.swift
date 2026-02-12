@@ -33,57 +33,42 @@ struct HomeView: View {
     
     @State private var showingHomeConsumptionAnalysis: Bool = false
     
-    enum Chart {
-        case energy, cost
-    }
-    @State private var selectedChart: Chart = .energy
-    
     @Query(filter: #Predicate<Location> { location in
         location.isArchived == false
     }, sort: \Location.name) private var locations: [Location]
     
-    var homeData: HomeData? {
-        if let selectedLocation {
-            return try? HomeData(modelContext: modelContext, location: selectedLocation, timeBox: timeBox)
-        } else {
-            return nil
-        }
-    }
-    
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            List {
-                if let homeData {
+            VStack {
+                if let selectedLocation {
                     // The date selection part
-                    Text(selectedLocation?.name ?? "No location selected")
+                    Text(selectedLocation.name)
                         .font(Font.title.bold())
+                        .padding(.horizontal)
                     
                     // The date picker
                     TimeBoxPicker(timeBox: timeBox)
-                    
-                    // The picker to choose which data to display
-                    Picker("Choose data set", selection: $selectedChart) {
-                        Text("Energy").tag(Chart.energy)
-                        Text("Cost").tag(Chart.cost)
-                    }
-                    .pickerStyle(.palette)
+                        .padding(.horizontal)
                     
                     // The data part
                     HomeViewChart(
-                        homeData: homeData,
-                        selectedChart: selectedChart,
+                        location: selectedLocation,
+                        timeBox: timeBox,
                         showHomeData: $showHomeData,
                         showChargingData: $showChargingData,
                         onBarTap: { dateKey in
                             timeBox.switchResolution(dateKey)
                         }
                     )
-                    .id(homeData.id)
+                    .id(selectedLocation.id)
+                    .padding(.horizontal)
                     
                     // The summary data
-                    HomeViewSummary(homeData: homeData)
+                    //HomeViewSummary(homeData: homeData)
                 } else {
-                    Text("Select location").italic()
+                    Text("Select location")
+                        .italic()
+                        .padding()
                 }
                 
                 Button(action: {
@@ -206,12 +191,12 @@ struct HomeView: View {
     }
     
     private func selectMonth(date: Date) {
-        if let homeData {
+        if let selectedLocation {
             // Collect all consumptions ending in the selected month
             let calendar = Calendar.current
             let selectedYear = calendar.component(.year, from: date)
             let selectedMonth = calendar.component(.month, from: date)
-            let selectedConsumptions = homeData.homeConsumptions.filter { consumption in
+            let selectedConsumptions = selectedLocation.homeConsumptions(in: timeBox).filter { consumption in
                 calendar.component(.year, from: consumption.validUntil) == selectedYear &&
                 calendar.component(.month, from: consumption.validUntil) == selectedMonth
             }

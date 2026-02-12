@@ -27,10 +27,9 @@ struct ChargingView: View {
         NavigationStack(path: $navigationPath) {
             VStack {
                 if let selectedCar {
-                    HStack {
-                        Text(selectedCar.description)
-                            .font(Font.title.bold())
-                    }.padding(.horizontal)
+                    Text(selectedCar.description)
+                        .font(Font.title.bold())
+                        .padding(.horizontal)
                     
                     // The date picker
                     TimeBoxPicker(timeBox: timeBox)

@@ -9,7 +9,28 @@ import Foundation
 import SwiftData
 
 @Model
-final class Location {
+final class Location: Identifiable {
+    enum DataType: String {
+        case homeConsumption = "Home consumption"
+        case charging = "Charging"
+    }
+    
+    struct Data: Identifiable, Comparable {
+        let id = UUID()
+        let timeKey: String
+        let dataType: DataType
+        let consumption: Measurement<UnitEnergy>
+        let cost: Cost
+        
+        static func < (lhs: Location.Data, rhs: Location.Data) -> Bool {
+            lhs.timeKey < rhs.timeKey
+        }
+        
+        static func == (lhs: Location.Data, rhs: Location.Data) -> Bool {
+            lhs.timeKey == rhs.timeKey
+        }
+    }
+    
     var id: UUID = UUID()
     var name: String = ""
     var isArchived: Bool = false
@@ -22,5 +43,111 @@ final class Location {
     
     init(name: String) {
         self.name = name
+    }
+    
+    /// Returns all related home consumptions in the given time box, or all if no time box is given.
+    /// - Parameter timeBox: The given time box.
+    /// - Returns: The home consumptions in the given time box.
+    func homeConsumptions(in timeBox: TimeBox?) -> [HomeConsumption] {
+        guard let associatedHomeConsumptions else { return [] }
+        if let timeBox {
+            return associatedHomeConsumptions.filter { timeBox.contains($0.validUntil) }.sorted(by: { $0.validUntil < $1.validUntil})
+        } else {
+            return associatedHomeConsumptions.sorted(by: { $0.validUntil < $1.validUntil})
+        }
+    }
+    
+    func data(in timeBox: TimeBox) -> [Data] {
+        guard let timePeriod = timeBox.timePeriod else { return [] }
+        let homeConsumptions = homeConsumptions(in: timeBox)
+        var result = [Data]()
+
+        // Fast-path when no consumptions
+        if homeConsumptions.isEmpty { return [] }
+
+        // Precompute per-consumption month dictionaries to avoid repeated work inside the month loop
+        var grossPerConsumption: [[String: Double]] = []
+        var netPerConsumption: [[String: Double]] = []
+        var costPerConsumption: [[String: (gross: Double, net: Double)]] = []
+
+        grossPerConsumption.reserveCapacity(homeConsumptions.count)
+        netPerConsumption.reserveCapacity(homeConsumptions.count)
+        costPerConsumption.reserveCapacity(homeConsumptions.count)
+
+        for consumption in homeConsumptions {
+            grossPerConsumption.append(consumption.consumptionPerMonth(includeIfIncludedElsewhere: false))
+            netPerConsumption.append(consumption.netConsumptionPerMonth)
+            costPerConsumption.append(consumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices, useConsumptionFromRelatedChargingSessions: true))
+        }
+
+        // Step through the months and aggregate from precomputed maps
+        let calendar = Calendar.current
+        var currentDate = timePeriod.start
+        while currentDate <= timePeriod.end {
+            let monthKeyDisplay = timeBox.getKeyForDate(currentDate)
+            let monthKeyGrouping = UserSettings.shared.groupingDateFormatter.string(from: currentDate)
+
+            var grossConsumption: Double = 0.0
+            var netConsumption: Double = 0.0
+            var grossCost: Double = 0.0
+            var netCost: Double = 0.0
+
+            for idx in homeConsumptions.indices {
+                grossConsumption += grossPerConsumption[idx][monthKeyGrouping] ?? 0.0
+                netConsumption += netPerConsumption[idx][monthKeyGrouping] ?? 0.0
+                grossCost += costPerConsumption[idx][monthKeyGrouping]?.gross ?? 0.0
+                netCost += costPerConsumption[idx][monthKeyGrouping]?.net ?? 0.0
+            }
+
+            let deltaConsumption = grossConsumption - netConsumption
+            let deltaCost = grossCost - netCost
+
+            // Create home consumption data set
+            result.append(Data(
+                timeKey: monthKeyDisplay,
+                dataType: .homeConsumption,
+                consumption: .init(value: netConsumption, unit: UserSettings.shared.energyUnit),
+                cost: .init(amount: netCost)
+            ))
+
+            // Create charging data set
+            result.append(Data(
+                timeKey: monthKeyDisplay,
+                dataType: .charging,
+                consumption: .init(value: deltaConsumption, unit: UserSettings.shared.energyUnit),
+                cost: .init(amount: deltaCost)
+            ))
+
+            // Increase current date by one month
+            currentDate = calendar.date(byAdding: .month, value: 1, to: currentDate)!
+        }
+
+        return result
+    }
+    
+    func consumedEnergy(in timeBox: TimeBox) -> (total: Measurement<UnitEnergy>, charging: Measurement<UnitEnergy>) {
+        let homeConsumptions = homeConsumptions(in: timeBox)
+        let totalEnergy = homeConsumptions
+            .filter { $0.consumptionIncludedElsewhere == false }
+            .map({ $0.consumption.converted(to: UserSettings.shared.energyUnit).value }).reduce(0, +)
+        let chargedEnergy = homeConsumptions
+            .filter { $0.consumptionIncludedElsewhere == true }
+            .map({ $0.consumption.converted(to: UserSettings.shared.energyUnit).value}).reduce(0, +)
+        return (
+            total: .init(value: totalEnergy, unit: UserSettings.shared.energyUnit),
+            charging: .init(value: chargedEnergy, unit: UserSettings.shared.energyUnit)
+        )
+    }
+    
+    func cost(in timeBox: TimeBox) -> (home: Cost, charging: Cost) {
+        let homeConsumptions = homeConsumptions(in: timeBox)
+        let allCost = homeConsumptions.map { $0.totalCost(isGross: UserSettings.shared.displayGrossPrices) }
+        let gross = allCost.reduce(0.0) { $0 + $1.gross }
+        let net = allCost.reduce(0.0) { $0 + $1.net }
+        
+        return (
+            home: .init(amount: net),
+            charging: .init(amount: gross - net)
+        )
     }
 }
