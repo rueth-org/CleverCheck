@@ -64,38 +64,45 @@ struct HomeViewChart: View {
                         .font(.headline)
                         .padding(.top)
                         .padding(.horizontal)
-                    Chart {
-                        ForEach(sortedData, id: \.id) { dataSet in
-                            BarMark(
-                                x: .value("Month", dataSet.timeKey),
-                                y: .value("Consumption", dataSet.consumption.value)
-                            )
-                            .foregroundStyle(by: .value("Data Type", NSLocalizedString(dataSet.dataType.rawValue, comment: "")))
-                        }
-                        
-                        ForEach(aggregatedEnergySumsLocal, id: \.timeKey) { item in
-                            PointMark(
-                                x: .value("Month", item.timeKey),
-                                y: .value("Total", item.sum)
-                            )
-                            .symbol(.circle)
-                            .opacity(0)
-                            .annotation(position: .top, alignment: .center) {
-                                Group {
-                                    Text(UserSettings.shared.format(item.sum, withSignificantDigits: 3))
+                    if sortedData.isEmpty {
+                        Text("No consumption data available for this period.")
+                            .italic()
+                            .padding()
+                        Spacer()
+                    } else {
+                        Chart {
+                            ForEach(sortedData, id: \.id) { dataSet in
+                                BarMark(
+                                    x: .value("Month", dataSet.timeKey),
+                                    y: .value("Consumption", dataSet.consumption.value)
+                                )
+                                .foregroundStyle(by: .value("Data Type", NSLocalizedString(dataSet.dataType.rawValue, comment: "")))
+                            }
+                            
+                            ForEach(aggregatedEnergySumsLocal, id: \.timeKey) { item in
+                                PointMark(
+                                    x: .value("Month", item.timeKey),
+                                    y: .value("Total", item.sum)
+                                )
+                                .symbol(.circle)
+                                .opacity(0)
+                                .annotation(position: .top, alignment: .center) {
+                                    Group {
+                                        Text(UserSettings.shared.format(item.sum, withSignificantDigits: 3))
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(.black)
+                                    .padding(4)
+                                    .background(Color.white.opacity(0.8))
+                                    .cornerRadius(6)
                                 }
-                                .font(.caption)
-                                .foregroundColor(.black)
-                                .padding(4)
-                                .background(Color.white.opacity(0.8))
-                                .cornerRadius(6)
                             }
                         }
-                    }
-                    .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
-                    .chartLegend(.visible)
-                    .chartOverlay { proxy in
-                        readTappedPosition(proxy, aggregatedSums: aggregatedEnergySumsLocal, data: data)
+                        .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
+                        .chartLegend(.visible)
+                        .chartOverlay { proxy in
+                            readTappedPosition(proxy, aggregatedSums: aggregatedEnergySumsLocal, data: data)
+                        }
                     }
                 }
             ),
@@ -108,38 +115,45 @@ struct HomeViewChart: View {
                         .font(.headline)
                         .padding(.top)
                         .padding(.horizontal)
-                    Chart {
-                        ForEach(sortedData, id: \.id) { dataSet in
-                            BarMark(
-                                x: .value("Month", dataSet.timeKey),
-                                y: .value("Cost", dataSet.cost.amount)
-                            )
-                            .foregroundStyle(by: .value("Data Type", NSLocalizedString(dataSet.dataType.rawValue, comment: "")))
-                        }
-                        
-                        ForEach(aggregatedCostSumsLocal, id: \.timeKey) { item in
-                            PointMark(
-                                x: .value("Month", item.timeKey),
-                                y: .value("Total", item.sum)
-                            )
-                            .symbol(.circle)
-                            .opacity(0)
-                            .annotation(position: .top, alignment: .center) {
-                                Group {
-                                    Text(UserSettings.shared.format(item.sum, withSignificantDigits: 3))
+                    if sortedData.isEmpty {
+                        Text("No cost data available for this period.")
+                            .italic()
+                            .padding()
+                        Spacer()
+                    } else {
+                        Chart {
+                            ForEach(sortedData, id: \.id) { dataSet in
+                                BarMark(
+                                    x: .value("Month", dataSet.timeKey),
+                                    y: .value("Cost", dataSet.cost.amount)
+                                )
+                                .foregroundStyle(by: .value("Data Type", NSLocalizedString(dataSet.dataType.rawValue, comment: "")))
+                            }
+                            
+                            ForEach(aggregatedCostSumsLocal, id: \.timeKey) { item in
+                                PointMark(
+                                    x: .value("Month", item.timeKey),
+                                    y: .value("Total", item.sum)
+                                )
+                                .symbol(.circle)
+                                .opacity(0)
+                                .annotation(position: .top, alignment: .center) {
+                                    Group {
+                                        Text(UserSettings.shared.format(item.sum, withSignificantDigits: 3))
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(.black)
+                                    .padding(4)
+                                    .background(Color.white.opacity(0.8))
+                                    .cornerRadius(6)
                                 }
-                                .font(.caption)
-                                .foregroundColor(.black)
-                                .padding(4)
-                                .background(Color.white.opacity(0.8))
-                                .cornerRadius(6)
                             }
                         }
-                    }
-                    .chartYAxisLabel(UserSettings.shared.currencyIdentifier)
-                    .chartLegend(.visible)
-                    .chartOverlay { proxy in
-                        readTappedPosition(proxy, aggregatedSums: aggregatedCostSumsLocal, data: data)
+                        .chartYAxisLabel(UserSettings.shared.currencyIdentifier)
+                        .chartLegend(.visible)
+                        .chartOverlay { proxy in
+                            readTappedPosition(proxy, aggregatedSums: aggregatedCostSumsLocal, data: data)
+                        }
                     }
                 }
             ),
@@ -230,36 +244,43 @@ struct HomeViewChart: View {
                 return (dataType: NSLocalizedString(key.rawValue, comment: ""), sum: total)
             }
 
-            Chart(aggregated, id: \.dataType) { item in
-                SectorMark(
-                    angle: .value("Energy", item.sum),
-                    innerRadius: .ratio(0.6)
-                )
-                .foregroundStyle(by: .value("Data Type", item.dataType))
-                .annotation(position: .overlay) {
-                    // Show the aggregated value formatted using the chosen unit
-                    let measurement = Measurement(value: item.sum, unit: unit)
-                    Text(measurement.formatted())
-                        .font(.caption)
-                        .foregroundColor(.black)
-                        .padding(5)
-                        .background(Color.white.opacity(0.8))
-                        .cornerRadius(5)
-                }
-            }
-            .chartBackground { chartProxy in
-                GeometryReader { geometry in
-                    if let anchor = chartProxy.plotFrame {
-                        let frame = geometry[anchor]
-                        VStack {
-                            Text(filteredHomeData.map(\.consumption).reduce(.init(value: 0, unit: .kilowattHours), +).converted(to: .kilowattHours).formatted())
-                                .font(.headline)
-                        }
-                        .position(x: frame.midX, y: frame.midY)
+            if aggregated.isEmpty {
+                Text("No consumption data available for this period.")
+                    .italic()
+                    .padding()
+                Spacer()
+            } else {
+                Chart(aggregated, id: \.dataType) { item in
+                    SectorMark(
+                        angle: .value("Energy", item.sum),
+                        innerRadius: .ratio(0.6)
+                    )
+                    .foregroundStyle(by: .value("Data Type", item.dataType))
+                    .annotation(position: .overlay) {
+                        // Show the aggregated value formatted using the chosen unit
+                        let measurement = Measurement(value: item.sum, unit: unit)
+                        Text(measurement.formatted())
+                            .font(.caption)
+                            .foregroundColor(.black)
+                            .padding(5)
+                            .background(Color.white.opacity(0.8))
+                            .cornerRadius(5)
                     }
                 }
+                .chartBackground { chartProxy in
+                    GeometryReader { geometry in
+                        if let anchor = chartProxy.plotFrame {
+                            let frame = geometry[anchor]
+                            VStack {
+                                Text(filteredHomeData.map(\.consumption).reduce(.init(value: 0, unit: .kilowattHours), +).converted(to: .kilowattHours).formatted())
+                                    .font(.headline)
+                            }
+                            .position(x: frame.midX, y: frame.midY)
+                        }
+                    }
+                }
+                .padding()
             }
-            .padding()
         }
     }
     
@@ -281,36 +302,43 @@ struct HomeViewChart: View {
                 return (dataType: NSLocalizedString(key.rawValue, comment: ""), sum: total)
             }
 
-            Chart(aggregated, id: \.dataType) { item in
-                SectorMark(
-                    angle: .value("Cost", item.sum),
-                    innerRadius: .ratio(0.6)
-                )
-                .foregroundStyle(by: .value("Data Type", item.dataType))
-                .annotation(position: .overlay) {
-                    // Show the aggregated value formatted using the chosen unit
-                    let amount = Cost(amount: item.sum, currency: currency)
-                    Text(amount.formatted())
-                        .font(.caption)
-                        .foregroundColor(.black)
-                        .padding(5)
-                        .background(Color.white.opacity(0.8))
-                        .cornerRadius(5)
-                }
-            }
-            .chartBackground { chartProxy in
-                GeometryReader { geometry in
-                    if let anchor = chartProxy.plotFrame {
-                        let frame = geometry[anchor]
-                        VStack {
-                            Text(filteredHomeData.map(\.cost).reduce(.init(amount: 0, currency: currency), +).converted(to: currency)?.formatted() ?? "-")
-                                .font(.headline)
-                        }
-                        .position(x: frame.midX, y: frame.midY)
+            if aggregated.isEmpty {
+                Text("No cost data available for this period.")
+                    .italic()
+                    .padding()
+                Spacer()
+            } else {
+                Chart(aggregated, id: \.dataType) { item in
+                    SectorMark(
+                        angle: .value("Cost", item.sum),
+                        innerRadius: .ratio(0.6)
+                    )
+                    .foregroundStyle(by: .value("Data Type", item.dataType))
+                    .annotation(position: .overlay) {
+                        // Show the aggregated value formatted using the chosen unit
+                        let amount = Cost(amount: item.sum, currency: currency)
+                        Text(amount.formatted())
+                            .font(.caption)
+                            .foregroundColor(.black)
+                            .padding(5)
+                            .background(Color.white.opacity(0.8))
+                            .cornerRadius(5)
                     }
                 }
+                .chartBackground { chartProxy in
+                    GeometryReader { geometry in
+                        if let anchor = chartProxy.plotFrame {
+                            let frame = geometry[anchor]
+                            VStack {
+                                Text(filteredHomeData.map(\.cost).reduce(.init(amount: 0, currency: currency), +).converted(to: currency)?.formatted() ?? "-")
+                                    .font(.headline)
+                            }
+                            .position(x: frame.midX, y: frame.midY)
+                        }
+                    }
+                }
+                .padding()
             }
-            .padding()
         }
     }
 }

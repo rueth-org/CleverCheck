@@ -63,47 +63,55 @@ struct ChargingViewChart: View {
                         .font(.headline)
                         .padding(.top)
                         .padding(.horizontal)
-                    Chart {
-                        ForEach(chargedEnergyDataPerPeriod.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
-                            ForEach(pair.value.sorted(by: { $0.description < $1.description }), id: \.id) { dataSet in
-                                BarMark(
-                                    x: .value("End Time", pair.key),
-                                    y: .value("Charged Energy", dataSet.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value)
-                                )
-                                .foregroundStyle(
-                                    by: .value(
-                                        Text(dataSet.description),
-                                        dataSet.description
+                    let chargedEnergyDataPerPeriod = chargedEnergyDataPerPeriod
+                    if chargedEnergyDataPerPeriod.isEmpty {
+                        Text("No charging data available for this period.")
+                            .italic()
+                            .padding()
+                        Spacer()
+                    } else {
+                        Chart {
+                            ForEach(chargedEnergyDataPerPeriod.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
+                                ForEach(pair.value.sorted(by: { $0.description < $1.description }), id: \.id) { dataSet in
+                                    BarMark(
+                                        x: .value("End Time", pair.key),
+                                        y: .value("Charged Energy", dataSet.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value)
                                     )
-                                )
-                            }
-                        }
-                        
-                        // Overlay PointMarks (invisible) with annotations for the aggregated total per x-axis key
-                        ForEach(aggregatedEnergySums, id: \.timeKey) { item in
-                            // Use a PointMark so we can attach an annotation positioned above the stacked bars
-                            PointMark(
-                                x: .value("Time Period", item.timeKey),
-                                y: .value("Total", item.sum)
-                            )
-                            .symbol(.circle)
-                            .opacity(0) // hide the symbol itself
-                            .annotation(position: .top, alignment: .center) {
-                                // Format the sum according to the selected chart type
-                                Group {
-                                    Text(UserSettings.shared.format(item.sum, withSignificantDigits: 3))
+                                    .foregroundStyle(
+                                        by: .value(
+                                            Text(dataSet.description),
+                                            dataSet.description
+                                        )
+                                    )
                                 }
-                                .font(.caption)
-                                .foregroundColor(.black)
-                                .padding(4)
-                                .background(Color.white.opacity(0.8))
-                                .cornerRadius(6)
+                            }
+                            
+                            // Overlay PointMarks (invisible) with annotations for the aggregated total per x-axis key
+                            ForEach(aggregatedEnergySums, id: \.timeKey) { item in
+                                // Use a PointMark so we can attach an annotation positioned above the stacked bars
+                                PointMark(
+                                    x: .value("Time Period", item.timeKey),
+                                    y: .value("Total", item.sum)
+                                )
+                                .symbol(.circle)
+                                .opacity(0) // hide the symbol itself
+                                .annotation(position: .top, alignment: .center) {
+                                    // Format the sum according to the selected chart type
+                                    Group {
+                                        Text(UserSettings.shared.format(item.sum, withSignificantDigits: 3))
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(.black)
+                                    .padding(4)
+                                    .background(Color.white.opacity(0.8))
+                                    .cornerRadius(6)
+                                }
                             }
                         }
-                    }
-                    .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
-                    .chartOverlay { proxy in
-                        readTappedPosition(proxy)
+                        .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
+                        .chartOverlay { proxy in
+                            readTappedPosition(proxy)
+                        }
                     }
                 }
             ),
@@ -114,7 +122,7 @@ struct ChargingViewChart: View {
                         .font(.headline)
                         .padding(.top)
                         .padding(.horizontal)
-                    if let consumptionData {
+                    if let consumptionData, !consumptionData.consumptions.isEmpty {
                         Chart {
                             ForEach(consumptionData.consumptions.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
                                 let consumption = pair.value.consumption(
@@ -156,7 +164,10 @@ struct ChargingViewChart: View {
                             readTappedPosition(proxy)
                         }
                     } else {
-                        Text("No consumption data available.")
+                        Text("No consumption data available for this period.")
+                            .italic()
+                            .padding()
+                        Spacer()
                     }
                 }
             ),
@@ -167,42 +178,50 @@ struct ChargingViewChart: View {
                         .font(.headline)
                         .padding(.top)
                         .padding(.horizontal)
-                    Chart(chargedEnergyData, id: \.id) { dataSet in
-                        SectorMark(
-                            angle: .value(
-                                Text(dataSet.description),
-                                dataSet.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value
-                            ),
-                            innerRadius: .ratio(0.6)
-                        )
-                        .foregroundStyle(
-                            by: .value(
-                                Text(dataSet.description),
-                                dataSet.description
+                    let chargedEnergyData = chargedEnergyData
+                    if chargedEnergyData.isEmpty {
+                        Text("No energy data available for this period.")
+                            .italic()
+                            .padding()
+                        Spacer()
+                    } else {
+                        Chart(chargedEnergyData, id: \.id) { dataSet in
+                            SectorMark(
+                                angle: .value(
+                                    Text(dataSet.description),
+                                    dataSet.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value
+                                ),
+                                innerRadius: .ratio(0.6)
                             )
-                        )
-                        .annotation(position: .overlay) {
-                            Text(dataSet.chargedEnergy.converted(to: UserSettings.shared.energyUnit).formatted())
-                                .font(.caption)
-                                .foregroundColor(.black)
-                                .padding(5)
-                                .background(Color.white.opacity(0.8))
-                                .cornerRadius(5)
-                        }
-                    }
-                    .chartBackground { chartProxy in
-                        GeometryReader { geometry in
-                            if let anchor = chartProxy.plotFrame {
-                                let frame = geometry[anchor]
-                                VStack {
-                                    Text(totalChargedEnergy.converted(to: UserSettings.shared.energyUnit).formatted())
-                                        .font(.headline)
-                                }
-                                .position(x: frame.midX, y: frame.midY)
+                            .foregroundStyle(
+                                by: .value(
+                                    Text(dataSet.description),
+                                    dataSet.description
+                                )
+                            )
+                            .annotation(position: .overlay) {
+                                Text(dataSet.chargedEnergy.converted(to: UserSettings.shared.energyUnit).formatted())
+                                    .font(.caption)
+                                    .foregroundColor(.black)
+                                    .padding(5)
+                                    .background(Color.white.opacity(0.8))
+                                    .cornerRadius(5)
                             }
                         }
+                        .chartBackground { chartProxy in
+                            GeometryReader { geometry in
+                                if let anchor = chartProxy.plotFrame {
+                                    let frame = geometry[anchor]
+                                    VStack {
+                                        Text(totalChargedEnergy.converted(to: UserSettings.shared.energyUnit).formatted())
+                                            .font(.headline)
+                                    }
+                                    .position(x: frame.midX, y: frame.midY)
+                                }
+                            }
+                        }
+                        .padding()
                     }
-                    .padding()
                 }
             ),
             
@@ -212,42 +231,50 @@ struct ChargingViewChart: View {
                         .font(.headline)
                         .padding(.top)
                         .padding(.horizontal)
-                    Chart(chargingCostData, id: \.id) { dataSet in
-                        SectorMark(
-                            angle: .value(
-                                Text(dataSet.description),
-                                dataSet.cost.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? 0.0
-                            ),
-                            innerRadius: .ratio(0.6)
-                        )
-                        .foregroundStyle(
-                            by: .value(
-                                Text(dataSet.description),
-                                dataSet.description
+                    let chargingCostData = chargingCostData
+                    if chargingCostData.isEmpty {
+                        Text("No charging cost data available for this period.")
+                            .italic()
+                            .padding()
+                        Spacer()
+                    } else {
+                        Chart(chargingCostData, id: \.id) { dataSet in
+                            SectorMark(
+                                angle: .value(
+                                    Text(dataSet.description),
+                                    dataSet.cost.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? 0.0
+                                ),
+                                innerRadius: .ratio(0.6)
                             )
-                        )
-                        .annotation(position: .overlay) {
-                            Text(dataSet.cost.converted(to: UserSettings.shared.currencyIdentifier)?.formatted() ?? "")
-                                .font(.caption)
-                                .foregroundColor(.black)
-                                .padding(5)
-                                .background(Color.white.opacity(0.8))
-                                .cornerRadius(5)
-                        }
-                    }
-                    .chartBackground { chartProxy in
-                        GeometryReader { geometry in
-                            if let anchor = chartProxy.plotFrame {
-                                let frame = geometry[anchor]
-                                VStack {
-                                    Text(totalChargingCost.converted(to: UserSettings.shared.currencyIdentifier)?.formatted() ?? "")
-                                        .font(.headline)
-                                }
-                                .position(x: frame.midX, y: frame.midY)
+                            .foregroundStyle(
+                                by: .value(
+                                    Text(dataSet.description),
+                                    dataSet.description
+                                )
+                            )
+                            .annotation(position: .overlay) {
+                                Text(dataSet.cost.converted(to: UserSettings.shared.currencyIdentifier)?.formatted() ?? "")
+                                    .font(.caption)
+                                    .foregroundColor(.black)
+                                    .padding(5)
+                                    .background(Color.white.opacity(0.8))
+                                    .cornerRadius(5)
                             }
                         }
+                        .chartBackground { chartProxy in
+                            GeometryReader { geometry in
+                                if let anchor = chartProxy.plotFrame {
+                                    let frame = geometry[anchor]
+                                    VStack {
+                                        Text(totalChargingCost.converted(to: UserSettings.shared.currencyIdentifier)?.formatted() ?? "")
+                                            .font(.headline)
+                                    }
+                                    .position(x: frame.midX, y: frame.midY)
+                                }
+                            }
+                        }
+                        .padding()
                     }
-                    .padding()
                 }
             )
         ]
