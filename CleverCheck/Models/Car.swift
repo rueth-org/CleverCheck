@@ -7,19 +7,30 @@
 
 import Foundation
 import SwiftData
+import SwiftUI
 
 @Model
 final class Car {
-    struct EnergyData: Identifiable {
+    struct EnergyData: Identifiable, GraphItem {
         let id = UUID()
-        let description: String
+        let legendLabel: String
         let chargedEnergy: Measurement<UnitEnergy>
+        let displayColor: DisplayColor
+        
+        static func < (lhs: Car.EnergyData, rhs: Car.EnergyData) -> Bool {
+            lhs.legendLabel < rhs.legendLabel
+        }
     }
     
-    struct CostData: Identifiable {
+    struct CostData: Identifiable, GraphItem {
         let id = UUID()
-        let description: String
+        let legendLabel: String
         let cost: Cost
+        let displayColor: DisplayColor
+        
+        static func < (lhs: Car.CostData, rhs: Car.CostData) -> Bool {
+            lhs.legendLabel < rhs.legendLabel
+        }
     }
     
     var id: UUID = UUID()
@@ -56,7 +67,11 @@ final class Car {
         guard let chargingCostPlans else { return [] }
         var result = [EnergyData]()
         for plan in chargingCostPlans {
-            result.append(EnergyData(description: plan.descriptionShortNoCar, chargedEnergy: plan.totalChargedEnergy(in: timeBox)))
+            result.append(EnergyData(
+                legendLabel: plan.descriptionShortNoCar,
+                chargedEnergy: plan.totalChargedEnergy(in: timeBox),
+                displayColor: plan.displayColor
+            ))
         }
         return result
     }
@@ -67,7 +82,11 @@ final class Car {
         for plan in chargingCostPlans {
             let chargedEnergyPerPeriod = plan.chargedEnergy(in: timeBox)
             for key in chargedEnergyPerPeriod.keys {
-                let energyDataSet = EnergyData(description: plan.descriptionShortNoCar, chargedEnergy: chargedEnergyPerPeriod[key]!)
+                let energyDataSet = EnergyData(
+                    legendLabel: plan.descriptionShortNoCar,
+                    chargedEnergy: chargedEnergyPerPeriod[key]!,
+                    displayColor: plan.displayColor
+                )
                 if result[key] == nil {
                     result[key] = [energyDataSet]
                 } else {
@@ -82,7 +101,11 @@ final class Car {
         guard let chargingCostPlans else { return [] }
         var result = [CostData]()
         for plan in chargingCostPlans {
-            result.append(CostData(description: plan.descriptionShortNoCar, cost: plan.totalChargingCost(in: timeBox)))
+            result.append(CostData(
+                legendLabel: plan.descriptionShortNoCar,
+                cost: plan.totalChargingCost(in: timeBox),
+                displayColor: plan.displayColor
+            ))
         }
         return result
     }

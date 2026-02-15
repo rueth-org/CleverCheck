@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import UIKit
 
 @Model
 public final class ChargingCostPlan {
@@ -29,6 +30,7 @@ public final class ChargingCostPlan {
     var energyUnitSymbol: String = UserSettings.shared.energyUnitSymbol
     var monthlyRate: Cost?
     var includedInOtherPlan: ChargingCostPlan?
+    var displayColorString: String?
     var isArchived: Bool = false
     
     @Relationship(deleteRule: .nullify, inverse: \ChargingSession.chargingCostPlan)
@@ -52,6 +54,19 @@ public final class ChargingCostPlan {
     var descriptionLong: String {
         "\(descriptionShort) (\(planType.description))"
     }
+    
+    var displayColor: DisplayColor {
+        set {
+            displayColorString = newValue.rawValue
+        }
+        get {
+            if let displayColorString {
+                return DisplayColor(rawValue: displayColorString) ?? .blue
+            } else {
+                return DisplayColorFactory.shared.add(legendEntry: descriptionShortNoCar, to: ChargingCostPlan.classString())
+            }
+        }
+    }
 
     init(
         car: Car,
@@ -59,7 +74,8 @@ public final class ChargingCostPlan {
         planType: PlanType,
         defaultEnergyPrice: Cost? = nil,
         monthlyRate: Cost? = nil,
-        includedInOtherPlan: ChargingCostPlan? = nil
+        includedInOtherPlan: ChargingCostPlan? = nil,
+        displayColor: DisplayColor? = nil
     ) {
         self.car = car
         self.charger = charger
@@ -67,6 +83,7 @@ public final class ChargingCostPlan {
         self.defaultEnergyPrice = defaultEnergyPrice
         self.monthlyRate = monthlyRate
         self.includedInOtherPlan = includedInOtherPlan
+        self.displayColorString = displayColor?.rawValue
     }
     
     func chargedEnergy(in timeBox: TimeBox) -> [String: Measurement<UnitEnergy>] {
@@ -98,6 +115,10 @@ public final class ChargingCostPlan {
             timeBox.contains(session.endTime)
         }
         return filteredSessions.reduce(.init(amount: 0.0)) { $0 + ($1.totalChargingCost) }
+    }
+    
+    class func classString() -> String {
+        return NSStringFromClass(self)
     }
 }
 

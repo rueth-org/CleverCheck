@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Cost: Codable {
+struct Cost: Codable, Hashable {
     enum CostError: Error {
         case currencyServiceUnavailable
         case currencyNotFound(currency: String)
