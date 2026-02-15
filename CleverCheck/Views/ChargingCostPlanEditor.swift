@@ -44,7 +44,10 @@ struct ChargingCostPlanEditor: View {
     @State private var enterIndividualDefaultPrice: Bool = false
     @State private var flatratePrice: Cost = Cost(amount: 0.0)
     @State private var refundingPlan: ChargingCostPlan?
+    @State private var displayColor: DisplayColor = .blue
     @State private var isArchived: Bool = false
+    
+    @State private var showingColorPicker: Bool = false
     
     @FocusState private var focusedField: Field?
     @State private var showingAlert: Bool = false
@@ -81,6 +84,23 @@ struct ChargingCostPlanEditor: View {
             }
             
             planDataView()
+            
+            // Display color
+            HStack {
+                Text("Display color")
+                Spacer()
+                Button(action: {
+                    showingColorPicker = true
+                }) {
+                    Text(displayColor.rawValue.capitalized)
+                        .foregroundColor(displayColor.toColor())
+                }
+                .sheet(isPresented: $showingColorPicker) {
+                    DisplayColorPicker(selectedColor: $displayColor)
+                        .presentationDragIndicator(.visible)
+                        .presentationDetents([.medium])
+                }
+            }
             
             Toggle("Archived", isOn: $isArchived)
                 .padding(.top)
@@ -154,6 +174,13 @@ struct ChargingCostPlanEditor: View {
                     } else {
                         activeAlert = SimpleAlert(type: .fatalError(message: "No refunding cost plan found."))
                     }
+                }
+                
+                // Use the stored color or select a unique color
+                if plan.displayColorString != nil {
+                    self.displayColor = plan.displayColor
+                } else {
+                    self.displayColor = DisplayColorFactory.shared.add(legendEntry: plan.descriptionShortNoCar, to: ChargingCostPlan.classString())
                 }
             }
         }
@@ -268,6 +295,7 @@ struct ChargingCostPlanEditor: View {
             plan.defaultEnergyPrice = tempIndividualDefaultPrice
             plan.monthlyRate = tempFlatratePrice
             plan.includedInOtherPlan = tempRefundingPlan
+            plan.displayColor = displayColor
             plan.isArchived = isArchived
         } else {
             let newPlan = ChargingCostPlan(
@@ -276,7 +304,8 @@ struct ChargingCostPlanEditor: View {
                 planType: tempPlanType!,
                 defaultEnergyPrice: tempIndividualDefaultPrice,
                 monthlyRate: tempFlatratePrice,
-                includedInOtherPlan: tempRefundingPlan
+                includedInOtherPlan: tempRefundingPlan,
+                displayColor: displayColor
             )
             newPlan.energyUnitSymbol = energyUnitSymbol
             newPlan.isArchived = isArchived

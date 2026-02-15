@@ -109,7 +109,7 @@ struct ChargingViewChart: View {
                             }
                         }
                         .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
-                        .chartForegroundStyleScale(range: displayColors(for: chargedEnergyDataPerPeriod))
+                        .chartForegroundStyleScale(range: displayColors(for: chargedEnergyData)) // Use chargedEnergyData instead of the double array chargedEnergyDataPerPeriod
                         .chartOverlay { proxy in
                             readTappedPosition(proxy)
                         }
@@ -342,30 +342,6 @@ struct ChargingViewChart: View {
     private func displayColors(for input: [any GraphItem]) -> [Color] {
         var returnColors = [Color]()
         for item in input {
-            returnColors.append(item.displayColor.toColor())
-        }
-        return returnColors
-    }
-    
-    private func displayColors(for input: [String: [any GraphItem]]) -> [Color] {
-        // Flatten the nested arrays and preserve encounter order
-        let flatConsumptionData: [any GraphItem] = input.values.flatMap { $0 }
-
-        // Deduplicate while preserving order. We cannot put `any GraphItem` into a Set
-        // because existential types don't conform to Hashable at the type level here.
-        // Instead build a Set of stable string keys (prefer `description` if present).
-        var seenKeys = Set<String>()
-        var uniqueItems: [any GraphItem] = []
-
-        for item in flatConsumptionData {
-            if !seenKeys.contains(item.legendLabel) {
-                seenKeys.insert(item.legendLabel)
-                uniqueItems.append(item)
-            }
-        }
-
-        var returnColors = [Color]()
-        for item in uniqueItems {
             returnColors.append(item.displayColor.toColor())
         }
         return returnColors

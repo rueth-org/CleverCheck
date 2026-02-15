@@ -73,7 +73,7 @@ final class Car {
                 displayColor: plan.displayColor
             ))
         }
-        return result
+        return result.sorted()
     }
     
     func chargedEnergyPerPeriod(in timeBox: TimeBox) -> [String: [EnergyData]] {
@@ -94,7 +94,9 @@ final class Car {
                 }
             }
         }
-        return result
+        
+        // Sort the EnergyData arrays
+        return result.mapValues { $0.sorted() }
     }
     
     func chargingCost(in timeBox: TimeBox) -> [CostData] {
@@ -107,7 +109,7 @@ final class Car {
                 displayColor: plan.displayColor
             ))
         }
-        return result
+        return result.sorted()
     }
     
     func consumptionData(in timeBox: TimeBox, modelContext: ModelContext) -> ConsumptionData? {
