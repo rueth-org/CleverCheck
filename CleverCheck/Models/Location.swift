@@ -7,20 +7,38 @@
 
 import Foundation
 import SwiftData
+import SwiftUI
 
 @Model
 final class Location: Identifiable {
     enum DataType: String {
         case homeConsumption = "Home consumption"
         case charging = "Charging"
+        
+        func color() -> DisplayColor {
+            switch self {
+            case .homeConsumption:
+                return .blue
+            case .charging:
+                return .green
+            }
+        }
     }
     
-    struct Data: Identifiable, Comparable {
+    struct Data: Identifiable, Comparable, GraphItem {
         let id = UUID()
         let timeKey: String
         let dataType: DataType
         let consumption: Measurement<UnitEnergy>
         let cost: Cost
+        
+        var legendLabel: String {
+            dataType.rawValue
+        }
+        
+        var displayColor: DisplayColor {
+            dataType.color()
+        }
         
         static func < (lhs: Location.Data, rhs: Location.Data) -> Bool {
             lhs.timeKey < rhs.timeKey
@@ -212,5 +230,9 @@ final class Location: Identifiable {
             home: .init(amount: net),
             charging: .init(amount: gross - net)
         )
+    }
+    
+    class func classString() -> String {
+        return NSStringFromClass(self)
     }
 }

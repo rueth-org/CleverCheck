@@ -9,6 +9,16 @@ import SwiftUI
 import Charts
 
 struct HomeViewChart: View {
+    private struct AggregatedData: GraphItem {
+        let value: Double
+        let legendLabel: String
+        var displayColor: DisplayColor
+        
+        static func < (lhs: HomeViewChart.AggregatedData, rhs: HomeViewChart.AggregatedData) -> Bool {
+            lhs.legendLabel < rhs.legendLabel
+        }
+    }
+    
     var location: Location
     var timeBox: TimeBox
     
@@ -99,6 +109,7 @@ struct HomeViewChart: View {
                             }
                         }
                         .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
+                        .chartForegroundStyleScale(range: displayColors(for: sortedData))
                         .chartLegend(.visible)
                         .chartOverlay { proxy in
                             readTappedPosition(proxy, aggregatedSums: aggregatedEnergySumsLocal, data: data)
@@ -150,6 +161,7 @@ struct HomeViewChart: View {
                             }
                         }
                         .chartYAxisLabel(UserSettings.shared.currencyIdentifier)
+                        .chartForegroundStyleScale(range: displayColors(for: sortedData))
                         .chartLegend(.visible)
                         .chartOverlay { proxy in
                             readTappedPosition(proxy, aggregatedSums: aggregatedCostSumsLocal, data: data)
@@ -226,6 +238,14 @@ struct HomeViewChart: View {
         onBarTap?(key)
     }
     
+    private func displayColors(for input: [any GraphItem]) -> [Color] {
+        var returnColors = [Color]()
+        for item in input {
+            returnColors.append(item.displayColor.toColor())
+        }
+        return returnColors
+    }
+    
     @ViewBuilder
     private func energyChart() -> some View {
         VStack {
@@ -237,11 +257,11 @@ struct HomeViewChart: View {
             // Aggregate filteredHomeData by dataType so the sector chart shows two sectors
             let unit = UserSettings.shared.energyUnit
             let grouped = Dictionary(grouping: filteredHomeData, by: { $0.dataType })
-            let aggregated: [(dataType: String, sum: Double)] = grouped.map { (key, values) in
+            let aggregated: [AggregatedData] = grouped.map { (key, values) in
                 let total = values.reduce(0.0) { acc, item in
                     acc + item.consumption.converted(to: unit).value
                 }
-                return (dataType: NSLocalizedString(key.rawValue, comment: ""), sum: total)
+                return AggregatedData(value: total, legendLabel: NSLocalizedString(key.rawValue, comment: ""), displayColor: key.color())
             }
 
             if aggregated.isEmpty {
@@ -250,15 +270,15 @@ struct HomeViewChart: View {
                     .padding()
                 Spacer()
             } else {
-                Chart(aggregated, id: \.dataType) { item in
+                Chart(aggregated, id: \.legendLabel) { item in
                     SectorMark(
-                        angle: .value("Energy", item.sum),
+                        angle: .value("Energy", item.value),
                         innerRadius: .ratio(0.6)
                     )
-                    .foregroundStyle(by: .value("Data Type", item.dataType))
+                    .foregroundStyle(by: .value("Data Type", item.legendLabel))
                     .annotation(position: .overlay) {
                         // Show the aggregated value formatted using the chosen unit
-                        let measurement = Measurement(value: item.sum, unit: unit)
+                        let measurement = Measurement(value: item.value, unit: unit)
                         Text(measurement.formatted())
                             .font(.caption)
                             .foregroundColor(.black)
@@ -267,6 +287,7 @@ struct HomeViewChart: View {
                             .cornerRadius(5)
                     }
                 }
+                .chartForegroundStyleScale(range: displayColors(for: aggregated))
                 .chartBackground { chartProxy in
                     GeometryReader { geometry in
                         if let anchor = chartProxy.plotFrame {
@@ -295,11 +316,11 @@ struct HomeViewChart: View {
             // Aggregate filteredHomeData by dataType so the sector chart shows two sectors
             let currency = UserSettings.shared.currencyIdentifier
             let grouped = Dictionary(grouping: filteredHomeData, by: { $0.dataType })
-            let aggregated: [(dataType: String, sum: Double)] = grouped.map { (key, values) in
+            let aggregated: [AggregatedData] = grouped.map { (key, values) in
                 let total = values.reduce(0.0) { acc, item in
                     acc + (item.cost.converted(to: currency)?.amount ?? 0.0)
                 }
-                return (dataType: NSLocalizedString(key.rawValue, comment: ""), sum: total)
+                return AggregatedData(value: total, legendLabel: NSLocalizedString(key.rawValue, comment: ""), displayColor: key.color())
             }
 
             if aggregated.isEmpty {
@@ -308,15 +329,15 @@ struct HomeViewChart: View {
                     .padding()
                 Spacer()
             } else {
-                Chart(aggregated, id: \.dataType) { item in
+                Chart(aggregated, id: \.legendLabel) { item in
                     SectorMark(
-                        angle: .value("Cost", item.sum),
+                        angle: .value("Cost", item.value),
                         innerRadius: .ratio(0.6)
                     )
-                    .foregroundStyle(by: .value("Data Type", item.dataType))
+                    .foregroundStyle(by: .value("Data Type", item.legendLabel))
                     .annotation(position: .overlay) {
                         // Show the aggregated value formatted using the chosen unit
-                        let amount = Cost(amount: item.sum, currency: currency)
+                        let amount = Cost(amount: item.value, currency: currency)
                         Text(amount.formatted())
                             .font(.caption)
                             .foregroundColor(.black)
@@ -325,6 +346,7 @@ struct HomeViewChart: View {
                             .cornerRadius(5)
                     }
                 }
+                .chartForegroundStyleScale(range: displayColors(for: aggregated))
                 .chartBackground { chartProxy in
                     GeometryReader { geometry in
                         if let anchor = chartProxy.plotFrame {
