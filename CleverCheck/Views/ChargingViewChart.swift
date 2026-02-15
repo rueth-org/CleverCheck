@@ -1,3 +1,4 @@
+// swift
 //
 //  ChargingViewChart.swift
 //  CleverCheck
@@ -10,7 +11,7 @@ import Charts
 
 struct ChargingViewChart: View {
     @Environment(\.modelContext) private var modelContext
-    
+
     let car: Car
     let timeBox: TimeBox
 
@@ -20,27 +21,27 @@ struct ChargingViewChart: View {
     var chargedEnergyDataPerPeriod: [String: [Car.EnergyData]] {
         car.chargedEnergyPerPeriod(in: timeBox)
     }
-    
+
     var consumptionData: ConsumptionData? {
         car.consumptionData(in: timeBox, modelContext: modelContext)
     }
-    
+
     var chargedEnergyData: [Car.EnergyData] {
         car.chargedEnergy(in: timeBox)
     }
-    
+
     var totalChargedEnergy: Measurement<UnitEnergy> {
         chargedEnergyData.map{ $0.chargedEnergy }.reduce(.init(value: 0.0, unit: .kilowattHours), +)
     }
-    
+
     var chargingCostData: [Car.CostData] {
         car.chargingCost(in: timeBox)
     }
-    
+
     var totalChargingCost: Cost {
         chargingCostData.map{ $0.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? Cost(amount: 0.0) }.reduce(Cost(amount: 0.0), +)
     }
-    
+
     // Compute the aggregated sum per x-axis key (timeKey) depending on selectedChart.
     private var aggregatedEnergySums: [(timeKey: String, sum: Double)] {
         // Group data by timeKey (x-axis key) and sum the relevant metric
@@ -51,18 +52,20 @@ struct ChargingViewChart: View {
         // Keep a stable order by sorting on the key which matches how bars are laid out
         .sorted { $0.timeKey < $1.timeKey }
     }
-    
+
     // Optional callback invoked when a bar is tapped; receives the x-axis key (End Time) as String
     var onBarTap: ((String) -> Void)? = nil
-    
+
     var body: some View {
+        let legendItems = legendData()
         let tabViews: [AnyView] = [
             AnyView(
-                VStack {
+                VStack(spacing: 0) {
                     Text("Charging data")
                         .font(.headline)
                         .padding(.top)
                         .padding(.horizontal)
+
                     let chargedEnergyDataPerPeriod = chargedEnergyDataPerPeriod
                     if chargedEnergyDataPerPeriod.isEmpty {
                         Text("No charging data available for this period.")
@@ -77,15 +80,10 @@ struct ChargingViewChart: View {
                                         x: .value("End Time", pair.key),
                                         y: .value("Charged Energy", dataSet.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value)
                                     )
-                                    .foregroundStyle(
-                                        by: .value(
-                                            Text(dataSet.legendLabel),
-                                            dataSet.legendLabel
-                                        )
-                                    )
+                                    .foregroundStyle(dataSet.displayColor.toColor())
                                 }
                             }
-                            
+
                             // Overlay PointMarks (invisible) with annotations for the aggregated total per x-axis key
                             ForEach(aggregatedEnergySums, id: \.timeKey) { item in
                                 // Use a PointMark so we can attach an annotation positioned above the stacked bars
@@ -109,16 +107,21 @@ struct ChargingViewChart: View {
                             }
                         }
                         .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
-                        .chartForegroundStyleScale(range: displayColors(for: chargedEnergyData)) // Use chargedEnergyData instead of the double array chargedEnergyDataPerPeriod
                         .chartOverlay { proxy in
                             readTappedPosition(proxy)
                         }
+                        // Let the chart expand to fill available vertical space inside this VStack
+                        .frame(maxHeight: .infinity)
+                        
+                        // Custom legend beneath the chart (sizes to its content)
+                        legend(legendItems)
+                            .frame(minHeight: 0)
                     }
                 }
             ),
-            
+
             AnyView(
-                VStack {
+                VStack(spacing: 0) {
                     Text("Consumption")
                         .font(.headline)
                         .padding(.top)
@@ -145,7 +148,7 @@ struct ChargingViewChart: View {
                                         .cornerRadius(5)
                                 }
                             }
-                            
+
                             if let totalConsumption = consumptionData.totalConsumption?.consumption() {
                                 RuleMark(y: .value("Average consumption", totalConsumption.value))
                                     .foregroundStyle(Color.red)
@@ -164,6 +167,8 @@ struct ChargingViewChart: View {
                         .chartOverlay { proxy in
                             readTappedPosition(proxy)
                         }
+                        .frame(maxHeight: .infinity)
+                        .layoutPriority(1)
                     } else {
                         Text("No consumption data available for this period.")
                             .italic()
@@ -171,10 +176,11 @@ struct ChargingViewChart: View {
                         Spacer()
                     }
                 }
+                .frame(maxHeight: .infinity)
             ),
-            
+
             AnyView(
-                VStack {
+                VStack(spacing: 0) {
                     Text("Charged energy")
                         .font(.headline)
                         .padding(.top)
@@ -194,12 +200,7 @@ struct ChargingViewChart: View {
                                 ),
                                 innerRadius: .ratio(0.6)
                             )
-                            .foregroundStyle(
-                                by: .value(
-                                    Text(dataSet.legendLabel),
-                                    dataSet.legendLabel
-                                )
-                            )
+                            .foregroundStyle(dataSet.displayColor.toColor())
                             .annotation(position: .overlay) {
                                 Text(dataSet.chargedEnergy.converted(to: UserSettings.shared.energyUnit).formatted())
                                     .font(.caption)
@@ -209,7 +210,6 @@ struct ChargingViewChart: View {
                                     .cornerRadius(5)
                             }
                         }
-                        .chartForegroundStyleScale(range: displayColors(for: chargedEnergyData))
                         .chartBackground { chartProxy in
                             GeometryReader { geometry in
                                 if let anchor = chartProxy.plotFrame {
@@ -223,12 +223,18 @@ struct ChargingViewChart: View {
                             }
                         }
                         .padding()
+                        // Let the chart expand to fill available vertical space inside this VStack
+                        .frame(maxHeight: .infinity)
+                        
+                        // Custom legend beneath the chart (sizes to its content)
+                        legend(legendItems)
+                            .frame(minHeight: 0)
                     }
                 }
             ),
-            
+
             AnyView(
-                VStack {
+                VStack(spacing: 0) {
                     Text("Direct charging cost")
                         .font(.headline)
                         .padding(.top)
@@ -248,12 +254,7 @@ struct ChargingViewChart: View {
                                 ),
                                 innerRadius: .ratio(0.6)
                             )
-                            .foregroundStyle(
-                                by: .value(
-                                    Text(dataSet.legendLabel),
-                                    dataSet.legendLabel
-                                )
-                            )
+                            .foregroundStyle(dataSet.displayColor.toColor())
                             .annotation(position: .overlay) {
                                 Text(dataSet.cost.converted(to: UserSettings.shared.currencyIdentifier)?.formatted() ?? "")
                                     .font(.caption)
@@ -263,7 +264,6 @@ struct ChargingViewChart: View {
                                     .cornerRadius(5)
                             }
                         }
-                        .chartForegroundStyleScale(range: displayColors(for: chargingCostData))
                         .chartBackground { chartProxy in
                             GeometryReader { geometry in
                                 if let anchor = chartProxy.plotFrame {
@@ -277,14 +277,20 @@ struct ChargingViewChart: View {
                             }
                         }
                         .padding()
+                        // Let the chart expand to fill available vertical space inside this VStack
+                        .frame(maxHeight: .infinity)
+                        
+                        // Custom legend beneath the chart (sizes to its content)
+                        legend(legendItems)
+                            .frame(minHeight: 0)
                     }
                 }
             )
         ]
-        
+
         return DotIndicatorScrollView(tabViews: tabViews)
     }
-    
+
     fileprivate func readTappedPosition(_ proxy: ChartProxy) -> GeometryReader<some View> {
         return GeometryReader { geometry in
             ZStack {
@@ -330,7 +336,7 @@ struct ChargingViewChart: View {
             }
         }
     }
-    
+
     // Called when a bar is tapped. String is the "End Time" key from the x-axis.
     func barTapped(_ key: String) {
         // Debug print for development to verify taps
@@ -339,11 +345,42 @@ struct ChargingViewChart: View {
         onBarTap?(key)
     }
     
-    private func displayColors(for input: [any GraphItem]) -> [Color] {
-        var returnColors = [Color]()
-        for item in input {
-            returnColors.append(item.displayColor.toColor())
+    private func legendData() -> [(String, Color)] {
+        var seen = Set<String>()
+        var items: [(String, Color)] = []
+        for d in chargedEnergyData {
+            if !seen.contains(d.legendLabel) {
+                items.append((d.legendLabel, d.displayColor.toColor()))
+                seen.insert(d.legendLabel)
+            }
         }
-        return returnColors
+        return items
+    }
+
+    @ViewBuilder
+    private func legend(_ legendItems: [(String, Color)]) -> some View {
+        // Minimum column width each legend cell should try to occupy.
+        let minColumnWidth: CGFloat = 140
+
+        // Use adaptive GridItem so columns are computed automatically from available width
+        let columns = [GridItem(.adaptive(minimum: minColumnWidth), spacing: 12)]
+
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 4) {
+            ForEach(legendItems, id: \.0) { label, color in
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(color)
+                        .frame(width: 8, height: 8)
+                    Text(label)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+        .background(Color.clear) // keeps layout predictable
     }
 }
