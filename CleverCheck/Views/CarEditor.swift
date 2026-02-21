@@ -80,7 +80,7 @@ struct CarEditor: View {
                         deleteNetBatteryCapacity()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.gray)
+                        
                     }
                 }
             } else {
@@ -93,7 +93,6 @@ struct CarEditor: View {
                         enterNetBatteryCapacity = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             }
@@ -112,7 +111,6 @@ struct CarEditor: View {
                         deleteMaxChargingPower()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             } else {
@@ -125,7 +123,6 @@ struct CarEditor: View {
                         enterMaxChargingPower = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             }

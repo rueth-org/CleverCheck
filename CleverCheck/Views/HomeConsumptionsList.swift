@@ -43,7 +43,7 @@ struct HomeConsumptionsList: View {
                             } label: {
                                 Image(systemName: "chevron.right")
                                     .imageScale(.small)
-                            }.foregroundStyle(.gray)
+                            }
                         }
                         
                         // The list of home consumptions ending this month

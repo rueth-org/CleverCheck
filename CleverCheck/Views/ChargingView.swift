@@ -19,9 +19,18 @@ struct ChargingView: View {
     @State private var selectedSession: ChargingSession? = nil
     @State private var timeBox: TimeBox
     
-    @State private var showCarInfo: Bool = false
+    @State private var selectTemplate: Bool = false
     
     @Query private var vehicles: [Car]
+    @Query private var templates: [ChargingSessionTemplate]
+    
+    var filteredTemplates: [ChargingSessionTemplate] {
+        if let selectedCar {
+            return templates.filter { $0.chargingSession?.chargingCostPlan?.car == selectedCar }
+        } else {
+            return templates
+        }
+    }
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -82,9 +91,7 @@ struct ChargingView: View {
                 }
                 // Add session (or car if none available)
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: vehicles.isEmpty ? addCar : addSession) {
-                        Image(systemName: "plus")
-                    }
+                    addButton()
                 }
             }
             .navigationDestination(for: NavigationDestination.self) { screen in
@@ -115,6 +122,11 @@ struct ChargingView: View {
                 ChargingSessionDetails(navigationPath: $navigationPath, selectedSession: $selectedSession, vehicle: selectedCar, allSessions: selectedCar.chargingSessions(in: timeBox))
                     .presentationDragIndicator(.visible)
             }
+        }
+        .sheet(isPresented: $selectTemplate) {
+            ChargingSessionTemplatePicker(navigationPath: $navigationPath, templates: templates)
+                .presentationDragIndicator(.visible)
+                .presentationDetents([.medium])
         }
         .onAppear {
             if !vehicles.isEmpty {
@@ -184,6 +196,35 @@ struct ChargingView: View {
                 }
             }
         }
+    }
+    
+    @ViewBuilder
+    private func addButton() -> some View {
+        Button(action: {
+            // Ignore
+        }) {
+            Image(systemName: "plus")
+        }
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                if vehicles.isEmpty {
+                    addCar()
+                } else if filteredTemplates.isEmpty {
+                    addSession()
+                } else {
+                    selectTemplate = true
+                }
+            }
+        )
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                if vehicles.isEmpty {
+                    addCar()
+                } else {
+                    addSession()
+                }
+            }
+        )
     }
 }
 

@@ -80,7 +80,6 @@ struct HomeConsumptionEditor: View {
                         showingChargingSessionPicker = true
                     }) {
                         Image(systemName: "chevron.right")
-                            .foregroundStyle(.gray)
                     }
                 }
             }

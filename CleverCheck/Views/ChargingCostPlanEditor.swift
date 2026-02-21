@@ -357,7 +357,6 @@ struct ChargingCostPlanEditor: View {
                         deleteIndividualDefaultPrice()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             } else {
@@ -370,7 +369,6 @@ struct ChargingCostPlanEditor: View {
                         enterIndividualDefaultPrice = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             }

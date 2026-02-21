@@ -129,7 +129,6 @@ struct ChargingSessionEditor: View {
                             Text("Add Charging Cost Plan")
                             Spacer()
                             Image(systemName: "plus.circle.fill")
-                                .foregroundStyle(.gray)
                         }
                     }
                 }
@@ -156,7 +155,6 @@ struct ChargingSessionEditor: View {
                         isShowingHomeConsumptionPickerSheet = true
                     }) {
                         Image(systemName: "chevron.right")
-                            .foregroundStyle(.gray)
                     }
                 }
             }
@@ -214,7 +212,6 @@ struct ChargingSessionEditor: View {
                         deleteStartTime()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             } else {
@@ -226,7 +223,6 @@ struct ChargingSessionEditor: View {
                         enterStartTime = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             }
@@ -246,7 +242,7 @@ struct ChargingSessionEditor: View {
                         self.chargedEnergy = estimate
                     }
                 }) {
-                    Image(systemName: "questionmark.circle")
+                    Image(systemName: "plusminus.circle.fill")
                 }
                 .disabled(!enterInitialSOC || !enterFinalSOC || finalSOC < initialSOC)
             }
@@ -315,7 +311,6 @@ struct ChargingSessionEditor: View {
                         deleteMileage()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             } else {
@@ -328,7 +323,6 @@ struct ChargingSessionEditor: View {
                         enterMileage = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             }
@@ -346,7 +340,6 @@ struct ChargingSessionEditor: View {
                         deleteInitialSOC()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             } else {
@@ -359,7 +352,6 @@ struct ChargingSessionEditor: View {
                         enterInitialSOC = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             }
@@ -377,7 +369,6 @@ struct ChargingSessionEditor: View {
                         deleteFinalSOC()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             } else {
@@ -390,7 +381,6 @@ struct ChargingSessionEditor: View {
                         enterFinalSOC = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             }
@@ -688,6 +678,8 @@ struct ChargingSessionEditor: View {
     }
     
     private func cancelAndExit() {
+        modelContext.rollback()
+        
         // Leave edit mode
         navigationPath.removeLast()
     }

@@ -62,7 +62,6 @@ struct ChargerEditor: View {
                         deleteMaxPower()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             } else {
@@ -75,7 +74,6 @@ struct ChargerEditor: View {
                         enterMaxPower = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(.gray)
                     }
                 }
             }

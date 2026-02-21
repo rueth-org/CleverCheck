@@ -40,6 +40,7 @@ final class ChargingSession: Comparable {
     var initialSOC: Double?
     var finalSOC: Double?
     var comment: String?
+    var template: ChargingSessionTemplate?
     
     @Transient var chargedEnergy: Measurement<UnitEnergy> {
         get {
@@ -98,6 +99,10 @@ final class ChargingSession: Comparable {
             let convertedTotalCost = UserSettings.shared.convertEnergyPrice(amount: totalCost, from: .kilowattHours, to: UserSettings.shared.energyUnit)
             return .init(amount: convertedTotalCost)
         }
+    }
+    
+    var isTemplate: Bool {
+        self.template != nil
     }
     
     init(
