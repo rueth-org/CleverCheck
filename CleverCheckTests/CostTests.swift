@@ -11,6 +11,11 @@ import Testing
 
 @Suite("Cost struct")
 struct CostTests {
+    @Test func example() async throws {
+        // Keep an example test to satisfy templates.
+        #expect(Bool(true))
+    }
+
     @Test("Initialization sets amount and currency")
     func testInit() async throws {
         let cost = Cost(amount: 10.0, currency: "USD")

@@ -9,11 +9,31 @@ import Testing
 import Foundation
 @testable import CleverCheck
 
-struct CleverCheckTests {
+struct UserSettingsTest {
 
     @Test func example() async throws {
         // Keep an example test to satisfy templates.
         #expect(Bool(true))
+    }
+    
+    @Test(arguments: [
+        (123.45678, "123", "123", "123", "123"),
+        (12.345678, "12", "12", "12", "12.3"),
+        (1.2345678, "1", "1", "1.2", "1.23"),
+        (0.12345678, "0.1", "0.1", "0.12", "0.123")
+    ])
+    func formatWithSignificantUnits(
+        _ value: Double,
+        _ expected0: String,
+        _ expected1: String,
+        _ expected2: String,
+        _ expected3: String
+    ) async throws {
+        let settings = UserSettings.shared
+        #expect(settings.format(value, withSignificantDigits: 0).replacing(",", with: ".") == expected0)
+        #expect(settings.format(value, withSignificantDigits: 1).replacing(",", with: ".") == expected1)
+        #expect(settings.format(value, withSignificantDigits: 2).replacing(",", with: ".") == expected2)
+        #expect(settings.format(value, withSignificantDigits: 3).replacing(",", with: ".") == expected3)
     }
 
     @Test func convertEnergyPrice_withUnits() async throws {
