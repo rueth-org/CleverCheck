@@ -82,6 +82,9 @@ struct TimeBoxPicker: View {
                         Text(DateFormatter.displayAbbreviatedMonthOnly.string(from: date)).tag(month)
                     }
                 }
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .fixedSize(horizontal: true, vertical: false)
                 .labelsHidden()
                 .pickerStyle(.menu)
                 
@@ -128,6 +131,9 @@ struct TimeBoxPicker: View {
                         Text(DateFormatter.chartDisplayDateMonthly.string(from: date)).tag(day)
                     }
                 }
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .fixedSize(horizontal: true, vertical: false)
                 .labelsHidden()
                 .pickerStyle(.menu)
                 
