@@ -41,35 +41,13 @@ struct ChargingSessionsView: View {
 
     private var groupedSessions: [String: [ChargingSession]] {
         var result: [String: [ChargingSession]] = [:]
-        if selectedCar == nil {
-            for vehicle in vehicles {
-                var chargingSessions: [ChargingSession] = []
-                if let chargingCostPlans = vehicle.chargingCostPlans {
-                    for chargingCostPlan in chargingCostPlans {
-                        chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions?.filter { session in
-                            if let period = timeBox.timePeriod {
-                                return period.start <= session.endTime && session.endTime <= period.end
-                            } else {
-                                return true
-                            }
-                        } ?? [])
-                    }
-                    result[vehicle.description] = chargingSessions.sorted(by: { $0.endTime > $1.endTime })
-                }
-            }
+        if let selectedCar {
+            let chargingSessions = selectedCar.chargingSessions(in: timeBox)
+            result[selectedCar.description] = chargingSessions.sorted(by: { $0.endTime > $1.endTime })
         } else {
-            var chargingSessions: [ChargingSession] = []
-            if let chargingCostPlans = selectedCar?.chargingCostPlans {
-                for chargingCostPlan in chargingCostPlans {
-                    chargingSessions.append(contentsOf: chargingCostPlan.chargingSessions?.filter { session in
-                        if let period = timeBox.timePeriod {
-                            return period.start <= session.endTime && session.endTime <= period.end
-                        } else {
-                            return true
-                        }
-                    } ?? [])
-                }
-                result[selectedCar!.description] = chargingSessions.sorted(by: { $0.endTime > $1.endTime })
+            for vehicle in vehicles {
+                let chargingSessions = vehicle.chargingSessions(in: timeBox)
+                result[vehicle.description] = chargingSessions.sorted(by: { $0.endTime > $1.endTime })
             }
         }
         return result

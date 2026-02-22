@@ -575,43 +575,38 @@ struct ChargingSessionEditor: View {
         if enterMileage {
             let mileageKilometer = mileage.converted(to: .kilometers)
             if let car = chargingCostPlan?.car {
-                if let allPlans = car.chargingCostPlans {
-                    // Collect only sessions that have a mileage using compactMap, sorted by endTime
-                    let sessionsWithMileage = allPlans
-                        .flatMap { $0.chargingSessions ?? [] }
-                        .compactMap { $0.mileage != nil ? $0 : nil }
-                        .sorted(by: { $0.endTime < $1.endTime })
+                // Collect only sessions that have a mileage using compactMap, sorted by endTime
+                let sessionsWithMileage = car.chargingSessions(in: nil).filter { $0.mileage != nil }
+                
+                if !sessionsWithMileage.isEmpty {
+                    // Nearest previous (<= endTime) and nearest next (> endTime)
+                    let prevSession = sessionsWithMileage.last(where: { $0.endTime <= endTime })
+                    let nextSession = sessionsWithMileage.first(where: { $0.endTime > endTime })
 
-                    if !sessionsWithMileage.isEmpty {
-                        // Nearest previous (<= endTime) and nearest next (> endTime)
-                        let prevSession = sessionsWithMileage.last(where: { $0.endTime <= endTime })
-                        let nextSession = sessionsWithMileage.first(where: { $0.endTime > endTime })
-
-                        // If there's no previous session, we're earlier than the earliest; compare to nextSession
-                        if prevSession == nil, let next = nextSession, let nextMileage = next.mileage {
-                            if mileageKilometer > nextMileage.converted(to: .kilometers) {
-                                activeAlert = SimpleAlert(type: .error(message: "Mileage must be less or equal than \(UserSettings.shared.format(nextMileage.value, withSignificantDigits: 4)) \(nextMileage.unit.symbol)."))
-                                showingAlert = true
-                                return
-                            }
+                    // If there's no previous session, we're earlier than the earliest; compare to nextSession
+                    if prevSession == nil, let next = nextSession, let nextMileage = next.mileage {
+                        if mileageKilometer > nextMileage.converted(to: .kilometers) {
+                            activeAlert = SimpleAlert(type: .error(message: "Mileage must be less or equal than \(UserSettings.shared.format(nextMileage.value, withSignificantDigits: 4)) \(nextMileage.unit.symbol)."))
+                            showingAlert = true
+                            return
                         }
+                    }
 
-                        // If there's no next session, we're later than the latest; compare to prevSession
-                        if nextSession == nil, let prev = prevSession, let prevMileage = prev.mileage {
-                            if mileageKilometer < prevMileage.converted(to: .kilometers) {
-                                activeAlert = SimpleAlert(type: .error(message: "Mileage must be greater or equal than \(UserSettings.shared.format(prevMileage.value, withSignificantDigits: 4)) \(prevMileage.unit.symbol)."))
-                                showingAlert = true
-                                return
-                            }
+                    // If there's no next session, we're later than the latest; compare to prevSession
+                    if nextSession == nil, let prev = prevSession, let prevMileage = prev.mileage {
+                        if mileageKilometer < prevMileage.converted(to: .kilometers) {
+                            activeAlert = SimpleAlert(type: .error(message: "Mileage must be greater or equal than \(UserSettings.shared.format(prevMileage.value, withSignificantDigits: 4)) \(prevMileage.unit.symbol)."))
+                            showingAlert = true
+                            return
                         }
+                    }
 
-                        // If both exist, ensure the new mileage lies between them
-                        if let prev = prevSession, let prevMileage = prev.mileage, let next = nextSession, let nextMileage = next.mileage {
-                            if mileageKilometer < prevMileage.converted(to: .kilometers) || mileageKilometer > nextMileage.converted(to: .kilometers) {
-                                activeAlert = SimpleAlert(type: .error(message: "Mileage must be between \(UserSettings.shared.format(prevMileage.value, withSignificantDigits: 4)) \(prevMileage.unit.symbol) and \(UserSettings.shared.format(nextMileage.value, withSignificantDigits: 4)) \(nextMileage.unit.symbol)."))
-                                showingAlert = true
-                                return
-                            }
+                    // If both exist, ensure the new mileage lies between them
+                    if let prev = prevSession, let prevMileage = prev.mileage, let next = nextSession, let nextMileage = next.mileage {
+                        if mileageKilometer < prevMileage.converted(to: .kilometers) || mileageKilometer > nextMileage.converted(to: .kilometers) {
+                            activeAlert = SimpleAlert(type: .error(message: "Mileage must be between \(UserSettings.shared.format(prevMileage.value, withSignificantDigits: 4)) \(prevMileage.unit.symbol) and \(UserSettings.shared.format(nextMileage.value, withSignificantDigits: 4)) \(nextMileage.unit.symbol)."))
+                            showingAlert = true
+                            return
                         }
                     }
                 }

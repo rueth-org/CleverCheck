@@ -54,12 +54,15 @@ final class Car {
         self.defaultSOC = defaultSOC
     }
     
+    /// Returns all charging session in the given time box, sorted chronologically by end time.
+    /// - Parameter timeBox: The time box to limit the charging sessions to. If nil, all available charging sessions are returned.
+    /// - Returns: The charging sessions.
     func chargingSessions(in timeBox: TimeBox?) -> [ChargingSession] {
         guard let chargingCostPlans else { return [] }
         if let timeBox {
-            return chargingCostPlans.flatMap { $0.chargingSessions ?? [] }.filter { timeBox.contains($0.endTime) }
+            return chargingCostPlans.flatMap { $0.chargingSessions ?? [] }.filter { timeBox.contains($0.endTime) }.sorted(by: { $0.endTime < $1.endTime })
         } else {
-            return chargingCostPlans.flatMap { $0.chargingSessions ?? [] }
+            return chargingCostPlans.flatMap { $0.chargingSessions ?? [] }.sorted(by: { $0.endTime < $1.endTime })
         }
     }
     
