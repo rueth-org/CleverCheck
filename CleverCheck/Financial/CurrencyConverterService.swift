@@ -9,8 +9,13 @@ import Foundation
 import CurrencyConverter
 
 struct CurrencyConverterService {
-    static func makeService() async throws -> CurrencyConverterService {
-        let converter = CurrencyConverter()
+    static func makeService(data: Data? = nil) async throws -> CurrencyConverterService {
+        var converter: CurrencyConverter
+        if let data = data {
+            converter = CurrencyConverter(data: data)
+        } else {
+            converter = CurrencyConverter()
+        }
         let rates = try await converter.fetch()
         return CurrencyConverterService(referenceRates: rates)
     }

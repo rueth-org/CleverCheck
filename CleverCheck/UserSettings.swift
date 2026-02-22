@@ -105,8 +105,8 @@ final class UserSettings: ObservableObject {
     // MARK: - Async Initializers
     /// Call this method to asynchronously and safely initialize the currencyConverterService property
     @MainActor
-    func loadCurrencyConverterService() async throws {
-        self.currencyConverterService = try await CurrencyConverterService.makeService()
+    func loadCurrencyConverterService(data: Data? = nil) async throws {
+        self.currencyConverterService = try await CurrencyConverterService.makeService(data: data)
     }
     
     // TODO make Show Archived Cars/Plans... persistent
