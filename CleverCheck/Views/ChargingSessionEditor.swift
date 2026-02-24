@@ -654,12 +654,12 @@ struct ChargingSessionEditor: View {
             activeAlert = SimpleAlert(
                 type: .notice(message: "A home consumption entry is recommended for a refunded charging cost plan."),
                 customButtons: [
-                    SimpleAlertButton(title: NSLocalizedString("Add later", comment: ""), role: nil) {
-                        andExit()
-                    },
                     SimpleAlertButton(title: NSLocalizedString("Add now", comment: ""), role: nil) {
                         // Open the home consumption picker
                         isShowingHomeConsumptionPickerSheet = true
+                    },
+                    SimpleAlertButton(title: NSLocalizedString("Add later", comment: ""), role: nil) {
+                        andExit()
                     }
                 ]
             )

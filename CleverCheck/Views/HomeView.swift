@@ -72,18 +72,9 @@ struct HomeView: View {
                     navigationPath.append(NavigationDestination.HomeConsumptions)
                 }) {
                     Text("Home Consumptions")
-                        .frame(minWidth: 0, maxWidth: .infinity)
-                        .font(.system(size: 18))
-                        .padding()
-                        .foregroundColor(.white)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 25)
-                                .stroke(Color.white, lineWidth: 2)
-                        )
+                        .textStyle(BlueButtonText())
                 }
-                .background(Color.blue)
-                .cornerRadius(25)
-                .padding()
+                .buttonStyle(BlueButton())
             }
             .toolbar {
                 ToolbarItem(placement: .principal) {
