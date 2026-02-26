@@ -491,6 +491,7 @@ struct ChargingSessionEditor: View {
                 ignorePlan: $ignorePlan,
                 ignoreDate: $ignoreDate
             )
+            .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $isShowingCurrencySelector) {
             currencyPicker()
