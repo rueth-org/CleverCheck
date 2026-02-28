@@ -51,32 +51,35 @@ final class PriceElement: Identifiable, Equatable {
     var type: PriceElementType = PriceElementType.byConsumption(energyUnitSymbol: UserSettings.shared.energyUnitSymbol)
     var vatRate: Double = 0.25
     
-    var convertedAmount: Cost {
+    /// Returns the amount converted to the user's selected currency. If conversion fails, returns the original amount.
+    var converted: Cost {
         amount.converted(to: UserSettings.shared.currencyIdentifier) ?? amount
     }
     
-    var netAmount: Double {
+    /// Returns the net amount based on the converted gross amount and VAT rate. If the original amount is already net, it simply returns the converted amount.
+    var net: Cost {
         if isGross {
-            return convertedAmount.amount / (1 + vatRate)
+            return Cost(amount: converted.amount / (1 + vatRate), currency: converted.currency)
         } else {
-            return convertedAmount.amount
+            return converted
         }
     }
     
-    var grossAmount: Double {
+    /// Returns the gross amount based on the converted net amount and VAT rate. If the original amount is already gross, it simply returns the converted amount.
+    var gross: Cost {
         if isGross {
-            return convertedAmount.amount
+            return converted
         } else {
-            return convertedAmount.amount * (1 + vatRate)
+            return Cost(amount: converted.amount * (1 + vatRate), currency: converted.currency)
         }
     }
     
     var unitDescription: String {
-        "\(convertedAmount.currency)\(type.unitExtension)"
+        "\(converted.currency)\(type.unitExtension)"
     }
     
     var amountDescription: String {
-        return "\(UserSettings.shared.format(self.convertedAmount.amount, withSignificantDigits: 4)) \(unitDescription)"
+        return "\(UserSettings.shared.format(self.converted.amount, withSignificantDigits: 4)) \(unitDescription)"
     }
     
     var netGrossDescription: String {
@@ -91,11 +94,14 @@ final class PriceElement: Identifiable, Equatable {
         self.isGross = isGross
     }
     
-    func getAmount(isGross: Bool) -> Double {
+    /// Returns the converted cost in the user's selected currency, either gross or net based on the isGross parameter.
+    /// - Parameter isGross: If true, returns the gross amount; if false, returns the net amount.
+    /// - Returns: The converted cost. If conversion fails, returns the original cost.
+    func getConvertedCost(isGross: Bool) -> Cost {
         if isGross {
-            return grossAmount
+            return gross
         } else {
-            return netAmount
+            return net
         }
     }
     

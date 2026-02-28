@@ -37,9 +37,17 @@ struct HomeConsumptionsList: View {
                         HStack {
                             Text("Net Total:")
                             Spacer()
-                            Text(totalCost(for: month).net, format: .currency(code: UserSettings.shared.currencyIdentifier))
+                            Text(totalCost(for: month).net.formatted())
                             Button {
-                                self.selectedConsumptions = .init(consumptions: groupedByMonths[month]!)
+                                self.selectedConsumptions = .init(
+                                    consumptions: groupedByMonths[month]!,
+                                    timeBox: TimeBox(
+                                        selectedDate: month,
+                                        selectedResolution: .monthly,
+                                        allowedResolutions: [.monthly],
+                                        selectIndividualItem: { _ in }
+                                    )
+                                )
                             } label: {
                                 Image(systemName: "chevron.right")
                                     .imageScale(.small)
@@ -55,7 +63,7 @@ struct HomeConsumptionsList: View {
                                         //Display dateoFrm - dateUntil  inshort format
                                         Text("\(homeConsumption.validFrom, format: UserSettings.shared.displayDateFormat) - \(homeConsumption.validUntil, format: UserSettings.shared.displayDateFormat)")
                                         Spacer()
-                                        Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).net, format: .currency(code: UserSettings.shared.currencyIdentifier))
+                                        Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).net.formatted())
                                             .font(.subheadline)
                                             .foregroundColor(.secondary)
                                     }
@@ -152,13 +160,13 @@ struct HomeConsumptionsList: View {
         try? modelContext.save()
     }
     
-    private func totalCost(for month: Date) -> (gross: Double, net: Double) {
+    private func totalCost(for month: Date) -> (gross: Cost, net: Cost) {
         let monthString = UserSettings.shared.groupingDateFormatter.string(from: month)
-        var totalGross: Double = 0.0
-        var totalNet: Double = 0.0
+        var totalGross: Cost = .init(amount: 0.0)
+        var totalNet: Cost = .init(amount: 0.0)
         for homeConsumption in homeConsumptions {
-            totalGross += homeConsumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices)[monthString]?.gross ?? 0.0
-            totalNet += homeConsumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices)[monthString]?.net ?? 0.0
+            totalGross += homeConsumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices)[monthString]?.gross ?? .init(amount: 0.0)
+            totalNet += homeConsumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices)[monthString]?.net ?? .init(amount: 0.0)
         }
         return (gross: totalGross, net: totalNet)
     }

@@ -90,13 +90,13 @@ struct HomeConsumptionEditor: View {
                 HStack {
                     Text("Gross Cost")
                     Spacer()
-                    Text(homeConsumption?.totalCost(isGross: UserSettings.shared.displayGrossPrices).gross.formatted(.currency(code: UserSettings.shared.currencyIdentifier)) ?? "-")
+                    Text(homeConsumption?.totalCost(isGross: UserSettings.shared.displayGrossPrices).gross.formatted() ?? "-")
                         .multilineTextAlignment(.trailing)
                 }
                 HStack {
                     Text("Net Cost")
                     Spacer()
-                    Text(homeConsumption?.totalCost(isGross: UserSettings.shared.displayGrossPrices).net.formatted(.currency(code: UserSettings.shared.currencyIdentifier)) ?? "-")
+                    Text(homeConsumption?.totalCost(isGross: UserSettings.shared.displayGrossPrices).net.formatted() ?? "-")
                         .multilineTextAlignment(.trailing)
                 }
             }

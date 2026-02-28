@@ -97,18 +97,18 @@ final class Location: Identifiable {
         }
 
         // Precompute per-consumption month dictionaries to avoid repeated work inside the month loop
-        var grossPerConsumption: [[String: Double]] = []
-        var netPerConsumption: [[String: Double]] = []
-        var costPerConsumption: [[String: (gross: Double, net: Double)]] = []
+        var grossConsumptionPerMonth: [[String: Double]] = []
+        var netConsumptionPerMonth: [[String: Double]] = []
+        var costPerMonth: [[String: (gross: Cost, net: Cost)]] = []
 
-        grossPerConsumption.reserveCapacity(homeConsumptions.count)
-        netPerConsumption.reserveCapacity(homeConsumptions.count)
-        costPerConsumption.reserveCapacity(homeConsumptions.count)
+        grossConsumptionPerMonth.reserveCapacity(homeConsumptions.count)
+        netConsumptionPerMonth.reserveCapacity(homeConsumptions.count)
+        costPerMonth.reserveCapacity(homeConsumptions.count)
 
         for consumption in homeConsumptions {
-            grossPerConsumption.append(consumption.consumptionPerMonth(includeIfIncludedElsewhere: false))
-            netPerConsumption.append(consumption.netConsumptionPerMonth)
-            costPerConsumption.append(consumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices, useConsumptionFromRelatedChargingSessions: true))
+            grossConsumptionPerMonth.append(consumption.consumptionPerMonth(includeIfIncludedElsewhere: false))
+            netConsumptionPerMonth.append(consumption.netConsumptionPerMonth)
+            costPerMonth.append(consumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices, useConsumptionFromRelatedChargingSessions: true))
         }
 
         // Step through the months and aggregate from precomputed maps
@@ -120,14 +120,14 @@ final class Location: Identifiable {
 
             var grossConsumption: Double = 0.0
             var netConsumption: Double = 0.0
-            var grossCost: Double = 0.0
-            var netCost: Double = 0.0
+            var grossCost: Cost = .init(amount: 0.0)
+            var netCost: Cost = .init(amount: 0.0)
 
             for idx in homeConsumptions.indices {
-                grossConsumption += grossPerConsumption[idx][monthKeyGrouping] ?? 0.0
-                netConsumption += netPerConsumption[idx][monthKeyGrouping] ?? 0.0
-                grossCost += costPerConsumption[idx][monthKeyGrouping]?.gross ?? 0.0
-                netCost += costPerConsumption[idx][monthKeyGrouping]?.net ?? 0.0
+                grossConsumption += grossConsumptionPerMonth[idx][monthKeyGrouping] ?? 0.0
+                netConsumption += netConsumptionPerMonth[idx][monthKeyGrouping] ?? 0.0
+                grossCost += costPerMonth[idx][monthKeyGrouping]?.gross ?? .init(amount: 0.0)
+                netCost += costPerMonth[idx][monthKeyGrouping]?.net ?? .init(amount: 0.0)
             }
 
             let deltaConsumption = grossConsumption - netConsumption
@@ -138,7 +138,7 @@ final class Location: Identifiable {
                 timeKey: monthKeyDisplay,
                 dataType: .homeConsumption,
                 consumption: .init(value: netConsumption, unit: UserSettings.shared.energyUnit),
-                cost: .init(amount: netCost)
+                cost: netCost
             ))
 
             // Create charging data set
@@ -146,7 +146,7 @@ final class Location: Identifiable {
                 timeKey: monthKeyDisplay,
                 dataType: .charging,
                 consumption: .init(value: deltaConsumption, unit: UserSettings.shared.energyUnit),
-                cost: .init(amount: deltaCost)
+                cost: deltaCost
             ))
 
             // Increase current date by one month
@@ -223,16 +223,52 @@ final class Location: Identifiable {
     func cost(in timeBox: TimeBox) -> (home: Cost, charging: Cost) {
         let homeConsumptions = homeConsumptions(in: timeBox)
         let allCost = homeConsumptions.map { $0.totalCost(isGross: UserSettings.shared.displayGrossPrices) }
-        let gross = allCost.reduce(0.0) { $0 + $1.gross }
-        let net = allCost.reduce(0.0) { $0 + $1.net }
+        let gross = allCost.reduce(.init(amount: 0.0)) { $0 + $1.gross }
+        let net = allCost.reduce(.init(amount: 0.0)) { $0 + $1.net }
 
         return (
-            home: .init(amount: net),
-            charging: .init(amount: gross - net)
+            home: net,
+            charging: gross - net
         )
+    }
+    
+    func refunded(in timeBox: TimeBox, modelContext: ModelContext) -> (consumption: Measurement<UnitEnergy>, cost: Cost) {
+        // Load all charging cost plans
+        let request = FetchDescriptor<ChargingCostPlan>(predicate: #Predicate<ChargingCostPlan> { _ in true })
+        var allPlans: [ChargingCostPlan]
+        do {
+            allPlans = try modelContext.fetch(request)
+        } catch {
+            return (Measurement<UnitEnergy>(value: 0.0, unit: UserSettings.shared.energyUnit), .init(amount: 0.0))
+        }
+        
+        // Filter by plans of type .refunded
+        let refundedPlans = allPlans.filter { $0.planType == .refunded }
+        
+        // Get all plans, the chargers of which are related to the location
+        let allRelatedPlans = refundedPlans.filter { plan in
+            plan.charger?.location == self
+        }
+        
+        // Get all charging session for these plans in the given time box
+        // Flatten child plan chargingSessions (optional arrays) into a single [ChargingSession]
+        let relatedSessionsInRange: [ChargingSession] = allRelatedPlans.flatMap { $0.chargingSessions(in: timeBox) }
+        
+        // Get related consumption
+        let relatedConsumption = relatedSessionsInRange.reduce(0.0) { partialResult, session in
+            partialResult + session.chargedEnergyKWh
+        }
+        
+        // Multiply the session consumption with the specific price of the home consumption
+        let totalRefunded = relatedSessionsInRange.reduce(0.0) { partialResult, session in
+            partialResult + session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value * (session.relatedHomeConsumption?.sumOfPriceElementsByConsumption.amount ?? 0.0)
+        }
+        
+        return (Measurement<UnitEnergy>(value: relatedConsumption, unit: UserSettings.shared.energyUnit), .init(amount: totalRefunded))
     }
     
     class func classString() -> String {
         return NSStringFromClass(self)
     }
 }
+

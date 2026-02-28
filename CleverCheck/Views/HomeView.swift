@@ -16,6 +16,7 @@ struct HomeView: View {
     struct ConsumptionContainer: Identifiable {
         let id = UUID()
         let consumptions: [HomeConsumption]
+        let timeBox: TimeBox
     }
     
     @Environment(\.modelContext) private var modelContext
@@ -138,11 +139,19 @@ struct HomeView: View {
             }
         }
         .sheet(item: $selectedConsumptions) { selectedConsumptions in
-            HomeConsumptionAnalysis(
-                homeConsumptions: selectedConsumptions.consumptions,
-                location: selectedLocation
-            )
-            .presentationDragIndicator(.visible)
+            if let selectedLocation {
+                HomeConsumptionAnalysis(
+                    homeConsumptions: selectedConsumptions.consumptions,
+                    timeBox: selectedConsumptions.timeBox,
+                    location: selectedLocation
+                )
+                .presentationDragIndicator(.visible)
+            } else {
+                Text("No location selected")
+                    .italic()
+                    .padding()
+                    .presentationDragIndicator(.visible)
+            }
         }
         .onAppear {
             if !locations.isEmpty {
@@ -188,7 +197,15 @@ struct HomeView: View {
                 calendar.component(.year, from: consumption.validUntil) == selectedYear &&
                 calendar.component(.month, from: consumption.validUntil) == selectedMonth
             }
-            self.selectedConsumptions = ConsumptionContainer(consumptions: selectedConsumptions)
+            self.selectedConsumptions = ConsumptionContainer(
+                consumptions: selectedConsumptions,
+                timeBox: TimeBox(
+                    selectedDate: date,
+                    selectedResolution: .monthly,
+                    allowedResolutions: [.monthly],
+                    selectIndividualItem: { _ in }
+                )
+            )
         }
     }
 }

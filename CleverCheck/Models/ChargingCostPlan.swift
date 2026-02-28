@@ -86,11 +86,16 @@ public final class ChargingCostPlan {
         self.displayColorString = displayColor?.rawValue
     }
     
-    func chargedEnergy(in timeBox: TimeBox) -> [String: Measurement<UnitEnergy>] {
-        guard let chargingSessions else { return [:] }
-        let filteredSessions = chargingSessions.filter { session in
+    func chargingSessions(in timeBox: TimeBox) -> [ChargingSession] {
+        guard let chargingSessions else { return [] }
+        return chargingSessions.filter { session in
             timeBox.contains(session.endTime)
         }
+    }
+    
+    func chargedEnergy(in timeBox: TimeBox) -> [String: Measurement<UnitEnergy>] {
+        let filteredSessions = chargingSessions(in: timeBox)
+        guard !filteredSessions.isEmpty else { return [:] }
         var result = [String: Measurement<UnitEnergy>]()
         for session in filteredSessions {
             let key = timeBox.getKeyForDate(session.endTime)
@@ -102,18 +107,14 @@ public final class ChargingCostPlan {
     }
     
     func totalChargedEnergy(in timeBox: TimeBox) -> Measurement<UnitEnergy> {
-        guard let chargingSessions else { return .init(value: 0.0, unit: .kilowattHours) }
-        let filteredSessions = chargingSessions.filter { session in
-            timeBox.contains(session.endTime)
-        }
+        let filteredSessions = chargingSessions(in: timeBox)
+        guard !filteredSessions.isEmpty else { return .init(value: 0.0, unit: .kilowattHours) }
         return filteredSessions.reduce(.init(value: 0.0, unit: .kilowattHours)) { $0 + ($1.chargedEnergy) }
     }
     
     func totalChargingCost(in timeBox: TimeBox) -> Cost {
-        guard let chargingSessions else { return .init(amount: 0.0) }
-        let filteredSessions = chargingSessions.filter { session in
-            timeBox.contains(session.endTime)
-        }
+        let filteredSessions = chargingSessions(in: timeBox)
+        guard !filteredSessions.isEmpty else { return .init(amount: 0.0) }
         return filteredSessions.reduce(.init(amount: 0.0)) { $0 + ($1.totalChargingCost) }
     }
     
