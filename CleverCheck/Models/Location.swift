@@ -27,7 +27,8 @@ final class Location: Identifiable {
     
     struct Data: Identifiable, Comparable, GraphItem {
         let id = UUID()
-        let timeKey: String
+        let groupingKey: String
+        let displayKey: String
         let dataType: DataType
         let consumption: Measurement<UnitEnergy>
         let cost: Cost
@@ -41,11 +42,11 @@ final class Location: Identifiable {
         }
         
         static func < (lhs: Location.Data, rhs: Location.Data) -> Bool {
-            lhs.timeKey < rhs.timeKey
+            lhs.displayKey < rhs.displayKey
         }
         
         static func == (lhs: Location.Data, rhs: Location.Data) -> Bool {
-            lhs.timeKey == rhs.timeKey
+            lhs.displayKey == rhs.displayKey
         }
     }
     
@@ -110,7 +111,12 @@ final class Location: Identifiable {
             netConsumptionPerMonth.append(consumption.netConsumptionPerMonth(useRelatedConsumptions: useRelatedConsumption))
             costPerMonth.append(consumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices, useRelatedConsumptions: useRelatedConsumption))
         }
-
+        
+        // Get the refunded sessions related to this location in the given time period
+        let refundedPerMonth = refundedPerMonth(in: timeBox, modelContext: modelContext)
+        
+        // TODO: Also consider the charged amount from home consumption type plans (e.g., EWII)
+        
         // Step through the months and aggregate from precomputed maps
         let calendar = Calendar.current
         var currentDate = timePeriod.start
@@ -130,12 +136,20 @@ final class Location: Identifiable {
                 netCost += costPerMonth[idx][monthKeyGrouping]?.net ?? .init(amount: 0.0)
             }
 
-            let deltaConsumption = grossConsumption - netConsumption
+            var deltaConsumption = grossConsumption - netConsumption
             let deltaCost = grossCost - netCost
+            
+            // If there is a refunded session in this month, subtract its consumption and cost from the home consumption and add the consumption to the charging part, since it is a refunded charging session that is included in the home consumption via the "includedInOtherPlan" relation. The refunded cost is not added to delta cost, as it's paid for by the refunding plan.
+            if let refundedData = refundedPerMonth[monthKeyGrouping] {
+                netConsumption -= refundedData.consumption.value
+                netCost += refundedData.cost // refundedData.cost is a negative value, so we add it to netCost to reduce the total cost
+                deltaConsumption += refundedData.consumption.value
+            }
 
             // Create home consumption data set
             result.append(Data(
-                timeKey: monthKeyDisplay,
+                groupingKey: monthKeyGrouping,
+                displayKey: monthKeyDisplay,
                 dataType: .homeConsumption,
                 consumption: .init(value: netConsumption, unit: UserSettings.shared.energyUnit),
                 cost: netCost
@@ -143,7 +157,8 @@ final class Location: Identifiable {
 
             // Create charging data set
             result.append(Data(
-                timeKey: monthKeyDisplay,
+                groupingKey: monthKeyGrouping,
+                displayKey: monthKeyDisplay,
                 dataType: .charging,
                 consumption: .init(value: deltaConsumption, unit: UserSettings.shared.energyUnit),
                 cost: deltaCost
@@ -280,15 +295,15 @@ final class Location: Identifiable {
     /// - Parameters:
     ///   - timeBox: The time box to limit the charging sessions to.
     ///   - modelContext: The model context to fetch data from.
-    /// - Returns: An array of tuples containing the month (formatted as string), refunded consumption, and refunded cost for each month in the time box.
-    func refundedPerMonth(in timeBox: TimeBox, modelContext: ModelContext) -> [(month: String, consumption: Measurement<UnitEnergy>, cost: Cost)] {
+    /// - Returns: An set of tuples with the month as key (formatted as string) and refunded consumption and refunded cost for each month in the time box as values.
+    func refundedPerMonth(in timeBox: TimeBox, modelContext: ModelContext) -> [String: (consumption: Measurement<UnitEnergy>, cost: Cost)] {
         // Load all charging cost plans
         let request = FetchDescriptor<ChargingCostPlan>(predicate: #Predicate<ChargingCostPlan> { _ in true })
         var allPlans: [ChargingCostPlan]
         do {
             allPlans = try modelContext.fetch(request)
         } catch {
-            return []
+            return [:]
         }
         
         // Filter by plans of type .refunded
@@ -312,10 +327,12 @@ final class Location: Identifiable {
             monthlyData[monthKey, default: (consumption: 0.0, cost: 0.0)].cost += session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value * (session.relatedHomeConsumption?.sumOfPriceElementsByConsumption.amount ?? 0.0)
         }
         
-        // Convert to sorted array of tuples
-        return monthlyData.map { (monthKey, data) in
-            (month: monthKey, consumption: Measurement<UnitEnergy>(value: data.consumption, unit: UserSettings.shared.energyUnit), cost: Cost(amount: data.cost))
-        }.sorted { $0.month < $1.month }
+        // Convert to Measurement and Cost types
+        var result: [String: (consumption: Measurement<UnitEnergy>, cost: Cost)] = [:]
+        for (month, data) in monthlyData {
+            result[month] = (consumption: Measurement<UnitEnergy>(value: data.consumption, unit: UserSettings.shared.energyUnit), cost: Cost(amount: data.cost))
+        }
+        return result
     }
     
     class func classString() -> String {

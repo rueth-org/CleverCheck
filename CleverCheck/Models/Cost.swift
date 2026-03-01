@@ -52,4 +52,9 @@ extension Cost: AdditiveArithmetic {
         let rhsConverted = rhs.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? 0.0
         return Cost(amount: lhsConverted - rhsConverted)
     }
+
+    // Unary negation: return a Cost with the negated amount, preserving the currency
+    static prefix func - (c: Cost) -> Cost {
+        return Cost(amount: -c.amount, currency: c.currency)
+    }
 }

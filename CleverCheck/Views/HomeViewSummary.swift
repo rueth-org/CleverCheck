@@ -15,8 +15,8 @@ struct HomeViewSummary: View {
     @ObservedObject private var settings = UserSettings.shared
     
     var body: some View {
-        let consumedEnergy = location.consumedEnergy(in: timeBox)
-        let cost = location.cost(in: timeBox, useRelatedConsumptions: settings.useRelatedConsumptions)
+        let consumedEnergy = location.consumedEnergy(in: timeBox) // TODO: probably wrong
+        let cost = location.cost(in: timeBox, useRelatedConsumptions: settings.useRelatedConsumptions) // TODO: probably wrong
         
         List {
             Section(header: Text("Total")) {

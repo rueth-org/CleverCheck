@@ -12,15 +12,56 @@ struct HomeConsumptionAnalysis: View {
     @Environment(\.modelContext) private var modelContext
     var homeConsumptions: [HomeConsumption]
     var timeBox: TimeBox
+    var data: [Location.Data]
     var location: Location
     
-    @Query private var homeConsumptionsForLocation: [HomeConsumption]
-    @Query private var allPlans: [ChargingCostPlan]
+    var filteredData: [Location.Data] {
+        let monthKeyGrouping = UserSettings.shared.groupingDateFormatter.string(from: timeBox.referenceDate)
+        return data.filter { $0.groupingKey == monthKeyGrouping }
+    }
+    
+    var totalData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
+        let filteredData = filteredData
+        let consumption = filteredData.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
+            result = result + data.consumption
+        }
+        let cost = filteredData.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
+            result += data.cost
+        }
+        return (consumption, cost)
+    }
+    
+    var homeData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
+        let homeData = filteredData.filter { $0.dataType == .homeConsumption }
+        let consumption = homeData.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
+            result = result + data.consumption
+        }
+        let cost = homeData.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
+            result += data.cost
+        }
+        return (consumption, cost)
+    }
+    
+    var chargingData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
+        let chargingData = filteredData.filter { $0.dataType == .charging }
+        let consumption = chargingData.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
+            result = result + data.consumption
+        }
+        let cost = chargingData.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
+            result += data.cost
+        }
+        return (consumption, cost)
+    }
     
     var body: some View {
-        let cost = location.cost(in: timeBox, useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions)
-        let consumption = location.consumedEnergy(in: timeBox)
+        let totalConsumption = totalData.consumption.converted(to: UserSettings.shared.energyUnit)
+        let totalCost = totalData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? totalData.cost
+        let homeConsumption = homeData.consumption.converted(to: UserSettings.shared.energyUnit)
+        let homeCost = homeData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? homeData.cost
+        let chargingConsumption = chargingData.consumption.converted(to: UserSettings.shared.energyUnit)
+        let chargingCost = chargingData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? chargingData.cost
         let refunded = location.refunded(in: timeBox, modelContext: modelContext)
+        
         Text(timeBox.formattedTime)
             .font(.title)
             .padding(.top)
@@ -33,20 +74,21 @@ struct HomeConsumptionAnalysis: View {
                 HStack {
                     Text("Consumption:")
                     Spacer()
-                    Text("\(consumption.total.formatted())")
+                    Text("\(totalConsumption.formatted())")
                         .bold()
                 }
                 HStack {
                     Text("Cost:")
                     Spacer()
-                    Text((cost.home + cost.charging).formatted())
+                    Text(totalCost.formatted())
                         .bold()
                 }
                 HStack {
                     Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
                     Spacer()
-                    let specificCost = Cost(amount:
-                        consumption.total.value > 0 ? (cost.home + cost.charging).amount / consumption.total.converted(to: UserSettings.shared.energyUnit).value : 0
+                    let specificCost = Cost(
+                        amount: totalConsumption.value > 0 ? totalCost.amount / totalConsumption.value : 0,
+                        currency: totalCost.currency
                     )
                     Text("\(specificCost.formatted())")
                         .bold()
@@ -54,7 +96,6 @@ struct HomeConsumptionAnalysis: View {
             }
             
             Section(header: Text("This month's home consumption data")) {
-                let homeConsumption = consumption.total - consumption.charging
                 HStack {
                     Text("Consumption:")
                     Spacer()
@@ -64,14 +105,15 @@ struct HomeConsumptionAnalysis: View {
                 HStack {
                     Text("Cost:")
                     Spacer()
-                    Text(cost.home.formatted())
+                    Text(homeCost.formatted())
                         .bold()
                 }
                 HStack {
                     Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
                     Spacer()
-                    let specificCost = Cost(amount:
-                        homeConsumption.value > 0 ? cost.home.amount / homeConsumption.converted(to: UserSettings.shared.energyUnit).value : 0
+                    let specificCost = Cost(
+                        amount: homeConsumption.value > 0 ? homeCost.amount / homeConsumption.value : 0,
+                        currency: homeCost.currency
                     )
                     Text("\(specificCost.formatted())")
                         .bold()
@@ -82,20 +124,21 @@ struct HomeConsumptionAnalysis: View {
                 HStack {
                     Text("Consumption:")
                     Spacer()
-                    Text("\(consumption.charging.formatted())")
+                    Text("\(chargingConsumption.formatted())")
                         .bold()
                 }
                 HStack {
                     Text("Cost:")
                     Spacer()
-                    Text(cost.charging.formatted())
+                    Text(chargingCost.formatted())
                         .bold()
                 }
                 HStack {
                     Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
                     Spacer()
-                    let specificCost = Cost(amount:
-                        consumption.charging.value > 0 ? cost.charging.amount / consumption.charging.converted(to: UserSettings.shared.energyUnit).value : 0
+                    let specificCost = Cost(
+                        amount: chargingConsumption.value > 0 ? chargingCost.amount / chargingConsumption.value : 0,
+                        currency: chargingCost.currency
                     )
                     Text("\(specificCost.formatted())")
                         .bold()

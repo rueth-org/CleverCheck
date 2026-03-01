@@ -38,6 +38,14 @@ struct HomeView: View {
         location.isArchived == false
     }, sort: \Location.name) private var locations: [Location]
     
+    // Observe UserSettings so changes to published properties cause the view to refresh
+    @ObservedObject private var settings = UserSettings.shared
+
+    private var data: [Location.Data] {
+        guard let selectedLocation else { return [] }
+        return selectedLocation.data(in: timeBox, useRelatedConsumption: settings.useRelatedConsumptions, modelContext: modelContext)
+    }
+    
     var body: some View {
         NavigationStack(path: $navigationPath) {
             VStack {
@@ -55,6 +63,7 @@ struct HomeView: View {
                     HomeViewChart(
                         location: selectedLocation,
                         timeBox: timeBox,
+                        data: data,
                         showHomeData: $showHomeData,
                         showChargingData: $showChargingData,
                         onBarTap: { dateKey in
@@ -143,6 +152,7 @@ struct HomeView: View {
                 HomeConsumptionAnalysis(
                     homeConsumptions: selectedConsumptions.consumptions,
                     timeBox: selectedConsumptions.timeBox,
+                    data: data,
                     location: selectedLocation
                 )
                 .presentationDragIndicator(.visible)
@@ -162,7 +172,7 @@ struct HomeView: View {
                     }
                 }
                 
-                if let selectedLocationId = UserSettings.shared.selectedLocationId {
+                if let selectedLocationId = settings.selectedLocationId {
                     if let selectedLocation = locations.first(where: { $0.id.uuidString == selectedLocationId }) {
                         self.selectedLocation = selectedLocation
                     }
@@ -171,7 +181,7 @@ struct HomeView: View {
                 // If still no location selected and there's only one available, select it
                 if selectedLocation == nil && locations.count == 1 {
                     selectedLocation = locations.first
-                    UserSettings.shared.selectedLocationId = locations.first?.id.uuidString
+                    settings.selectedLocationId = locations.first?.id.uuidString
                 }
             }
             
