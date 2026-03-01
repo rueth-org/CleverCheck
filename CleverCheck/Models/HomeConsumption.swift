@@ -25,7 +25,7 @@ final class HomeConsumption: Comparable {
     @Relationship(deleteRule: .nullify, inverse: \ChargingSession.relatedHomeConsumption)
     var chargingSessions: [ChargingSession]?
     
-    private var consumptionFromRelatedChargingSessions: Measurement<UnitEnergy>? {
+    var consumptionFromRelatedChargingSessions: Measurement<UnitEnergy>? {
         if let chargingSessions, !chargingSessions.isEmpty {
             let consumptions = chargingSessions.compactMap { $0.chargedEnergyKWh }
             let totalConsumption = consumptions.reduce(0.0, +)

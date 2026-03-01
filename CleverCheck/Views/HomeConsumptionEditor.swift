@@ -49,7 +49,7 @@ struct HomeConsumptionEditor: View {
     }
     
     private var consumptionFromRelatedSessions: Measurement<UnitEnergy> {
-        homeConsumption?.totalConsumption(includeIfIncludedElsewhere: true, useRelatedConsumptions: true) ?? .init(value: 0.0, unit: UserSettings.shared.energyUnit)
+        homeConsumption?.consumptionFromRelatedChargingSessions ?? .init(value: 0.0, unit: UserSettings.shared.energyUnit)
     }
     
     var body: some View {
