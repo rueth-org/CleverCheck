@@ -49,7 +49,7 @@ struct HomeConsumptionEditor: View {
     }
     
     private var consumptionFromRelatedSessions: Measurement<UnitEnergy> {
-        homeConsumption?.consumptionFromRelatedChargingSessions ?? .init(value: 0.0, unit: UserSettings.shared.energyUnit)
+        homeConsumption?.totalConsumption(includeIfIncludedElsewhere: true, useRelatedConsumptions: true) ?? .init(value: 0.0, unit: UserSettings.shared.energyUnit)
     }
     
     var body: some View {
@@ -90,13 +90,19 @@ struct HomeConsumptionEditor: View {
                 HStack {
                     Text("Gross Cost")
                     Spacer()
-                    Text(homeConsumption?.totalCost(isGross: UserSettings.shared.displayGrossPrices).gross.formatted() ?? "-")
+                    Text(homeConsumption?.totalCost(
+                        isGross: UserSettings.shared.displayGrossPrices,
+                        useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
+                    ).gross.formatted() ?? "-")
                         .multilineTextAlignment(.trailing)
                 }
                 HStack {
                     Text("Net Cost")
                     Spacer()
-                    Text(homeConsumption?.totalCost(isGross: UserSettings.shared.displayGrossPrices).net.formatted() ?? "-")
+                    Text(homeConsumption?.totalCost(
+                        isGross: UserSettings.shared.displayGrossPrices,
+                        useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
+                    ).net.formatted() ?? "-")
                         .multilineTextAlignment(.trailing)
                 }
             }

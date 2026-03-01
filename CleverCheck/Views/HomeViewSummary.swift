@@ -10,10 +10,13 @@ import SwiftUI
 struct HomeViewSummary: View {
     let location: Location
     let timeBox: TimeBox
+
+    // Observe UserSettings so changes cause view refresh
+    @ObservedObject private var settings = UserSettings.shared
     
     var body: some View {
         let consumedEnergy = location.consumedEnergy(in: timeBox)
-        let cost = location.cost(in: timeBox)
+        let cost = location.cost(in: timeBox, useRelatedConsumptions: settings.useRelatedConsumptions)
         
         List {
             Section(header: Text("Total")) {
@@ -30,55 +33,25 @@ struct HomeViewSummary: View {
                     ).formatted())
                 }
                 HStack {
-                    Text("Total cost per \(UserSettings.shared.energyUnitSymbol)")
+                    Text("Total cost per \(settings.energyUnitSymbol)")
                     Spacer()
                     Text(Cost(
-                        amount: (cost.charging.amount + cost.home.amount) / consumedEnergy.total.value
+                        amount: (cost.home.amount + cost.charging.amount) / max(consumedEnergy.total.converted(to: settings.energyUnit).value, 1e-12),
+                        currency: settings.currencyIdentifier
                     ).formatted())
                 }
             }
-            
-            Section(header: Text("Home consumption")) {
+
+            Section(header: Text("Breakdown")) {
                 HStack {
                     Text("Home consumption")
                     Spacer()
-                    Text(Measurement<UnitEnergy>(
-                        value: consumedEnergy.total.value - consumedEnergy.charging.value,
-                        unit: UserSettings.shared.energyUnit
-                    ).formatted())
+                    Text(Cost(amount: cost.home.amount, currency: settings.currencyIdentifier).formatted())
                 }
                 HStack {
-                    Text("Home consumption cost")
+                    Text("Charging")
                     Spacer()
-                    Text(cost.home.formatted())
-                }
-                HStack {
-                    Text("Home consumption cost per \(UserSettings.shared.energyUnitSymbol)")
-                    Spacer()
-                    Text(Cost(
-                        amount: cost.home.amount / (consumedEnergy.total.value - consumedEnergy.charging.value)
-                    ).formatted())
-                }
-            }
-            
-            Section(header: Text("Charging")) {
-                HStack {
-                    Text("Charging consumption")
-                    Spacer()
-                    Text(consumedEnergy.charging.formatted())
-                }
-                HStack {
-                    Text("Charging cost")
-                    Spacer()
-                    Text(cost.charging.formatted())
-                }
-                
-                HStack {
-                    Text("Charging cost per \(UserSettings.shared.energyUnitSymbol)")
-                    Spacer()
-                    Text(Cost(
-                        amount: cost.charging.amount / consumedEnergy.charging.value
-                    ).formatted())
+                    Text(Cost(amount: cost.charging.amount, currency: settings.currencyIdentifier).formatted())
                 }
             }
         }

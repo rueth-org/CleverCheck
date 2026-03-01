@@ -19,11 +19,15 @@ struct HomeViewChart: View {
         }
     }
     
+    @Environment(\.modelContext) private var modelContext
     var location: Location
     var timeBox: TimeBox
     
     @Binding var showHomeData: Bool
     @Binding var showChargingData: Bool
+
+    // Observe UserSettings so changes to published properties cause the view to refresh
+    @ObservedObject private var settings = UserSettings.shared
 
     // pending tap location relative to the TapLocationView bounds
     @State private var pendingTapLocation: CGPoint? = nil
@@ -32,42 +36,41 @@ struct HomeViewChart: View {
     var onBarTap: ((String) -> Void)? = nil
 
     private var filteredHomeData: [Location.Data] {
+        let data = location.data(in: timeBox, useRelatedConsumption: settings.useRelatedConsumptions, modelContext: modelContext)
         if showHomeData && showChargingData {
-            return location.data(in: timeBox)
+            return data
         } else if showHomeData {
-            return location.data(in: timeBox).filter { $0.dataType == .homeConsumption }
+            return data.filter { $0.dataType == .homeConsumption }
         } else if showChargingData {
-            return location.data(in: timeBox).filter { $0.dataType == .charging }
+            return data.filter { $0.dataType == .charging }
         } else {
-            return location.data(in: timeBox)
+            return data
         }
-    }
-    
-    var body: some View {
-        // Capture filtered data once to avoid multiple computed-property evaluations
-        let data = filteredHomeData
-        let sortedData = data.sorted()
+     }
+     
+     var body: some View {
+         // Capture filtered data once to avoid multiple computed-property evaluations
+         let data = filteredHomeData
+         let sortedData = data.sorted()
 
-        // Compute aggregated sums from the single captured data set
-        let aggregatedEnergySumsLocal: [(timeKey: String, sum: Double)] = {
-            let grouped = Dictionary(grouping: data) { $0.timeKey }
-            return grouped.map { (key, values) in
-                let total = values.reduce(0.0) { $0 + $1.consumption.value }
-                return (timeKey: key, sum: total)
-            }
-            .sorted { $0.timeKey < $1.timeKey }
-        }()
+         // Compute aggregated sums from the single captured data set
+         let aggregatedEnergySumsLocal: [(timeKey: String, sum: Double)] = {
+             let grouped = Dictionary(grouping: data) { $0.timeKey }
+             return grouped.map { key, values in
+                 (timeKey: key, sum: values.reduce(0) { acc, item in acc + item.consumption.converted(to: .kilowattHours).value })
+             }
+         }()
+ 
+         // Compute aggregated cost sums from the single captured data set
+         let aggregatedCostSumsLocal: [(timeKey: String, sum: Double)] = {
+             let currency = settings.currencyIdentifier
+             let grouped = Dictionary(grouping: data) { $0.timeKey }
+             return grouped.map { key, values in
+                 (timeKey: key, sum: values.reduce(0) { acc, item in acc + (item.cost.converted(to: currency)?.amount ?? 0.0) })
+             }
+         }()
 
-        let aggregatedCostSumsLocal: [(timeKey: String, sum: Double)] = {
-            let grouped = Dictionary(grouping: data) { $0.timeKey }
-            return grouped.map { (key, values) in
-                let total = values.reduce(0.0) { $0 + $1.cost.amount }
-                return (timeKey: key, sum: total)
-            }
-            .sorted { $0.timeKey < $1.timeKey }
-        }()
-
-        let tabViews: [AnyView] = [
+         let tabViews: [AnyView] = [
             AnyView(
                 VStack {
                     Text("Consumption")
@@ -98,7 +101,7 @@ struct HomeViewChart: View {
                                 .opacity(0)
                                 .annotation(position: .top, alignment: .center) {
                                     Group {
-                                        Text(UserSettings.shared.format(item.sum, withSignificantDigits: 3))
+                                        Text(settings.format(item.sum, withSignificantDigits: 3))
                                     }
                                     .font(.caption)
                                     .foregroundColor(.black)
@@ -108,7 +111,7 @@ struct HomeViewChart: View {
                                 }
                             }
                         }
-                        .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
+                        .chartYAxisLabel(settings.energyUnitSymbol)
                         .chartForegroundStyleScale(range: displayColors(for: sortedData))
                         .chartLegend(.visible)
                         .chartOverlay { proxy in
@@ -150,7 +153,7 @@ struct HomeViewChart: View {
                                 .opacity(0)
                                 .annotation(position: .top, alignment: .center) {
                                     Group {
-                                        Text(UserSettings.shared.format(item.sum, withSignificantDigits: 3))
+                                        Text(settings.format(item.sum, withSignificantDigits: 3))
                                     }
                                     .font(.caption)
                                     .foregroundColor(.black)
@@ -160,7 +163,7 @@ struct HomeViewChart: View {
                                 }
                             }
                         }
-                        .chartYAxisLabel(UserSettings.shared.currencyIdentifier)
+                        .chartYAxisLabel(settings.currencyIdentifier)
                         .chartForegroundStyleScale(range: displayColors(for: sortedData))
                         .chartLegend(.visible)
                         .chartOverlay { proxy in
@@ -314,7 +317,7 @@ struct HomeViewChart: View {
                 .padding(.horizontal)
 
             // Aggregate filteredHomeData by dataType so the sector chart shows two sectors
-            let currency = UserSettings.shared.currencyIdentifier
+            let currency = settings.currencyIdentifier
             let grouped = Dictionary(grouping: filteredHomeData, by: { $0.dataType })
             let aggregated: [AggregatedData] = grouped.map { (key, values) in
                 let total = values.reduce(0.0) { acc, item in

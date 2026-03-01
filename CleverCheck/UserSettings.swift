@@ -76,7 +76,25 @@ final class UserSettings: ObservableObject {
     @AppStorage("distanceMultiplier") var distanceMultiplier: Int = 100
     @AppStorage("vatRate") var vatRate: Double = 0.25
     @AppStorage("displayGrossPrices") var displayGrossPrices: Bool = true
+    @AppStorage("referenceSOC") var referenceSOC: Double = 0.8
     
+    @AppStorage("useRelatedConsumptions") private var useRelatedConsumptionsRaw: Bool = true {
+        didSet {
+            // If AppStorage (UserDefaults) changed externally, reflect the change to the published property
+            if useRelatedConsumptions != useRelatedConsumptionsRaw {
+                useRelatedConsumptions = useRelatedConsumptionsRaw
+            }
+        }
+    }
+    @Published var useRelatedConsumptions: Bool = true {
+        didSet {
+            // Sync to AppStorage backing value when changed from code
+            if useRelatedConsumptionsRaw != useRelatedConsumptions {
+                useRelatedConsumptionsRaw = useRelatedConsumptions
+            }
+        }
+    }
+
     @AppStorage("selectedCarId") private var selectedCarIdRaw: String = ""
     var selectedCarId: String? {
         get { selectedCarIdRaw.isEmpty ? nil : selectedCarIdRaw }
@@ -96,8 +114,6 @@ final class UserSettings: ObservableObject {
             preferredCurrenciesRaw = preferredCurrencies.joined(separator: ",")
         }
     }
-    
-    @AppStorage("referenceSOC") var referenceSOC: Double = 0.8
     
     /// Stores the instance of CurrencyConverterService after async initialization
     var currencyConverterService: CurrencyConverterService?
@@ -175,6 +191,8 @@ final class UserSettings: ObservableObject {
     private init() {
         // Initialize published property from stored string
         preferredCurrencies = preferredCurrenciesRaw.split(separator: ",").map { String($0) }
+        // Initialize published property from AppStorage backing value
+        useRelatedConsumptions = useRelatedConsumptionsRaw
     }
     
     func format(_ value: Double, withSignificantDigits: Int) -> String {

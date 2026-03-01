@@ -75,11 +75,11 @@ final class Location: Identifiable {
         }
     }
     
-    func data(in timeBox: TimeBox) -> [Data] {
+    func data(in timeBox: TimeBox, useRelatedConsumption: Bool, modelContext: ModelContext) -> [Data] {
         // Build a cache key using essential inputs that influence the result
         let startTs = timeBox.timePeriod?.start.timeIntervalSince1970 ?? 0
         let endTs = timeBox.timePeriod?.end.timeIntervalSince1970 ?? 0
-        let key = "loc:" + id.uuidString + "|res:\(timeBox.selectedResolution)|start:\(startTs)|end:\(endTs)|gross:\(UserSettings.shared.displayGrossPrices)|energyUnit:\(UserSettings.shared.energyUnit.symbol)"
+        let key = "loc:" + id.uuidString + "|res:\(timeBox.selectedResolution)|start:\(startTs)|end:\(endTs)|gross:\(UserSettings.shared.displayGrossPrices)|energyUnit:\(UserSettings.shared.energyUnit.symbol)|useRelatedConsumption:\(UserSettings.shared.useRelatedConsumptions.description)"
 
         // Try cached value
         if let cached = Location.cachedData(forKey: key) {
@@ -106,9 +106,9 @@ final class Location: Identifiable {
         costPerMonth.reserveCapacity(homeConsumptions.count)
 
         for consumption in homeConsumptions {
-            grossConsumptionPerMonth.append(consumption.consumptionPerMonth(includeIfIncludedElsewhere: false))
-            netConsumptionPerMonth.append(consumption.netConsumptionPerMonth)
-            costPerMonth.append(consumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices, useConsumptionFromRelatedChargingSessions: true))
+            grossConsumptionPerMonth.append(consumption.consumptionPerMonth(includeIfIncludedElsewhere: false, useRelatedConsumptions: useRelatedConsumption))
+            netConsumptionPerMonth.append(consumption.netConsumptionPerMonth(useRelatedConsumptions: useRelatedConsumption))
+            costPerMonth.append(consumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices, useRelatedConsumptions: useRelatedConsumption))
         }
 
         // Step through the months and aggregate from precomputed maps
@@ -220,9 +220,13 @@ final class Location: Identifiable {
         )
     }
     
-    func cost(in timeBox: TimeBox) -> (home: Cost, charging: Cost) {
+    /// Returns the cost for the given time box. Only considers home consumptions. The charging cost is calculated as the difference between gross and net cost of the home consumptions, so it also includes costs of related charging sessions that are included in the home consumption via the "includedInOtherPlan" relation.
+    /// - Parameter timeBox: The time box to limit the home consumptions to.
+    /// - Parameter useRelatedConsumptions: Whether to consider the consumption from related charging sessions that are included in the home consumption when calculating the cost. If true, the cost will be calculated based on the total consumption of the home consumption. If false, the cost will be calculated based on the consumption of the home consumption that is not included in related charging sessions. This parameter can be used to get a more accurate calculation of the home consumption cost when there are related charging sessions that are included in the home consumption.
+    /// - Returns: A tuple containing the home cost and the charging cost.
+    func cost(in timeBox: TimeBox, useRelatedConsumptions: Bool) -> (home: Cost, charging: Cost) {
         let homeConsumptions = homeConsumptions(in: timeBox)
-        let allCost = homeConsumptions.map { $0.totalCost(isGross: UserSettings.shared.displayGrossPrices) }
+        let allCost = homeConsumptions.map { $0.totalCost(isGross: UserSettings.shared.displayGrossPrices, useRelatedConsumptions: useRelatedConsumptions) }
         let gross = allCost.reduce(.init(amount: 0.0)) { $0 + $1.gross }
         let net = allCost.reduce(.init(amount: 0.0)) { $0 + $1.net }
 
@@ -232,6 +236,11 @@ final class Location: Identifiable {
         )
     }
     
+    /// Returns the refunded consumption and cost for the given time box. Only considers charging sessions of type .refunded that are related to this location via their charger.
+    /// - Parameters:
+    ///   - timeBox: The time box to limit the charging sessions to.
+    ///   - modelContext: The model context to fetch data from.
+    /// - Returns: A tuple containing the refunded consumption and refunded cost.
     func refunded(in timeBox: TimeBox, modelContext: ModelContext) -> (consumption: Measurement<UnitEnergy>, cost: Cost) {
         // Load all charging cost plans
         let request = FetchDescriptor<ChargingCostPlan>(predicate: #Predicate<ChargingCostPlan> { _ in true })
@@ -265,6 +274,48 @@ final class Location: Identifiable {
         }
         
         return (Measurement<UnitEnergy>(value: relatedConsumption, unit: UserSettings.shared.energyUnit), .init(amount: totalRefunded))
+    }
+    
+    /// Returns the refunded consumption and cost per month for the given time box. Only considers charging sessions of type .refunded that are related to this location via their charger.
+    /// - Parameters:
+    ///   - timeBox: The time box to limit the charging sessions to.
+    ///   - modelContext: The model context to fetch data from.
+    /// - Returns: An array of tuples containing the month (formatted as string), refunded consumption, and refunded cost for each month in the time box.
+    func refundedPerMonth(in timeBox: TimeBox, modelContext: ModelContext) -> [(month: String, consumption: Measurement<UnitEnergy>, cost: Cost)] {
+        // Load all charging cost plans
+        let request = FetchDescriptor<ChargingCostPlan>(predicate: #Predicate<ChargingCostPlan> { _ in true })
+        var allPlans: [ChargingCostPlan]
+        do {
+            allPlans = try modelContext.fetch(request)
+        } catch {
+            return []
+        }
+        
+        // Filter by plans of type .refunded
+        let refundedPlans = allPlans.filter { $0.planType == .refunded }
+        
+        // Get all plans, the chargers of which are related to the location
+        let allRelatedPlans = refundedPlans.filter { plan in
+            plan.charger?.location == self
+        }
+        
+        // Get all charging session for these plans in the given time box
+        // Flatten child plan chargingSessions (optional arrays) into a single [ChargingSession]
+        let relatedSessionsInRange: [ChargingSession] = allRelatedPlans.flatMap { $0.chargingSessions(in: timeBox) }
+        
+        // Group by month and aggregate consumption and cost
+        var monthlyData: [String: (consumption: Double, cost: Double)] = [:]
+        
+        for session in relatedSessionsInRange {
+            let monthKey = UserSettings.shared.groupingDateFormatter.string(from: session.endTime)
+            monthlyData[monthKey, default: (consumption: 0.0, cost: 0.0)].consumption += session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value
+            monthlyData[monthKey, default: (consumption: 0.0, cost: 0.0)].cost += session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value * (session.relatedHomeConsumption?.sumOfPriceElementsByConsumption.amount ?? 0.0)
+        }
+        
+        // Convert to sorted array of tuples
+        return monthlyData.map { (monthKey, data) in
+            (month: monthKey, consumption: Measurement<UnitEnergy>(value: data.consumption, unit: UserSettings.shared.energyUnit), cost: Cost(amount: data.cost))
+        }.sorted { $0.month < $1.month }
     }
     
     class func classString() -> String {

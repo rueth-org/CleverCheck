@@ -25,7 +25,7 @@ final class HomeConsumption: Comparable {
     @Relationship(deleteRule: .nullify, inverse: \ChargingSession.relatedHomeConsumption)
     var chargingSessions: [ChargingSession]?
     
-    var consumptionFromRelatedChargingSessions: Measurement<UnitEnergy>? {
+    private var consumptionFromRelatedChargingSessions: Measurement<UnitEnergy>? {
         if let chargingSessions, !chargingSessions.isEmpty {
             let consumptions = chargingSessions.compactMap { $0.chargedEnergyKWh }
             let totalConsumption = consumptions.reduce(0.0, +)
@@ -75,16 +75,6 @@ final class HomeConsumption: Comparable {
         }
         
         return daysPerMonth
-    }
-    
-    var netConsumptionPerMonth: [String: Double] {
-        var grossConsumptionPerMonth = consumptionPerMonth(includeIfIncludedElsewhere: true)
-        if consumptionIncludedElsewhere {
-            for (monthKey, consumption) in grossConsumptionPerMonth {
-                grossConsumptionPerMonth[monthKey] = -consumption
-            }
-        }
-        return grossConsumptionPerMonth
     }
     
     var sumOfPriceElementsByConsumption: Cost {
@@ -158,20 +148,20 @@ final class HomeConsumption: Comparable {
         }
     }
     
-    func totalConsumption(includeIfIncludedElsewhere: Bool = false) -> Measurement<UnitEnergy> {
+    func totalConsumption(includeIfIncludedElsewhere: Bool, useRelatedConsumptions: Bool) -> Measurement<UnitEnergy> {
         if consumptionIncludedElsewhere && !includeIfIncludedElsewhere {
             return Measurement<UnitEnergy>(value: 0.0, unit: UserSettings.shared.energyUnit)
         } else {
-            return consumption
+            return useRelatedConsumptions ? (consumptionFromRelatedChargingSessions ?? consumption) : consumption
         }
     }
     
-    func consumptionPerMonth(includeIfIncludedElsewhere: Bool = false) -> [String: Double] {
+    func consumptionPerMonth(includeIfIncludedElsewhere: Bool, useRelatedConsumptions: Bool) -> [String: Double] {
         if consumptionIncludedElsewhere && !includeIfIncludedElsewhere {
             return [:]
         }
         
-        let totalConsumption = totalConsumption(includeIfIncludedElsewhere: includeIfIncludedElsewhere).value
+        let totalConsumption = totalConsumption(includeIfIncludedElsewhere: includeIfIncludedElsewhere, useRelatedConsumptions: useRelatedConsumptions).converted(to: .kilowattHours).value
         
         // Determine the number of days for each of the covered months, calculate each month's consumption portion, and store them in a dictionary
         var consumptionPerMonth: [String: Double] = [:]
@@ -192,24 +182,34 @@ final class HomeConsumption: Comparable {
         return consumptionPerMonth
     }
     
+    func netConsumptionPerMonth(useRelatedConsumptions: Bool) -> [String: Double] {
+        var grossConsumptionPerMonth = consumptionPerMonth(includeIfIncludedElsewhere: true, useRelatedConsumptions: useRelatedConsumptions)
+        if consumptionIncludedElsewhere {
+            for (monthKey, consumption) in grossConsumptionPerMonth {
+                grossConsumptionPerMonth[monthKey] = -consumption
+            }
+        }
+        return grossConsumptionPerMonth
+    }
+    
     /// Calculates the total consumption for a specific month.
     /// - Parameters:
     ///   - monthKey: The month identifier in "yyyy-MM" format.
     ///   - includeIfIncludedElsewhere: Indicates whether to include consumption that is marked as included elsewhere. Default is false.
     /// - Returns: The total consumption for the specified month as a Double.
-    func consumptionForMonth(monthKey: String, includeIfIncludedElsewhere: Bool = false) -> Double {
-        return consumptionPerMonth(includeIfIncludedElsewhere: includeIfIncludedElsewhere)[monthKey] ?? 0.0
+    func consumptionForMonth(monthKey: String, includeIfIncludedElsewhere: Bool, useRelatedConsumptions: Bool) -> Double {
+        return consumptionPerMonth(includeIfIncludedElsewhere: includeIfIncludedElsewhere, useRelatedConsumptions: useRelatedConsumptions)[monthKey] ?? 0.0
     }
     
-    func netConsumptionForMonth(monthKey: String) -> Double {
-        return netConsumptionPerMonth[monthKey] ?? 0.0
+    func netConsumptionForMonth(monthKey: String, useRelatedConsumptions: Bool) -> Double {
+        return netConsumptionPerMonth(useRelatedConsumptions: useRelatedConsumptions)[monthKey] ?? 0.0
     }
     
     /// Calculates the total cost for the home consumption over its entire duration, adding up all price elements.
     /// - Parameter isGross: Indicates whether to calculate cost without VAT (isGross = false) or with VAT (isGross = true). Default is true (gross).
-    /// - Parameter useConsumptionFromRelatedChargingSessions: If true, the consumption from related charging sessions is used instead of the entered consumption. If no charging sessions are availale, the entered consumption is used. Default is false.
+    /// - Parameter useRelatedConsumptions: If true, the consumption from related charging sessions is used instead of the entered consumption. If no charging sessions are availale, the entered consumption is used.
     /// - Returns: The total cost as a (gross: Cost, net: Cost) tuple. The first value represents the sum of all positive price elements (gross), the second the sum of all postive and negative price elements (net).
-    func totalCost(isGross: Bool = true, useConsumptionFromRelatedChargingSessions: Bool = false) -> (gross: Cost, net: Cost) {
+    func totalCost(isGross: Bool = true, useRelatedConsumptions: Bool) -> (gross: Cost, net: Cost) {
         if priceElements == nil {
             return (.init(amount: 0.0), .init(amount: 0.0))
         }
@@ -224,7 +224,7 @@ final class HomeConsumption: Comparable {
                 guard let energyUnit = UserSettings.shared.energyUnit(for: energyUnitSymbol) else {
                     fatalError("Unknown energy unit symbol: \(energyUnitSymbol)")
                 }
-                let consumption = useConsumptionFromRelatedChargingSessions ? (consumptionFromRelatedChargingSessions ?? self.consumption) : self.consumption
+                let consumption = useRelatedConsumptions ? (consumptionFromRelatedChargingSessions ?? self.consumption) : self.consumption
                 let convertedConsumption = consumption.converted(to: energyUnit).value
                 return $0 + ($1.gross.amount * convertedConsumption)
             }
@@ -250,7 +250,7 @@ final class HomeConsumption: Comparable {
                 guard let energyUnit = UserSettings.shared.energyUnit(for: energyUnitSymbol) else {
                     fatalError("Unknown energy unit symbol: \(energyUnitSymbol)")
                 }
-                let consumption = useConsumptionFromRelatedChargingSessions ? (consumptionFromRelatedChargingSessions ?? self.consumption) : self.consumption
+                let consumption = useRelatedConsumptions ? (consumptionFromRelatedChargingSessions ?? self.consumption) : self.consumption
                 let convertedConsumption = consumption.converted(to: energyUnit).value
                 let value = $1.gross.amount * convertedConsumption
                 if value >= 0.0 {
@@ -266,9 +266,10 @@ final class HomeConsumption: Comparable {
     
     /// Calculates the total cost per month for the duration of the home consumption.
     /// - Parameter isGross: Indicates whether to calculate gross or net costs. Default is true (gross).
+    /// - Parameter useRelatedConsumptions: If true, the consumption from related charging sessions is used instead of the entered consumption for calculating byConsumption price elements. If no charging sessions are availale, the entered consumption is used.
     /// - Returns: A dictionary where keys are month identifiers in "yyyy-MM" format and values are the corresponding costs for that month.
-    func totalCostPerMonth(isGross: Bool = true, useConsumptionFromRelatedChargingSessions: Bool = false) -> [String: (gross: Cost, net: Cost)] {
-        let totalCost = totalCost(isGross: isGross, useConsumptionFromRelatedChargingSessions: useConsumptionFromRelatedChargingSessions)
+    func totalCostPerMonth(isGross: Bool = true, useRelatedConsumptions: Bool) -> [String: (gross: Cost, net: Cost)] {
+        let totalCost = totalCost(isGross: isGross, useRelatedConsumptions: useRelatedConsumptions)
         
         // Determine the number of days for each of the covered months, calculate each month's cost portion, and store them in a dictionary
         var costPerMonth: [String: (gross: Double, net: Double)] = [:]
@@ -310,9 +311,10 @@ final class HomeConsumption: Comparable {
     /// - Parameters:
     ///   - monthKey: The month identifier in "yyyy-MM" format.
     ///   - isGross: Indicates whether to calculate gross or net costs. Default is true (gross).
+    ///   - useRelatedConsumptions: If true, the consumption from related charging sessions is used instead of the entered consumption for calculating byConsumption price elements. If no charging sessions are availale, the entered consumption is used.
     /// - Returns: The total cost for the specified month as a Double.
-    func totalCostForMonth(monthKey: String, isGross: Bool = true, useConsumptionFromRelatedChargingSessions: Bool = false) -> (gross: Cost, net: Cost) {
-        return totalCostPerMonth(isGross: isGross, useConsumptionFromRelatedChargingSessions: useConsumptionFromRelatedChargingSessions)[monthKey] ?? (.init(amount: 0.0), .init(amount: 0.0))
+    func totalCostForMonth(monthKey: String, isGross: Bool = true, useRelatedConsumptions: Bool) -> (gross: Cost, net: Cost) {
+        return totalCostPerMonth(isGross: isGross, useRelatedConsumptions: useRelatedConsumptions)[monthKey] ?? (.init(amount: 0.0), .init(amount: 0.0))
     }
     
     func possibleChargingSessions(modelContext: ModelContext) -> [ChargingSession]? {

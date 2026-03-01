@@ -18,7 +18,7 @@ struct HomeConsumptionAnalysis: View {
     @Query private var allPlans: [ChargingCostPlan]
     
     var body: some View {
-        let cost = location.cost(in: timeBox)
+        let cost = location.cost(in: timeBox, useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions)
         let consumption = location.consumedEnergy(in: timeBox)
         let refunded = location.refunded(in: timeBox, modelContext: modelContext)
         Text(timeBox.formattedTime)
@@ -130,12 +130,18 @@ struct HomeConsumptionAnalysis: View {
                         HStack {
                             Text("Gross Cost:")
                             Spacer()
-                            Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).gross.formatted())
+                            Text(homeConsumption.totalCost(
+                                isGross: UserSettings.shared.displayGrossPrices,
+                                useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
+                            ).gross.formatted())
                         }
                         HStack {
                             Text("Net Cost:")
                             Spacer()
-                            Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).net.formatted())
+                            Text(homeConsumption.totalCost(
+                                isGross: UserSettings.shared.displayGrossPrices,
+                                useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
+                            ).net.formatted())
                         }
                     }
                     .padding(.vertical)

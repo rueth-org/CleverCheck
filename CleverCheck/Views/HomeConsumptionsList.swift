@@ -63,7 +63,10 @@ struct HomeConsumptionsList: View {
                                         //Display dateoFrm - dateUntil  inshort format
                                         Text("\(homeConsumption.validFrom, format: UserSettings.shared.displayDateFormat) - \(homeConsumption.validUntil, format: UserSettings.shared.displayDateFormat)")
                                         Spacer()
-                                        Text(homeConsumption.totalCost(isGross: UserSettings.shared.displayGrossPrices).net.formatted())
+                                        Text(homeConsumption.totalCost(
+                                            isGross: UserSettings.shared.displayGrossPrices,
+                                            useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
+                                        ).net.formatted())
                                             .font(.subheadline)
                                             .foregroundColor(.secondary)
                                     }
@@ -165,8 +168,14 @@ struct HomeConsumptionsList: View {
         var totalGross: Cost = .init(amount: 0.0)
         var totalNet: Cost = .init(amount: 0.0)
         for homeConsumption in homeConsumptions {
-            totalGross += homeConsumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices)[monthString]?.gross ?? .init(amount: 0.0)
-            totalNet += homeConsumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices)[monthString]?.net ?? .init(amount: 0.0)
+            totalGross += homeConsumption.totalCostPerMonth(
+                isGross: UserSettings.shared.displayGrossPrices,
+                useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
+            )[monthString]?.gross ?? .init(amount: 0.0)
+            totalNet += homeConsumption.totalCostPerMonth(
+                isGross: UserSettings.shared.displayGrossPrices,
+                useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
+            )[monthString]?.net ?? .init(amount: 0.0)
         }
         return (gross: totalGross, net: totalNet)
     }

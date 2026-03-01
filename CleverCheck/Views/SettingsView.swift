@@ -125,6 +125,13 @@ struct SettingsView: View {
                             isEditingSOC = editing
                         }
                     }
+                    
+                    VStack {
+                        Toggle("Use related consumption", isOn: $userSettings.useRelatedConsumptions)
+                        Text("When using related consumption, instead of using the consumption manually entered by the user, the app will use the consumption data from related charging sessions. This only applies for charging cost plans of type 'refunded' and only if the charging session has a related home consumption assigned. This can lead to more accurate cost calculations, but also to missing cost calculations if no related home consumption is assigned.")
+                            .font(.footnote)
+                            .padding(.vertical)
+                    }
                 }
                 
                 Section(header: Text("Units")) {
