@@ -174,7 +174,7 @@ struct HomeConsumptionAnalysis: View {
                             Text("Gross Cost:")
                             Spacer()
                             Text(homeConsumption.totalCost(
-                                isGross: UserSettings.shared.displayGrossPrices,
+                                includingVAT: UserSettings.shared.displayGrossPrices,
                                 useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
                             ).gross.formatted())
                         }
@@ -182,7 +182,7 @@ struct HomeConsumptionAnalysis: View {
                             Text("Net Cost:")
                             Spacer()
                             Text(homeConsumption.totalCost(
-                                isGross: UserSettings.shared.displayGrossPrices,
+                                includingVAT: UserSettings.shared.displayGrossPrices,
                                 useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
                             ).net.formatted())
                         }

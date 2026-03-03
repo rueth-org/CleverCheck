@@ -498,13 +498,16 @@ class TimeBox {
         }
     }
     
-    func getKeyForDate(_ date: Date) -> String {
+    func getKeysForDate(_ date: Date) -> (display: String, grouping: String) {
+        var display: String
         switch selectedResolution {
-        case .yearly: return DateFormatter.chartDisplayDateYearly.string(from: date)
-        case .monthly: return DateFormatter.chartDisplayDateMonthly.string(from: date)
-        case .daily: return DateFormatter.chartDisplayDateDaily.string(from: date)
-        case .none: return ""
+        case .yearly: display = DateFormatter.chartDisplayDateYearly.string(from: date)
+        case .monthly: display = DateFormatter.chartDisplayDateMonthly.string(from: date)
+        case .daily: display = DateFormatter.chartDisplayDateDaily.string(from: date)
+        case .none: display = ""
         }
+        
+        return (display: display, grouping: UserSettings.shared.groupingDateFormatter.string(from: date))
     }
     
     /// Gets the correct day for the given month of the given year.

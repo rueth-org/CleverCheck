@@ -324,8 +324,8 @@ struct ChargingViewChart: View {
                         if let key = proxy.value(atX: xInPlot, as: String.self) {
                             barTapped(key)
                         } else if let date = proxy.value(atX: xInPlot, as: Date.self) {
-                            let key = timeBox.getKeyForDate(date)
-                            barTapped(key)
+                            let key = timeBox.getKeysForDate(date)
+                            barTapped(key.display)
                         } else if let number = proxy.value(atX: xInPlot, as: Double.self) {
                             barTapped(String(number))
                         }

@@ -93,12 +93,13 @@ public final class ChargingCostPlan {
         }
     }
     
-    func chargedEnergy(in timeBox: TimeBox) -> [String: Measurement<UnitEnergy>] {
+    func chargedEnergy(in timeBox: TimeBox, groupingKey: Bool) -> [String: Measurement<UnitEnergy>] {
         let filteredSessions = chargingSessions(in: timeBox)
         guard !filteredSessions.isEmpty else { return [:] }
         var result = [String: Measurement<UnitEnergy>]()
         for session in filteredSessions {
-            let key = timeBox.getKeyForDate(session.endTime)
+            let keys = timeBox.getKeysForDate(session.endTime)
+            let key = groupingKey ? keys.grouping : keys.display
             let existing = result[key] ?? Measurement<UnitEnergy>(value: 0.0, unit: .kilowattHours)
             // Sum energies; ChargingCostPlan.totalChargedEnergy returns a Measurement in kWh
             result[key] = existing + session.chargedEnergy

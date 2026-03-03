@@ -19,7 +19,7 @@ struct PriceElementEditor: View {
     
     @State private var label: String = ""
     @State private var amount: Cost = .init(amount: 0)
-    @State private var amountIsGross: Bool = true
+    @State private var includesVAT: Bool = true
     @State private var vatRate: Double = UserSettings.shared.vatRate
     @State private var elementType: PriceElement.PriceElementType = .byConsumption(energyUnitSymbol: UserSettings.shared.energyUnit.symbol)
     
@@ -60,7 +60,7 @@ struct PriceElementEditor: View {
                     .multilineTextAlignment(.trailing)
                 Text("\(amount.currency)\(elementType.unitExtension)")
             }
-            Toggle("Amount is gross", isOn: $amountIsGross)
+            Toggle("Amount is gross", isOn: $includesVAT)
             HStack {
                 Text("VAT Rate")
                 TextField("VAT Rate", value: $vatRate, format: .percent)
@@ -89,7 +89,7 @@ struct PriceElementEditor: View {
                 // Edit the incoming price element
                 label = priceElement.label
                 amount = priceElement.converted
-                amountIsGross = priceElement.isGross
+                includesVAT = priceElement.isGross
                 elementType = priceElement.type
                 vatRate = priceElement.vatRate
             }
@@ -148,7 +148,7 @@ struct PriceElementEditor: View {
             let newPriceElement = PriceElement(
                 label: priceElementLabel,
                 amount: amount,
-                isGross: amountIsGross,
+                inclVAT: includesVAT,
                 type: elementType,
                 vatRate: vatRate
             )
@@ -162,7 +162,7 @@ struct PriceElementEditor: View {
             if let index = priceElements.firstIndex(of: priceElement!) {
                 priceElements[index].label = priceElementLabel
                 priceElements[index].amount = amount
-                priceElements[index].isGross = amountIsGross
+                priceElements[index].isGross = includesVAT
                 priceElements[index].type = elementType
                 priceElements[index].vatRate = vatRate
             } else {

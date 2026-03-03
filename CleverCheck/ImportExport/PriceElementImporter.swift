@@ -151,7 +151,7 @@ public struct PriceElementImporter {
                 }
                 
                 // Create new HomeConsumption
-                let newPriceElement = PriceElement(label: dto.label, amount: Cost(amount: dto.amount), isGross: isGross, type: priceElementType, vatRate: dto.vatRate)
+                let newPriceElement = PriceElement(label: dto.label, amount: Cost(amount: dto.amount), inclVAT: isGross, type: priceElementType, vatRate: dto.vatRate)
                 
                 // Assign to home consumption
                 newPriceElement.homeConsumption = matchedHomeConsumption

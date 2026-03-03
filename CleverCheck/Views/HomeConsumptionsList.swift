@@ -64,7 +64,7 @@ struct HomeConsumptionsList: View {
                                         Text("\(homeConsumption.validFrom, format: UserSettings.shared.displayDateFormat) - \(homeConsumption.validUntil, format: UserSettings.shared.displayDateFormat)")
                                         Spacer()
                                         Text(homeConsumption.totalCost(
-                                            isGross: UserSettings.shared.displayGrossPrices,
+                                            includingVAT: UserSettings.shared.displayGrossPrices,
                                             useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
                                         ).net.formatted())
                                             .font(.subheadline)
@@ -144,7 +144,7 @@ struct HomeConsumptionsList: View {
                 let newPriceElement = PriceElement(
                     label: priceElement.label,
                     amount: priceElement.amount,
-                    isGross: priceElement.isGross,
+                    inclVAT: priceElement.isGross,
                     type: priceElement.type,
                     vatRate: priceElement.vatRate
                 )
@@ -169,11 +169,11 @@ struct HomeConsumptionsList: View {
         var totalNet: Cost = .init(amount: 0.0)
         for homeConsumption in homeConsumptions {
             totalGross += homeConsumption.totalCostPerMonth(
-                isGross: UserSettings.shared.displayGrossPrices,
+                includingVAT: UserSettings.shared.displayGrossPrices,
                 useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
             )[monthString]?.gross ?? .init(amount: 0.0)
             totalNet += homeConsumption.totalCostPerMonth(
-                isGross: UserSettings.shared.displayGrossPrices,
+                includingVAT: UserSettings.shared.displayGrossPrices,
                 useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
             )[monthString]?.net ?? .init(amount: 0.0)
         }

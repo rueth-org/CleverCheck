@@ -113,14 +113,14 @@ struct ConsumptionData: Identifiable {
                 
                 if let lastMileage, let lastDate {
                     let distanceConsumed: Double = mileage - lastMileage
-                    let dateKey = timeBox.getKeyForDate(session.endTime)
+                    let dateKey = timeBox.getKeysForDate(session.endTime)
                     let consumption = Consumption(
                         distance: .init(value: distanceConsumed, unit: UserSettings.shared.distanceUnit),
                         energy: .init(value: consumedEnergy, unit: UserSettings.shared.energyUnit),
                         since: lastDate,
                         until: session.endTime
                     )
-                    result[dateKey] = calculateAverageConsumption(consumption, result[dateKey])
+                    result[dateKey.display] = calculateAverageConsumption(consumption, result[dateKey.display])
                 }
                 
                 // Set lastMileage and lastDate to current values

@@ -109,47 +109,61 @@ final class Location: Identifiable {
         for consumption in homeConsumptions {
             grossConsumptionPerMonth.append(consumption.consumptionPerMonth(includeIfIncludedElsewhere: false, useRelatedConsumptions: useRelatedConsumption))
             netConsumptionPerMonth.append(consumption.netConsumptionPerMonth(useRelatedConsumptions: useRelatedConsumption))
-            costPerMonth.append(consumption.totalCostPerMonth(isGross: UserSettings.shared.displayGrossPrices, useRelatedConsumptions: useRelatedConsumption))
+            costPerMonth.append(consumption.totalCostPerMonth(includingVAT: UserSettings.shared.displayGrossPrices, useRelatedConsumptions: useRelatedConsumption))
         }
         
         // Get the refunded sessions related to this location in the given time period
         let refundedPerMonth = refundedPerMonth(in: timeBox, modelContext: modelContext)
         
-        // TODO: Also consider the charged amount from home consumption type plans (e.g., EWII)
+        // Get the related charging consumptions for this location in the given time period
+        let relatedChargingConsumptions = relatedChargingConsumptionsPerMonth(in: timeBox)
         
         // Step through the months and aggregate from precomputed maps
         let calendar = Calendar.current
         var currentDate = timePeriod.start
         while currentDate <= timePeriod.end {
-            let monthKeyDisplay = timeBox.getKeyForDate(currentDate)
-            let monthKeyGrouping = UserSettings.shared.groupingDateFormatter.string(from: currentDate)
-
+            let monthKeys = timeBox.getKeysForDate(currentDate)
+            
             var grossConsumption: Double = 0.0
             var netConsumption: Double = 0.0
             var grossCost: Cost = .init(amount: 0.0)
             var netCost: Cost = .init(amount: 0.0)
 
             for idx in homeConsumptions.indices {
-                grossConsumption += grossConsumptionPerMonth[idx][monthKeyGrouping] ?? 0.0
-                netConsumption += netConsumptionPerMonth[idx][monthKeyGrouping] ?? 0.0
-                grossCost += costPerMonth[idx][monthKeyGrouping]?.gross ?? .init(amount: 0.0)
-                netCost += costPerMonth[idx][monthKeyGrouping]?.net ?? .init(amount: 0.0)
+                grossConsumption += grossConsumptionPerMonth[idx][monthKeys.grouping] ?? 0.0
+                netConsumption += netConsumptionPerMonth[idx][monthKeys.grouping] ?? 0.0
+                grossCost += costPerMonth[idx][monthKeys.grouping]?.gross ?? .init(amount: 0.0)
+                netCost += costPerMonth[idx][monthKeys.grouping]?.net ?? .init(amount: 0.0)
             }
 
             var deltaConsumption = grossConsumption - netConsumption
-            let deltaCost = grossCost - netCost
+            var deltaCost = grossCost - netCost
             
             // If there is a refunded session in this month, subtract its consumption and cost from the home consumption and add the consumption to the charging part, since it is a refunded charging session that is included in the home consumption via the "includedInOtherPlan" relation. The refunded cost is not added to delta cost, as it's paid for by the refunding plan.
-            if let refundedData = refundedPerMonth[monthKeyGrouping] {
+            if let refundedData = refundedPerMonth[monthKeys.grouping] {
                 netConsumption -= refundedData.consumption.value
                 netCost += refundedData.cost // refundedData.cost is a negative value, so we add it to netCost to reduce the total cost
                 deltaConsumption += refundedData.consumption.value
             }
+            
+            // If there are charging sesssions from related charging cost plans, ...
+            if let relatedConsumption = relatedChargingConsumptions[monthKeys.grouping] {
+                // Determine the cost portion of netCost (= home cost) related to charging
+                let chargingCostPortion = Cost(amount: netCost.amount * relatedConsumption.value / netConsumption)
+                
+                // Subtract the related charging consumption from the home consumption and add them to the charging part.
+                netConsumption -= relatedConsumption.value
+                deltaConsumption += relatedConsumption.value
+                
+                // Subtract the related charging cost portion from the home cost and add it to the charging cost, so that the costs are correctly allocated to home and charging part.
+                netCost -= chargingCostPortion
+                deltaCost += chargingCostPortion
+            }
 
             // Create home consumption data set
             result.append(Data(
-                groupingKey: monthKeyGrouping,
-                displayKey: monthKeyDisplay,
+                groupingKey: monthKeys.grouping,
+                displayKey: monthKeys.display,
                 dataType: .homeConsumption,
                 consumption: .init(value: netConsumption, unit: UserSettings.shared.energyUnit),
                 cost: netCost
@@ -157,8 +171,8 @@ final class Location: Identifiable {
 
             // Create charging data set
             result.append(Data(
-                groupingKey: monthKeyGrouping,
-                displayKey: monthKeyDisplay,
+                groupingKey: monthKeys.grouping,
+                displayKey: monthKeys.display,
                 dataType: .charging,
                 consumption: .init(value: deltaConsumption, unit: UserSettings.shared.energyUnit),
                 cost: deltaCost
@@ -241,7 +255,7 @@ final class Location: Identifiable {
     /// - Returns: A tuple containing the home cost and the charging cost.
     func cost(in timeBox: TimeBox, useRelatedConsumptions: Bool) -> (home: Cost, charging: Cost) {
         let homeConsumptions = homeConsumptions(in: timeBox)
-        let allCost = homeConsumptions.map { $0.totalCost(isGross: UserSettings.shared.displayGrossPrices, useRelatedConsumptions: useRelatedConsumptions) }
+        let allCost = homeConsumptions.map { $0.totalCost(includingVAT: UserSettings.shared.displayGrossPrices, useRelatedConsumptions: useRelatedConsumptions) }
         let gross = allCost.reduce(.init(amount: 0.0)) { $0 + $1.gross }
         let net = allCost.reduce(.init(amount: 0.0)) { $0 + $1.net }
 
@@ -323,7 +337,11 @@ final class Location: Identifiable {
         
         for session in relatedSessionsInRange {
             let monthKey = UserSettings.shared.groupingDateFormatter.string(from: session.endTime)
+            
+            // Get the consumption from the session
             monthlyData[monthKey, default: (consumption: 0.0, cost: 0.0)].consumption += session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value
+            
+            // Use the specific price of the home consumption for the cost calculation. Multiply the session consumption with the specific price of the home consumption to get the cost of the refunded session, which is a negative value, and add it to the monthly cost.
             monthlyData[monthKey, default: (consumption: 0.0, cost: 0.0)].cost += session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value * (session.relatedHomeConsumption?.sumOfPriceElementsByConsumption.amount ?? 0.0)
         }
         
@@ -333,6 +351,28 @@ final class Location: Identifiable {
             result[month] = (consumption: Measurement<UnitEnergy>(value: data.consumption, unit: UserSettings.shared.energyUnit), cost: Cost(amount: data.cost))
         }
         return result
+    }
+    
+    func relatedChargingConsumptionsPerMonth(in timeBox: TimeBox) -> [String: Measurement<UnitEnergy>] {
+        let allRelatedPlans = chargers?.flatMap { $0.chargingCostPlans ?? [] } ?? []
+        
+        // Filter by plans, which are not .refunded, as they are covered by the refunded plans, but have a relation to the location via their charger
+        let filteredPlans = allRelatedPlans.filter { $0.planType != .refunded }
+        
+        // Consolidate the monthly consumptions of all filtered plans into a single month map
+        var monthlyConsumptions: [String: Measurement<UnitEnergy>] = [:]
+        for plan in filteredPlans {
+            let consumptions = plan.chargedEnergy(in: timeBox, groupingKey: true)
+            for (monthKey, consumption) in consumptions {
+                // If monthlyConsumptions[monthKey] exists, we add the consumption to the existing value, otherwise we set it as the initial value for this monthKey
+                if let existing = monthlyConsumptions[monthKey] {
+                    monthlyConsumptions[monthKey] = existing + consumption
+                } else {
+                    monthlyConsumptions[monthKey] = consumption
+                }
+            }
+        }
+        return monthlyConsumptions
     }
     
     class func classString() -> String {

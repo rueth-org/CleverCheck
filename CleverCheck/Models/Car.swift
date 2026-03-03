@@ -83,7 +83,7 @@ final class Car {
         guard let chargingCostPlans else { return [:] }
         var result = [String: [EnergyData]]()
         for plan in chargingCostPlans {
-            let chargedEnergyPerPeriod = plan.chargedEnergy(in: timeBox)
+            let chargedEnergyPerPeriod = plan.chargedEnergy(in: timeBox, groupingKey: false)
             for key in chargedEnergyPerPeriod.keys {
                 let energyDataSet = EnergyData(
                     legendLabel: plan.descriptionShortNoCar,

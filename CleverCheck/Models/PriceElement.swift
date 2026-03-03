@@ -57,7 +57,7 @@ final class PriceElement: Identifiable, Equatable {
     }
     
     /// Returns the net amount based on the converted gross amount and VAT rate. If the original amount is already net, it simply returns the converted amount.
-    var net: Cost {
+    var exclVAT: Cost {
         if isGross {
             return Cost(amount: converted.amount / (1 + vatRate), currency: converted.currency)
         } else {
@@ -66,7 +66,7 @@ final class PriceElement: Identifiable, Equatable {
     }
     
     /// Returns the gross amount based on the converted net amount and VAT rate. If the original amount is already gross, it simply returns the converted amount.
-    var gross: Cost {
+    var inclVAT: Cost {
         if isGross {
             return converted
         } else {
@@ -86,22 +86,22 @@ final class PriceElement: Identifiable, Equatable {
         isGross ? "Gross" : "Net"
     }
     
-    init(label: String, amount: Cost, isGross: Bool, type: PriceElementType, vatRate: Double? = nil) {
+    init(label: String, amount: Cost, inclVAT: Bool, type: PriceElementType, vatRate: Double? = nil) {
         self.label = label
         self.amount = amount
         self.type = type
         self.vatRate = vatRate ?? UserSettings.shared.vatRate
-        self.isGross = isGross
+        self.isGross = inclVAT
     }
     
     /// Returns the converted cost in the user's selected currency, either gross or net based on the isGross parameter.
     /// - Parameter isGross: If true, returns the gross amount; if false, returns the net amount.
     /// - Returns: The converted cost. If conversion fails, returns the original cost.
-    func getConvertedCost(isGross: Bool) -> Cost {
-        if isGross {
-            return gross
+    func getConvertedCost(includingVAT: Bool) -> Cost {
+        if includingVAT {
+            return inclVAT
         } else {
-            return net
+            return exclVAT
         }
     }
     
