@@ -26,6 +26,7 @@ struct DataEncoder {
         var locations: [LocationDTO]
         var chargingCostPlans: [ChargingCostPlanDTO]
         var chargingSessions: [ChargingSessionDTO]
+        var chargingSessionTemplates: [ChargingSessionTemplateDTO]
         var homeConsumptions: [HomeConsumptionDTO]
         var priceElements: [PriceElementDTO]
         var userSettings: UserSettingsDTO?
@@ -36,6 +37,8 @@ struct DataEncoder {
         var make: String
         var model: String
         var defaultSOC: Double
+        var netBatteryCapacityKWh: Double?
+        var maxChargingPowerKW: Double?
         var isArchived: Bool
         var chargingCostPlanIds: [UUID]
     }
@@ -67,9 +70,10 @@ struct DataEncoder {
         var chargerId: UUID?
         var planType: PlanTypeDTO
         var defaultKWhPrice: Cost?
+        var energyUnitSymbol: String
         var monthlyRate: Cost?
-        var relatedLocation: UUID?
         var includedInOtherPlan: UUID?
+        var displayColorString: String?
         var isArchived: Bool
         var chargingSessionIds: [UUID]
         var childCostPlanIds: [UUID]
@@ -93,6 +97,12 @@ struct DataEncoder {
         var initialSOC: Double?
         var finalSOC: Double?
         var comment: String?
+        var templateId: PersistentIdentifier?
+    }
+    
+    struct ChargingSessionTemplateDTO: Codable {
+        var name: String
+        var chargingSessionId: PersistentIdentifier
     }
 
     struct HomeConsumptionDTO: Codable {
@@ -171,6 +181,7 @@ struct DataEncoder {
         let locations: [Location] = try context.fetch(FetchDescriptor<Location>())
         let chargingCostPlans: [ChargingCostPlan] = try context.fetch(FetchDescriptor<ChargingCostPlan>())
         let chargingSessions: [ChargingSession] = try context.fetch(FetchDescriptor<ChargingSession>())
+        let chargingSessionTemplates: [ChargingSessionTemplate] = try context.fetch(FetchDescriptor<ChargingSessionTemplate>())
         let homeConsumptions: [HomeConsumption] = try context.fetch(FetchDescriptor<HomeConsumption>())
         let priceElements: [PriceElement] = try context.fetch(FetchDescriptor<PriceElement>())
 
@@ -181,6 +192,8 @@ struct DataEncoder {
                 make: car.make,
                 model: car.model,
                 defaultSOC: car.defaultSOC,
+                netBatteryCapacityKWh: car.netBatteryCapacityKWh,
+                maxChargingPowerKW: car.maxChargingPowerkW,
                 isArchived: car.isArchived,
                 chargingCostPlanIds: car.chargingCostPlans?.map { $0.id } ?? []
             )
@@ -233,8 +246,10 @@ struct DataEncoder {
                 chargerId: plan.charger?.id,
                 planType: planTypeDTO,
                 defaultKWhPrice: defaultKWhPrice,
+                energyUnitSymbol: plan.energyUnitSymbol,
                 monthlyRate: plan.monthlyRate,
                 includedInOtherPlan: plan.includedInOtherPlan?.id,
+                displayColorString: plan.displayColorString,
                 isArchived: plan.isArchived,
                 chargingSessionIds: plan.chargingSessions?.map { $0.id } ?? [],
                 childCostPlanIds: plan.childCostPlans?.map { $0.id } ?? []
@@ -264,7 +279,15 @@ struct DataEncoder {
                 mileageKilometer: session.mileageKilometer,
                 initialSOC: session.initialSOC,
                 finalSOC: session.finalSOC,
-                comment: session.comment
+                comment: session.comment,
+                templateId: session.template?.id
+            )
+        }
+        
+        let chargingSessionsTemplateDTOs = chargingSessionTemplates.map { session in
+            ChargingSessionTemplateDTO(
+                name: session.name,
+                chargingSessionId: session.id
             )
         }
 
@@ -323,6 +346,7 @@ struct DataEncoder {
             locations: locationDTOs,
             chargingCostPlans: chargingCostPlanDTOs,
             chargingSessions: chargingSessionDTOs,
+            chargingSessionTemplates: chargingSessionsTemplateDTOs,
             homeConsumptions: homeConsumptionDTOs,
             priceElements: priceElementDTOs,
             userSettings: settingsDTO
