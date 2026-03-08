@@ -22,11 +22,10 @@ struct DataImportExportTests {
         let data = try encoder.encode(backup)
 
         // Create an in-memory ModelContext (helper provided by test infra)
-        let modelContext = try TestHelpers.makeModelContext()
-        modelContext.autosaveEnabled = false
+        let modelContainer = try TestHelpers.makeModelContainer()
 
         // Import
-        let report = try DataImporter.importFrom(data: data, into: modelContext)
+        let report = try DataImporter.importFrom(data: data, into: modelContainer)
 
         // Basic expectations on the report
         #expect(report.cars == 1)
@@ -40,14 +39,14 @@ struct DataImportExportTests {
         #expect(report.errors.isEmpty)
 
         // Verify objects are present in the ModelContext
-        let cars: [Car] = try modelContext.fetch(FetchDescriptor<Car>())
-        let chargers: [Charger] = try modelContext.fetch(FetchDescriptor<Charger>())
-        let locations: [Location] = try modelContext.fetch(FetchDescriptor<Location>())
-        let plans: [ChargingCostPlan] = try modelContext.fetch(FetchDescriptor<ChargingCostPlan>())
-        let sessions: [ChargingSession] = try modelContext.fetch(FetchDescriptor<ChargingSession>())
-        let templates: [ChargingSessionTemplate] = try modelContext.fetch(FetchDescriptor<ChargingSessionTemplate>())
-        let homes: [HomeConsumption] = try modelContext.fetch(FetchDescriptor<HomeConsumption>())
-        let priceElements: [PriceElement] = try modelContext.fetch(FetchDescriptor<PriceElement>())
+        let cars: [Car] = try modelContainer.mainContext.fetch(FetchDescriptor<Car>())
+        let chargers: [Charger] = try modelContainer.mainContext.fetch(FetchDescriptor<Charger>())
+        let locations: [Location] = try modelContainer.mainContext.fetch(FetchDescriptor<Location>())
+        let plans: [ChargingCostPlan] = try modelContainer.mainContext.fetch(FetchDescriptor<ChargingCostPlan>())
+        let sessions: [ChargingSession] = try modelContainer.mainContext.fetch(FetchDescriptor<ChargingSession>())
+        let templates: [ChargingSessionTemplate] = try modelContainer.mainContext.fetch(FetchDescriptor<ChargingSessionTemplate>())
+        let homes: [HomeConsumption] = try modelContainer.mainContext.fetch(FetchDescriptor<HomeConsumption>())
+        let priceElements: [PriceElement] = try modelContainer.mainContext.fetch(FetchDescriptor<PriceElement>())
 
         #expect(cars.count >= 1)
         #expect(chargers.count >= 2)
@@ -59,7 +58,7 @@ struct DataImportExportTests {
         #expect(priceElements.count >= 2)
 
         // Re-importing the same data should not create duplicates (ids already present)
-        let secondReport = try DataImporter.importFrom(data: data, into: modelContext)
+        let secondReport = try DataImporter.importFrom(data: data, into: modelContainer)
         // Expect that nothing new was added (importer skips existing ids)
         #expect(secondReport.cars == 0)
         #expect(secondReport.chargers == 0)

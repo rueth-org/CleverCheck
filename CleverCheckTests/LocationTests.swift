@@ -2,6 +2,7 @@
 import Testing
 import Foundation
 @testable import CleverCheck
+import SwiftData
 
 @Suite("Location data aggregation")
 struct LocationTests {
@@ -129,7 +130,7 @@ struct LocationTests {
                         }
                     }
 
-                    var builder = TestHomeConsumptionBuilder(
+                    let builder = TestHomeConsumptionBuilder(
                         name: name,
                         validFrom: validFrom,
                         validUntil: validUntil,
@@ -185,7 +186,7 @@ struct LocationTests {
         location.associatedHomeConsumptions = dataset.homeConsumptions
 
         // We need a ModelContext for refundedPerMonth: create an in-memory ModelContext
-        let modelContext = try await TestHelpers.makeModelContext()
+        let modelContainer = try await TestHelpers.makeModelContainer()
 
         // Build a TimeBox with selectedDate = 1. December 2025
         let selectedDateComponents = DateComponents(year: 2025, month: 12, day: 1)
@@ -194,7 +195,7 @@ struct LocationTests {
 
         // Call the data function. For these tests we will not rely on cache, but ensure to invalidate first.
         Location.invalidateCache()
-        let results = location.data(in: timeBox, useRelatedConsumption: false, modelContext: modelContext)
+        let results = await location.data(in: timeBox, useRelatedConsumption: false, modelContext: modelContainer.mainContext)
 
         // Expect that for each month there are two entries (homeConsumption and charging)
         #expect(results.count >= 2)
