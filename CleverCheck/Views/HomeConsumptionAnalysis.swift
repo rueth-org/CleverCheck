@@ -42,8 +42,19 @@ struct HomeConsumptionAnalysis: View {
         return (consumption, cost)
     }
     
-    var chargingData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
-        let chargingData = filteredData.filter { $0.dataType == .charging }
+    var homeChargingData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
+        let chargingData = filteredData.filter { $0.dataType == .homeCharging }
+        let consumption = chargingData.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
+            result = result + data.consumption
+        }
+        let cost = chargingData.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
+            result += data.cost
+        }
+        return (consumption, cost)
+    }
+    
+    var refundedChargingData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
+        let chargingData = filteredData.filter { $0.dataType == .refundedCharging }
         let consumption = chargingData.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
             result = result + data.consumption
         }
@@ -58,9 +69,10 @@ struct HomeConsumptionAnalysis: View {
         let totalCost = totalData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? totalData.cost
         let homeConsumption = homeData.consumption.converted(to: UserSettings.shared.energyUnit)
         let homeCost = homeData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? homeData.cost
-        let chargingConsumption = chargingData.consumption.converted(to: UserSettings.shared.energyUnit)
-        let chargingCost = chargingData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? chargingData.cost
-        let refunded = location.refunded(in: timeBox, modelContext: modelContext)
+        let homeChargingConsumption = homeChargingData.consumption.converted(to: UserSettings.shared.energyUnit)
+        let homeChargingCost = homeChargingData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? homeChargingData.cost
+        let refundedChargingConsumption = refundedChargingData.consumption.converted(to: UserSettings.shared.energyUnit)
+        let refundedChargingCost = refundedChargingData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? refundedChargingData.cost
         
         Text(timeBox.formattedTime)
             .font(.title)
@@ -88,6 +100,31 @@ struct HomeConsumptionAnalysis: View {
                     Spacer()
                     let specificCost = Cost(
                         amount: totalConsumption.value > 0 ? totalCost.amount / totalConsumption.value : 0,
+                        currency: totalCost.currency
+                    )
+                    Text("\(specificCost.formatted())")
+                        .bold()
+                }
+            }
+            
+            Section(header: Text("This month's gross data considering refunding")) {
+                HStack {
+                    Text("Consumption:")
+                    Spacer()
+                    Text("\((totalConsumption - refundedChargingConsumption).formatted())")
+                        .bold()
+                }
+                HStack {
+                    Text("Cost:")
+                    Spacer()
+                    Text((totalCost - refundedChargingCost).formatted())
+                        .bold()
+                }
+                HStack {
+                    Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
+                    Spacer()
+                    let specificCost = Cost(
+                        amount: (totalConsumption - refundedChargingConsumption).value > 0 ? (totalCost - refundedChargingCost).amount / (totalConsumption - refundedChargingConsumption).value : 0,
                         currency: totalCost.currency
                     )
                     Text("\(specificCost.formatted())")
@@ -124,21 +161,21 @@ struct HomeConsumptionAnalysis: View {
                 HStack {
                     Text("Consumption:")
                     Spacer()
-                    Text("\(chargingConsumption.formatted())")
+                    Text("\(homeChargingConsumption.formatted())")
                         .bold()
                 }
                 HStack {
                     Text("Cost:")
                     Spacer()
-                    Text(chargingCost.formatted())
+                    Text(homeChargingCost.formatted())
                         .bold()
                 }
                 HStack {
                     Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
                     Spacer()
                     let specificCost = Cost(
-                        amount: chargingConsumption.value > 0 ? chargingCost.amount / chargingConsumption.value : 0,
-                        currency: chargingCost.currency
+                        amount: homeChargingConsumption.value > 0 ? homeChargingCost.amount / homeChargingConsumption.value : 0,
+                        currency: homeChargingCost.currency
                     )
                     Text("\(specificCost.formatted())")
                         .bold()
@@ -147,15 +184,25 @@ struct HomeConsumptionAnalysis: View {
             
             Section(header: Text("This month's related refunding")) {
                 HStack {
-                    Text("Energy consumption:")
+                    Text("Consumption:")
                     Spacer()
-                    Text(refunded.consumption.formatted())
+                    Text("\(refundedChargingConsumption.formatted())")
                         .bold()
                 }
                 HStack {
-                    Text("Refunded Cost:")
+                    Text("Cost:")
                     Spacer()
-                    Text(refunded.cost.formatted())
+                    Text(refundedChargingCost.formatted())
+                        .bold()
+                }
+                HStack {
+                    Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
+                    Spacer()
+                    let specificCost = Cost(
+                        amount: refundedChargingConsumption.value > 0 ? refundedChargingCost.amount / refundedChargingConsumption.value : 0,
+                        currency: refundedChargingCost.currency
+                    )
+                    Text("\(specificCost.formatted())")
                         .bold()
                 }
             }

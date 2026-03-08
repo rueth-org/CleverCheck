@@ -39,7 +39,7 @@ struct HomeViewChart: View {
         } else if showHomeData {
             return data.filter { $0.dataType == .homeConsumption }
         } else if showChargingData {
-            return data.filter { $0.dataType == .charging }
+            return data.filter { $0.dataType == .homeCharging }
         } else {
             return data
         }

@@ -13,14 +13,17 @@ import SwiftUI
 final class Location: Identifiable {
     enum DataType: String {
         case homeConsumption = "Home consumption"
-        case charging = "Charging"
+        case homeCharging = "Home charging"
+        case refundedCharging = "Refunded charging"
         
         func color() -> DisplayColor {
             switch self {
             case .homeConsumption:
                 return .blue
-            case .charging:
+            case .homeCharging:
                 return .green
+            case .refundedCharging:
+                return .orange
             }
         }
     }
@@ -124,40 +127,48 @@ final class Location: Identifiable {
         while currentDate <= timePeriod.end {
             let monthKeys = timeBox.getKeysForDate(currentDate)
             
-            var grossConsumption: Double = 0.0
-            var netConsumption: Double = 0.0
-            var grossCost: Cost = .init(amount: 0.0)
-            var netCost: Cost = .init(amount: 0.0)
+            var totalConsumption: Double = 0.0
+            var homeConsumption: Double = 0.0
+            var totalCost: Cost = .init(amount: 0.0)
+            var homeCost: Cost = .init(amount: 0.0)
 
             for idx in homeConsumptions.indices {
-                grossConsumption += grossConsumptionPerMonth[idx][monthKeys.grouping] ?? 0.0
-                netConsumption += netConsumptionPerMonth[idx][monthKeys.grouping] ?? 0.0
-                grossCost += costPerMonth[idx][monthKeys.grouping]?.gross ?? .init(amount: 0.0)
-                netCost += costPerMonth[idx][monthKeys.grouping]?.net ?? .init(amount: 0.0)
+                totalConsumption += grossConsumptionPerMonth[idx][monthKeys.grouping] ?? 0.0
+                homeConsumption += netConsumptionPerMonth[idx][monthKeys.grouping] ?? 0.0
+                totalCost += costPerMonth[idx][monthKeys.grouping]?.gross ?? .init(amount: 0.0)
+                homeCost += costPerMonth[idx][monthKeys.grouping]?.net ?? .init(amount: 0.0)
             }
 
-            var deltaConsumption = grossConsumption - netConsumption
-            var deltaCost = grossCost - netCost
+            // Home charging is the difference between total and home consumption and cost until now
+            var homeChargingConsumption = totalConsumption - homeConsumption
+            var homeChargingCost = totalCost - homeCost
             
-            // If there is a refunded session in this month, subtract its consumption and cost from the home consumption and add the consumption to the charging part, since it is a refunded charging session that is included in the home consumption via the "includedInOtherPlan" relation. The refunded cost is not added to delta cost, as it's paid for by the refunding plan.
+            // Until now, there's no refunding, therefore totalConsumptionWithoutRefunding and totalCostWithRefunding are the same as totalConsumption and totalCost, but they will be adjusted in the following steps if there are refunded sessions in this month.
+            var refundedConsumption: Double = 0.0
+            var refundedCost: Cost = .init(amount: 0.0)
+            var totalConsumptionWithoutRefunding = totalConsumption
+            var totalCostWithRefunding = totalCost
+                        
+            // If there is a refunded session in this month, subtract its consumption and cost from the home consumption and add them to the refunded part.
             if let refundedData = refundedPerMonth[monthKeys.grouping] {
-                netConsumption -= refundedData.consumption.value
-                netCost += refundedData.cost // refundedData.cost is a negative value, so we add it to netCost to reduce the total cost
-                deltaConsumption += refundedData.consumption.value
+                homeConsumption -= refundedData.consumption.value
+                refundedConsumption += refundedData.consumption.value
+                homeCost += refundedData.cost // refundedData.cost is a negative value, so we add it to homeCost to reduce its value
+                refundedCost -= refundedData.cost // refundedData.cost is a negative value, so we subtract it from refundedCost to increase its value
             }
             
             // If there are charging sesssions from related charging cost plans, ...
             if let relatedConsumption = relatedChargingConsumptions[monthKeys.grouping] {
                 // Determine the cost portion of netCost (= home cost) related to charging
-                let chargingCostPortion = Cost(amount: netCost.amount * relatedConsumption.value / netConsumption)
+                let chargingCostPortion = Cost(amount: homeCost.amount * relatedConsumption.value / homeConsumption)
                 
                 // Subtract the related charging consumption from the home consumption and add them to the charging part.
-                netConsumption -= relatedConsumption.value
-                deltaConsumption += relatedConsumption.value
+                homeConsumption -= relatedConsumption.value
+                homeChargingConsumption += relatedConsumption.value
                 
                 // Subtract the related charging cost portion from the home cost and add it to the charging cost, so that the costs are correctly allocated to home and charging part.
-                netCost -= chargingCostPortion
-                deltaCost += chargingCostPortion
+                homeCost -= chargingCostPortion
+                homeChargingCost += chargingCostPortion
             }
 
             // Create home consumption data set
@@ -165,18 +176,29 @@ final class Location: Identifiable {
                 groupingKey: monthKeys.grouping,
                 displayKey: monthKeys.display,
                 dataType: .homeConsumption,
-                consumption: .init(value: netConsumption, unit: UserSettings.shared.energyUnit),
-                cost: netCost
+                consumption: .init(value: homeConsumption, unit: UserSettings.shared.energyUnit),
+                cost: homeCost
             ))
 
-            // Create charging data set
+            // Create home charging data set
             result.append(Data(
                 groupingKey: monthKeys.grouping,
                 displayKey: monthKeys.display,
-                dataType: .charging,
-                consumption: .init(value: deltaConsumption, unit: UserSettings.shared.energyUnit),
-                cost: deltaCost
+                dataType: .homeCharging,
+                consumption: .init(value: homeChargingConsumption, unit: UserSettings.shared.energyUnit),
+                cost: homeChargingCost
             ))
+            
+            // Create the refunded charging data set only if there is a refunded session in this month, otherwise we would have an unnecessary data set with zero values, which would add clutter to the graph and legend.
+            if refundedConsumption != 0.0 || refundedCost.amount != 0.0 {
+                result.append(Data(
+                    groupingKey: monthKeys.grouping,
+                    displayKey: monthKeys.display,
+                    dataType: .refundedCharging,
+                    consumption: .init(value: refundedConsumption, unit: UserSettings.shared.energyUnit),
+                    cost: refundedCost
+                ))
+            }
 
             // Increase current date by one month
             currentDate = calendar.date(byAdding: .month, value: 1, to: currentDate)!
