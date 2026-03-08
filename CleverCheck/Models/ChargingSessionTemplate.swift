@@ -10,6 +10,7 @@ import SwiftData
 
 @Model
 final class ChargingSessionTemplate {
+    var id: UUID = UUID()
     var name: String = ""
     var chargingSession: ChargingSession?
     

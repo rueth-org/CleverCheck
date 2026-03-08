@@ -97,12 +97,12 @@ struct DataEncoder {
         var initialSOC: Double?
         var finalSOC: Double?
         var comment: String?
-        var templateId: PersistentIdentifier?
+        var templateId: UUID?
     }
     
     struct ChargingSessionTemplateDTO: Codable {
         var name: String
-        var chargingSessionId: PersistentIdentifier
+        var chargingSessionId: UUID
     }
 
     struct HomeConsumptionDTO: Codable {
