@@ -25,17 +25,17 @@ struct DataImportExportTests {
         let modelContainer = try TestHelpers.makeModelContainer()
 
         // Import
-        let report = try DataImporter.importFrom(data: data, into: modelContainer)
+        let report = try DataImporter.importFrom(data: data, into: modelContainer.mainContext)
 
         // Basic expectations on the report
-        #expect(report.cars == 1)
-        #expect(report.chargers == 2)
-        #expect(report.locations == 2)
-        #expect(report.chargingCostPlans == 2)
-        #expect(report.chargingSessions == 3)
-        #expect(report.chargingSessionTemplates == 2)
-        #expect(report.homeConsumptions == 1)
-        #expect(report.priceElements == 2)
+        #expect(report.cars == 2)
+        #expect(report.chargers == 6)
+        #expect(report.locations == 3)
+        #expect(report.chargingCostPlans == 7)
+        #expect(report.chargingSessions == 232)
+        #expect(report.chargingSessionTemplates == 1)
+        #expect(report.homeConsumptions == 46)
+        #expect(report.priceElements == 149)
         #expect(report.errors.isEmpty)
 
         // Verify objects are present in the ModelContext
@@ -48,17 +48,17 @@ struct DataImportExportTests {
         let homes: [HomeConsumption] = try modelContainer.mainContext.fetch(FetchDescriptor<HomeConsumption>())
         let priceElements: [PriceElement] = try modelContainer.mainContext.fetch(FetchDescriptor<PriceElement>())
 
-        #expect(cars.count >= 1)
-        #expect(chargers.count >= 2)
-        #expect(locations.count >= 2)
-        #expect(plans.count >= 2)
-        #expect(sessions.count >= 3)
-        #expect(templates.count >= 2)
-        #expect(homes.count >= 1)
-        #expect(priceElements.count >= 2)
+        #expect(cars.count >= 2)
+        #expect(chargers.count >= 6)
+        #expect(locations.count >= 3)
+        #expect(plans.count >= 7)
+        #expect(sessions.count >= 232)
+        #expect(templates.count >= 1)
+        #expect(homes.count >= 46)
+        #expect(priceElements.count >= 149)
 
         // Re-importing the same data should not create duplicates (ids already present)
-        let secondReport = try DataImporter.importFrom(data: data, into: modelContainer)
+        let secondReport = try DataImporter.importFrom(data: data, into: modelContainer.mainContext)
         // Expect that nothing new was added (importer skips existing ids)
         #expect(secondReport.cars == 0)
         #expect(secondReport.chargers == 0)

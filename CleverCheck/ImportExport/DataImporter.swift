@@ -26,8 +26,7 @@ public struct DataImporter {
     ///   - data: JSON data produced by `DataEncoder.export`
     ///   - modelContext: the SwiftData `ModelContext` to insert objects into
     /// - Returns: an import report summarising the operation.
-    @MainActor
-    public static func importFrom(data: Data, into modelContainer: ModelContainer) throws -> DataImportReport {
+    public static func importFrom(data: Data, into modelContext: ModelContext) throws -> DataImportReport {
         var report = DataImportReport()
 
         let decoder = JSONDecoder()
@@ -46,23 +45,23 @@ public struct DataImporter {
             var sessionsById: [UUID: ChargingSession] = [:]
 
             // Prefetch existing objects once to avoid repeated fetches and actor issues
-            let existingCars: [Car] = (try? modelContainer.mainContext.fetch(FetchDescriptor<Car>())) ?? []
+            let existingCars: [Car] = (try? modelContext.fetch(FetchDescriptor<Car>())) ?? []
             let existingCarsById = Dictionary(uniqueKeysWithValues: existingCars.map { ($0.id, $0) })
             let existingCarIds = Set(existingCarsById.keys)
 
-            let existingLocations: [Location] = (try? modelContainer.mainContext.fetch(FetchDescriptor<Location>())) ?? []
+            let existingLocations: [Location] = (try? modelContext.fetch(FetchDescriptor<Location>())) ?? []
             let existingLocationsById = Dictionary(uniqueKeysWithValues: existingLocations.map { ($0.id, $0) })
             let existingLocationIds = Set(existingLocationsById.keys)
 
-            let existingChargers: [Charger] = (try? modelContainer.mainContext.fetch(FetchDescriptor<Charger>())) ?? []
+            let existingChargers: [Charger] = (try? modelContext.fetch(FetchDescriptor<Charger>())) ?? []
             let existingChargersById = Dictionary(uniqueKeysWithValues: existingChargers.map { ($0.id, $0) })
             let existingChargerIds = Set(existingChargersById.keys)
 
-            let existingPlans: [ChargingCostPlan] = (try? modelContainer.mainContext.fetch(FetchDescriptor<ChargingCostPlan>())) ?? []
+            let existingPlans: [ChargingCostPlan] = (try? modelContext.fetch(FetchDescriptor<ChargingCostPlan>())) ?? []
             let existingPlansById = Dictionary(uniqueKeysWithValues: existingPlans.map { ($0.id, $0) })
             let existingPlanIds = Set(existingPlansById.keys)
 
-            let existingHomeConsumptions: [HomeConsumption] = (try? modelContainer.mainContext.fetch(FetchDescriptor<HomeConsumption>())) ?? []
+            let existingHomeConsumptions: [HomeConsumption] = (try? modelContext.fetch(FetchDescriptor<HomeConsumption>())) ?? []
             let existingHomeConsumptionsById = Dictionary(uniqueKeysWithValues: existingHomeConsumptions.map { ($0.id, $0) })
             let existingHomeConsumptionIds = Set(existingHomeConsumptionsById.keys)
 
@@ -78,7 +77,7 @@ public struct DataImporter {
                 car.netBatteryCapacityKWh = dto.netBatteryCapacityKWh
                 car.maxChargingPowerkW = dto.maxChargingPowerKW
                 car.isArchived = dto.isArchived
-                modelContainer.mainContext.insert(car)
+                modelContext.insert(car)
                 carsById[dto.id] = car
                 report.cars += 1
             }
@@ -92,7 +91,7 @@ public struct DataImporter {
                 let location = Location(name: dto.name)
                 location.id = dto.id
                 location.isArchived = dto.isArchived
-                modelContainer.mainContext.insert(location)
+                modelContext.insert(location)
                 locationsById[dto.id] = location
                 report.locations += 1
             }
@@ -107,7 +106,7 @@ public struct DataImporter {
                 let charger = Charger(name: dto.name, location: location, maxPower: dto.maxPowerKW == nil ? nil : Measurement<UnitPower>(value: dto.maxPowerKW!, unit: .kilowatts))
                 charger.id = dto.id
                 charger.isArchived = dto.isArchived
-                modelContainer.mainContext.insert(charger)
+                modelContext.insert(charger)
                 chargersById[dto.id] = charger
                 report.chargers += 1
             }
@@ -136,7 +135,7 @@ public struct DataImporter {
                     planCar = existingCar
                 } else {
                     planCar = Car(make: "", model: "")
-                    modelContainer.mainContext.insert(planCar)
+                    modelContext.insert(planCar)
                 }
 
                 let planCharger: Charger
@@ -144,7 +143,7 @@ public struct DataImporter {
                     planCharger = existingCharger
                 } else {
                     planCharger = Charger(name: dto.id.uuidString)
-                    modelContainer.mainContext.insert(planCharger)
+                    modelContext.insert(planCharger)
                 }
 
                 let plan = ChargingCostPlan(
@@ -160,7 +159,7 @@ public struct DataImporter {
                 plan.id = dto.id
                 plan.energyUnitSymbol = dto.energyUnitSymbol
                 plan.isArchived = dto.isArchived
-                modelContainer.mainContext.insert(plan)
+                modelContext.insert(plan)
                 plansById[dto.id] = plan
                 report.chargingCostPlans += 1
             }
@@ -191,14 +190,14 @@ public struct DataImporter {
                     comment: dto.comment
                 )
                 home.id = dto.id
-                modelContainer.mainContext.insert(home)
+                modelContext.insert(home)
                 homeConsumptionsById[dto.id] = home
                 report.homeConsumptions += 1
             }
 
             // Insert price elements
             for dto in backup.priceElements {
-                let existingPriceElements: [PriceElement] = (try? modelContainer.mainContext.fetch(FetchDescriptor<PriceElement>())) ?? []
+                let existingPriceElements: [PriceElement] = (try? modelContext.fetch(FetchDescriptor<PriceElement>())) ?? []
                 if existingPriceElements.contains(where: { $0.id == dto.id }) {
                     continue
                 }
@@ -226,14 +225,14 @@ public struct DataImporter {
                     }
                 }
 
-                modelContainer.mainContext.insert(pe)
+                modelContext.insert(pe)
                 priceElementsById[dto.id] = pe
                 report.priceElements += 1
             }
 
             // Insert charging sessions
             for dto in backup.chargingSessions {
-                let existingSessions: [ChargingSession] = (try? modelContainer.mainContext.fetch(FetchDescriptor<ChargingSession>())) ?? []
+                let existingSessions: [ChargingSession] = (try? modelContext.fetch(FetchDescriptor<ChargingSession>())) ?? []
                 if existingSessions.contains(where: { $0.id == dto.id }) {
                     continue
                 }
@@ -262,11 +261,11 @@ public struct DataImporter {
                 } else {
                     // create placeholder car and charger and insert them
                     let fallbackCar = Car(make: "", model: "")
-                    modelContainer.mainContext.insert(fallbackCar)
+                    modelContext.insert(fallbackCar)
                     let fallbackCharger = Charger(name: dto.id.uuidString)
-                    modelContainer.mainContext.insert(fallbackCharger)
+                    modelContext.insert(fallbackCharger)
                     let fallbackPlan = ChargingCostPlan(car: fallbackCar, charger: fallbackCharger, planType: .individual)
-                    modelContainer.mainContext.insert(fallbackPlan)
+                    modelContext.insert(fallbackPlan)
                     sessionPlan = fallbackPlan
                 }
 
@@ -289,7 +288,7 @@ public struct DataImporter {
                     session.relatedHomeConsumption = related
                 }
 
-                modelContainer.mainContext.insert(session)
+                modelContext.insert(session)
                 sessionsById[dto.id] = session
                 report.chargingSessions += 1
             }
@@ -300,12 +299,12 @@ public struct DataImporter {
                 // Try to resolve session
                 if let session = sessionsById[dto.chargingSessionId] {
                     let template = ChargingSessionTemplate(name: dto.name, chargingSession: session)
-                    modelContainer.mainContext.insert(template)
+                    modelContext.insert(template)
                     report.chargingSessionTemplates += 1
                 } else {
                     // If session not found, still create template without session
                     let template = ChargingSessionTemplate(name: dto.name, chargingSession: nil)
-                    modelContainer.mainContext.insert(template)
+                    modelContext.insert(template)
                     report.chargingSessionTemplates += 1
                 }
             }
@@ -323,7 +322,7 @@ public struct DataImporter {
 
             // Save context
             do {
-                try modelContainer.mainContext.save()
+                try modelContext.save()
             } catch {
                 throw DataImportError.persistenceError(error)
             }
@@ -335,9 +334,8 @@ public struct DataImporter {
     }
 
     /// Convenience to import from a local file URL
-    @MainActor
-    public static func importFromFile(url: URL, into modelContainer: ModelContainer) throws -> DataImportReport {
+    public static func importFromFile(url: URL, into modelContext: ModelContext) throws -> DataImportReport {
         let data = try Data(contentsOf: url)
-        return try importFrom(data: data, into: modelContainer)
+        return try importFrom(data: data, into: modelContext)
     }
 }
