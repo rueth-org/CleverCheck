@@ -212,7 +212,7 @@ final class HomeConsumption: Comparable {
     /// Calculates the total cost for the home consumption over its entire duration, adding up all price elements.
     /// - Parameter includingVAT: Indicates whether to calculate cost without VAT or with VAT. Default is true (including VAT).
     /// - Parameter useRelatedConsumptions: If true, the consumption from related charging sessions is used instead of the entered consumption. If no charging sessions are availale, the entered consumption is used.
-    /// - Returns: The total cost as a (gross: Cost, net: Cost) tuple. The first value represents the sum of all positive price elements (gross), the second the sum of all postive and negative price elements (net).
+    /// - Returns: The total cost as a (gross: Cost, net: Cost) tuple. The gross value represents the sum of all positive price elements, the net value the sum of all postive and negative price elements.
     func totalCost(includingVAT: Bool = true, useRelatedConsumptions: Bool) -> (gross: Cost, net: Cost) {
         if priceElements == nil {
             return (.init(amount: 0.0), .init(amount: 0.0))

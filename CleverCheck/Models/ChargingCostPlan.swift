@@ -15,6 +15,7 @@ public final class ChargingCostPlan {
         case individual = "Individual"
         case flatrate = "Flatrate"
         case homeConsumption = "Home Consumption"
+        case homeDiscounted = "Home Discounted"
         case refunded = "Refunded"
         
         var description: String {

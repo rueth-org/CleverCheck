@@ -123,6 +123,7 @@ public struct DataImporter {
                 case .individual: planType = .individual
                 case .flatrate: planType = .flatrate
                 case .homeConsumption: planType = .homeConsumption
+                case .homeDiscounted: planType = .homeDiscounted
                 case .refunded: planType = .refunded
                 }
 

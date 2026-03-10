@@ -448,7 +448,7 @@ struct SettingsView: View {
     private func checkForMissingHomeConsumptions() {
         for session in chargingSessions {
             if session.chargingCostPlan?.planType == .refunded, session.relatedHomeConsumption == nil {
-                let candidates = session.possibleHomeConsumptions(modelContext: modelContext, ignorePlan: false, ignoreDate: false)
+                let candidates = session.possibleHomeConsumptionsRefunded(modelContext: modelContext, ignorePlan: false, ignoreDate: false)
                 if let candidates, candidates.count == 1 {
                     session.relatedHomeConsumption = candidates.first!
                     updatedChargingSessions.append(session.description)

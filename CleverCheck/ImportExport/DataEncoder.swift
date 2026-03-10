@@ -62,7 +62,7 @@ struct DataEncoder {
 
     struct ChargingCostPlanDTO: Codable {
         enum PlanTypeDTO: Codable {
-            case individual, flatrate, homeConsumption, refunded
+            case individual, flatrate, homeConsumption, homeDiscounted, refunded
         }
 
         var id: UUID
@@ -227,6 +227,7 @@ struct DataEncoder {
             case .individual: planTypeDTO = .individual
             case .flatrate: planTypeDTO = .flatrate
             case .homeConsumption: planTypeDTO = .homeConsumption
+            case .homeDiscounted: planTypeDTO = .homeDiscounted
             case .refunded: planTypeDTO = .refunded
             }
             

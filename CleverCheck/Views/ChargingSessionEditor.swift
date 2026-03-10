@@ -33,9 +33,11 @@ struct ChargingSessionEditor: View {
     @Query(sort: [SortDescriptor(\Car.make), SortDescriptor(\Car.model)]) private var cars: [Car]
     @Query private var chargingCostPlans: [ChargingCostPlan]
     
-    @Query(sort: [SortDescriptor(\HomeConsumption.name)]) private var homeConsumptions: [HomeConsumption]
-    var possibleHomeConsumptions: [HomeConsumption]? {
-        chargingSession?.possibleHomeConsumptions(modelContext: modelContext, ignorePlan: ignorePlan, ignoreDate: ignoreDate)
+    var possibleHomeConsumptionsRefunded: [HomeConsumption]? {
+        chargingSession?.possibleHomeConsumptionsRefunded(modelContext: modelContext, ignorePlan: ignorePlan, ignoreDate: ignoreDate)
+    }
+    var possibleHomeConsumptionsDiscounted: [HomeConsumption]? {
+        chargingSession?.possibleHomeConsumptionsDiscounted(modelContext: modelContext, ignoreDate: ignoreDate)
     }
     
     @State private var selectedCar: Car?
@@ -146,10 +148,10 @@ struct ChargingSessionEditor: View {
             }
             
             // When editing a session (if new, we present it later after saving) ...
-            if chargingSession != nil, chargingCostPlan?.planType == .refunded {
+            if chargingSession != nil, chargingCostPlan?.planType == .refunded || chargingCostPlan?.planType == .homeDiscounted {
                 // Ask for a home consumption
                 HStack {
-                    Text("Home Consumption for refunding: \(relatedHomeConsumption?.descriptionWithDate ?? "-")")
+                    chargingCostPlan?.planType == .refunded ? Text("Home Consumption for refunding: \(relatedHomeConsumption?.descriptionWithDate ?? "-")") : Text("Home Consumption for discount: \(relatedHomeConsumption?.descriptionWithDate ?? "-")")
                     Spacer()
                     Button(action: {
                         isShowingHomeConsumptionPickerSheet = true
@@ -473,8 +475,17 @@ struct ChargingSessionEditor: View {
                     self.comment = comment
                 }
                 if chargingSession.chargingCostPlan?.planType == .refunded, relatedHomeConsumption == nil {
-                    if let possibleHomeConsumptions, possibleHomeConsumptions.count == 1 {
-                        if let relatedHomeConsumption = possibleHomeConsumptions.first {
+                    if let possibleHomeConsumptionsRefunded, possibleHomeConsumptionsRefunded.count == 1 {
+                        if let relatedHomeConsumption = possibleHomeConsumptionsRefunded.first {
+                            self.relatedHomeConsumption = relatedHomeConsumption
+                            activeAlert = SimpleAlert(type: .notice(message: "Automatically determined related home consumption \(relatedHomeConsumption.descriptionWithDate). Please save this session or correct."))
+                            showingAlert = true
+                        }
+                    }
+                }
+                if chargingSession.chargingCostPlan?.planType == .homeDiscounted, relatedHomeConsumption == nil {
+                    if let possibleHomeConsumptionsDiscounted, possibleHomeConsumptionsDiscounted.count == 1 {
+                        if let relatedHomeConsumption = possibleHomeConsumptionsDiscounted.first {
                             self.relatedHomeConsumption = relatedHomeConsumption
                             activeAlert = SimpleAlert(type: .notice(message: "Automatically determined related home consumption \(relatedHomeConsumption.descriptionWithDate). Please save this session or correct."))
                             showingAlert = true
@@ -485,7 +496,7 @@ struct ChargingSessionEditor: View {
         }
         .sheet(isPresented: $isShowingHomeConsumptionPickerSheet) {
             HomeConsumptionPicker(
-                possibleHomeConsumptions: possibleHomeConsumptions,
+                possibleHomeConsumptions: chargingCostPlan?.planType == .refunded ? possibleHomeConsumptionsRefunded : possibleHomeConsumptionsDiscounted,
                 selectedHomeConsumption: $relatedHomeConsumption,
                 chooseLater: $chooseHomeConsumptionLater,
                 ignorePlan: $ignorePlan,
@@ -648,12 +659,16 @@ struct ChargingSessionEditor: View {
         // Save data
         try? modelContext.save()
         
-        if chooseHomeConsumptionLater || selectedPlan.planType != .refunded || (selectedPlan.planType == .refunded && relatedHomeConsumption != nil) {
+        if chooseHomeConsumptionLater ||
+            (selectedPlan.planType != .refunded && selectedPlan.planType != .homeDiscounted) ||
+            (selectedPlan.planType == .refunded && relatedHomeConsumption != nil) ||
+            (selectedPlan.planType == .homeDiscounted && relatedHomeConsumption != nil)
+        {
             andExit()
         } else {
             // Data check: Home consumption is recommended if charging cost plan type is refunded
             activeAlert = SimpleAlert(
-                type: .notice(message: "A home consumption entry is recommended for a refunded charging cost plan."),
+                type: .notice(message: selectedPlan.planType == .refunded ? "A home consumption entry is recommended for a refunded charging cost plan." : "A home consumption entry is recommended for a home discounted charging cost plan."),
                 customButtons: [
                     SimpleAlertButton(title: NSLocalizedString("Add now", comment: ""), role: nil) {
                         // Open the home consumption picker

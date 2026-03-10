@@ -140,7 +140,37 @@ final class ChargingSession: Comparable {
         chargedEnergy.converted(to: unitEnergy)
     }
     
-    func possibleHomeConsumptions(modelContext: ModelContext, ignorePlan: Bool, ignoreDate: Bool) -> [HomeConsumption]? {
+    func possibleHomeConsumptionsDiscounted(modelContext: ModelContext, ignoreDate: Bool = false) -> [HomeConsumption]? {
+        if let homeConsumptions = try? modelContext.fetch(FetchDescriptor<HomeConsumption>()) {
+            if homeConsumptions.isEmpty {
+                return nil
+            } else {
+                // Get all home consumptions related to the same location as the charging session's plan, if available
+                var candidates: [HomeConsumption]?
+                if let chargingCostPlan, let location = chargingCostPlan.charger?.location {
+                    candidates = homeConsumptions.filter { consumption in
+                        consumption.associatedLocation != nil && consumption.associatedLocation!.id == location.id
+                    }
+                }
+                
+                // If we have candidates, try applying time filter to them, otherwise to all home consumptions
+                if candidates == nil || candidates!.isEmpty {
+                    candidates = homeConsumptions
+                }
+                if !ignoreDate {
+                    candidates = candidates!.filter { consumption in
+                        consumption.validFrom <= endTime && endTime <= consumption.validUntil
+                    }
+                }
+                    
+                return candidates?.sorted(by: { $0.descriptionWithDate < $1.descriptionWithDate })
+            }
+        } else {
+            return nil
+        }
+    }
+    
+    func possibleHomeConsumptionsRefunded(modelContext: ModelContext, ignorePlan: Bool, ignoreDate: Bool) -> [HomeConsumption]? {
         if let homeConsumptions = try? modelContext.fetch(FetchDescriptor<HomeConsumption>()) {
             if homeConsumptions.isEmpty {
                 return nil
@@ -171,7 +201,7 @@ final class ChargingSession: Comparable {
                     }
                 }
                 
-                return candidates
+                return candidates?.sorted(by: { $0.descriptionWithDate < $1.descriptionWithDate })
             }
         } else {
             return nil

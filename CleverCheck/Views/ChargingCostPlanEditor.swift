@@ -36,6 +36,7 @@ struct ChargingCostPlanEditor: View {
         ChargingCostPlan.PlanType.individual.description,
         ChargingCostPlan.PlanType.flatrate.description,
         ChargingCostPlan.PlanType.homeConsumption.description,
+        ChargingCostPlan.PlanType.homeDiscounted.description,
         ChargingCostPlan.PlanType.refunded.description
     ]
     
@@ -157,7 +158,7 @@ struct ChargingCostPlanEditor: View {
                             flatratePrice = originalRate
                         }
                     }
-                case .homeConsumption:
+                case .homeConsumption, .homeDiscounted:
                     guard (plan.charger?.location) != nil else {
                         activeAlert = SimpleAlert(type: .fatalError(message: "Related charger has no location."))
                         showingAlert = true
@@ -264,6 +265,13 @@ struct ChargingCostPlanEditor: View {
                 return
             }
             tempPlanType = .homeConsumption
+        case ChargingCostPlan.PlanType.homeDiscounted.description:
+            guard charger?.location != nil else {
+                activeAlert = SimpleAlert(type: .error(message: "Please select a charger with a known location."))
+                showingAlert = true
+                return
+            }
+            tempPlanType = .homeDiscounted
         case ChargingCostPlan.PlanType.refunded.description:
             tempPlanType = .refunded
             
@@ -380,7 +388,7 @@ struct ChargingCostPlanEditor: View {
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
             }
-        case ChargingCostPlan.PlanType.homeConsumption.description:
+        case ChargingCostPlan.PlanType.homeConsumption.description, ChargingCostPlan.PlanType.homeDiscounted.description:
             HStack {
                 Text("Location:")
                 Spacer()
