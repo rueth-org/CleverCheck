@@ -7,25 +7,35 @@ import SwiftData
 @Suite("Location data aggregation")
 struct LocationTests {
     @Test("data() with two sets of home consumptions", arguments: [
+        ("Irisvej 33", 2025, 11,
+         totalConsumptionKWh: 1071.0,
+         totalCost: Cost(amount: 2416.91),
+         refundedConsumptionKWh: 374.5,
+         refundedCost: Cost(amount: 726.53),
+         chargingConsumptionKWh: 260.61,
+         chargingCost: Cost(amount: 438.27),
+         homeConsumptionKWh: 435.89,
+         homeCost: Cost(amount: 1057.93)
+        ),
         ("Irisvej 33", 2025, 12,
          totalConsumptionKWh: 1008.0,
          totalCost: Cost(amount: 2147.47),
-         refundedConsumptionKWh: 342.0,
+         refundedConsumptionKWh: 342.9,
          refundedCost: Cost(amount: 648.08),
-         homeConsumptionKWh: 456.67,
-         homeCost: Cost(amount: 1029.51),
          chargingConsumptionKWh: 208.43,
-         chargingCost: Cost(amount: 283.34)
+         chargingCost: Cost(amount: 283.34),
+         homeConsumptionKWh: 456.67,
+         homeCost: Cost(amount: 1029.51)
         ),
         ("Irisvej 33", 2026, 1,
          totalConsumptionKWh: 1406.521,
          totalCost: Cost(amount: 1910.37),
          refundedConsumptionKWh: 506.4,
          refundedCost: Cost(amount: 582.36),
-         homeConsumptionKWh: 615.721,
-         homeCost: Cost(amount: 908.42),
          chargingConsumptionKWh: 284.4,
-         chargingCost: Cost(amount: 419.60)
+         chargingCost: Cost(amount: 419.60),
+         homeConsumptionKWh: 615.721,
+         homeCost: Cost(amount: 908.42)
         )
     ])
     func testSingleHomeConsumption(
@@ -36,16 +46,16 @@ struct LocationTests {
         totalCost: Cost,
         refundedConsumptionKWh: Double,
         refundedCost: Cost,
-        homeConsumptionKWh: Double,
-        homeCost: Cost,
         chargingConsumptionKWh: Double,
-        chargingCost: Cost
+        chargingCost: Cost,
+        homeConsumptionKWh: Double,
+        homeCost: Cost
     ) async throws {
         // Create in-memory database
         let modelContainer = try await TestHelpers.makeModelContainer()
         
         // Locate the test data JSON next to this test file
-        let testFileURL = URL(fileURLWithPath: #file).deletingLastPathComponent().appendingPathComponent("TestData_2026-03-07.json")
+        let testFileURL = URL(fileURLWithPath: #file).deletingLastPathComponent().appendingPathComponent("TestData.json")
         
         // Load test data into the in-memory database
         let report = try await DataImporter.importFromFile(url: testFileURL, into: modelContainer.mainContext)
@@ -72,10 +82,10 @@ struct LocationTests {
         let data = await location.data(in: timeBox, useRelatedConsumption: true, modelContext: modelContainer.mainContext)
         
         let analysis = HomeConsumptionAnalysis(homeConsumptions: [], timeBox: timeBox, data: data, location: location)
-        let totalData = analysis.totalData
-        let homeData = analysis.homeData
-        let chargingData = analysis.homeChargingData
-        let refundedData = analysis.refundedChargingData
+        let totalData = await analysis.totalData
+        let homeData = await analysis.homeData
+        let chargingData = await analysis.homeChargingData
+        let refundedData = await analysis.refundedChargingData
         
         // Verify total data
         let calculatedTotalConsumptionKWh = totalData.consumption.converted(to: .kilowattHours).value

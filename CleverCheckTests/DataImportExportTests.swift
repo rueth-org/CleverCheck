@@ -9,7 +9,7 @@ struct DataImportExportTests {
     @MainActor
     func testImportRepresentativeSubset() async throws {
         // Locate the test data JSON next to this test file
-        let testFileURL = URL(fileURLWithPath: #file).deletingLastPathComponent().appendingPathComponent("TestData_2026-03-07.json")
+        let testFileURL = URL(fileURLWithPath: #file).deletingLastPathComponent().appendingPathComponent("TestData.json")
         let raw = try Data(contentsOf: testFileURL)
 
         let decoder = JSONDecoder()
