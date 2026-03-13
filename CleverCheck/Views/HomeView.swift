@@ -30,7 +30,8 @@ struct HomeView: View {
         selectIndividualItem: { _ in }
     )
     @State private var showHomeData: Bool = true
-    @State private var showChargingData: Bool = true
+    @State private var showHomeChargingData: Bool = true
+    @State private var showRefundedChargingData: Bool = true
     
     @State private var showingHomeConsumptionAnalysis: Bool = false
     
@@ -65,7 +66,8 @@ struct HomeView: View {
                         timeBox: timeBox,
                         data: data,
                         showHomeData: $showHomeData,
-                        showChargingData: $showChargingData,
+                        showHomeChargingData: $showHomeChargingData,
+                        showRefundedChargingData: $showRefundedChargingData,
                         onBarTap: { dateKey in
                             timeBox.switchResolution(dateKey)
                         }

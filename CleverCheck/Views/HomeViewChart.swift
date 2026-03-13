@@ -25,7 +25,8 @@ struct HomeViewChart: View {
     var data: [Location.Data]
     
     @Binding var showHomeData: Bool
-    @Binding var showChargingData: Bool
+    @Binding var showHomeChargingData: Bool
+    @Binding var showRefundedChargingData: Bool
 
     // pending tap location relative to the TapLocationView bounds
     @State private var pendingTapLocation: CGPoint? = nil
@@ -34,14 +35,26 @@ struct HomeViewChart: View {
     var onBarTap: ((String) -> Void)? = nil
 
     private var filteredHomeData: [Location.Data] {
-        if showHomeData && showChargingData {
-            return data
-        } else if showHomeData {
-            return data.filter { $0.dataType == .homeConsumption }
-        } else if showChargingData {
-            return data.filter { $0.dataType == .homeCharging }
+        // We never show .total or .discount
+        let shownData = data.filter { $0.dataType != .total && $0.dataType != .discount }
+        
+        // Go through all combinations of the three boolean filters and return the correct subset
+        if showHomeData && showHomeChargingData && showRefundedChargingData {
+            return shownData
+        } else if showHomeData && !showHomeChargingData && !showRefundedChargingData {
+            return shownData.filter { $0.dataType == .homeConsumption }
+        } else if !showHomeData && showHomeChargingData && !showRefundedChargingData {
+            return shownData.filter { $0.dataType == .homeCharging }
+        } else if !showHomeData && !showHomeChargingData && showRefundedChargingData {
+            return shownData.filter { $0.dataType == .refundedCharging }
+        } else if showHomeData && showHomeChargingData && !showRefundedChargingData {
+            return shownData.filter { $0.dataType == .homeConsumption || $0.dataType == .homeCharging }
+        } else if showHomeData && !showHomeChargingData && showRefundedChargingData {
+            return shownData.filter { $0.dataType == .homeConsumption || $0.dataType == .refundedCharging }
+        } else if !showHomeData && showHomeChargingData && showRefundedChargingData {
+            return shownData.filter { $0.dataType == .homeCharging || $0.dataType == .refundedCharging }
         } else {
-            return data
+            return []
         }
      }
      
@@ -172,7 +185,7 @@ struct HomeViewChart: View {
             
             AnyView(costChart()),
             
-            AnyView(HomeViewSummary(location: location, timeBox: timeBox))
+            //AnyView(HomeViewSummary(location: location, timeBox: timeBox))
         ]
                 
         return DotIndicatorScrollView(tabViews: tabViews)
@@ -180,11 +193,14 @@ struct HomeViewChart: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         Toggle("Home consumption", isOn: $showHomeData)
-                            .disabled(showChargingData == false && showHomeData == true)
-                        Toggle("Charging", isOn: $showChargingData)
-                            .disabled(showChargingData == true && showHomeData == false)
+                            .disabled(showHomeChargingData == false && showRefundedChargingData == false)
+                        Toggle("Home charging", isOn: $showHomeChargingData)
+                            .disabled(showHomeData == false && showRefundedChargingData == false)
+                        Toggle("Refunded charging", isOn: $showRefundedChargingData)
+                            .disabled(showHomeData == false && showHomeChargingData == false)
                     } label: {
                         Label("Filter", systemImage: "slider.horizontal.3")
+                            .foregroundColor((showHomeData == false || showHomeChargingData == false || showRefundedChargingData == false) ? .blue : .primary)
                     }
                 }
             }

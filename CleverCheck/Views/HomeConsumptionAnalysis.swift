@@ -21,11 +21,11 @@ struct HomeConsumptionAnalysis: View {
     }
     
     var totalData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
-        let filteredData = filteredData
-        let consumption = filteredData.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
+        let totalData = filteredData.filter { $0.dataType == .total }
+        let consumption = totalData.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
             result = result + data.consumption
         }
-        let cost = filteredData.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
+        let cost = totalData.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
             result += data.cost
         }
         return (consumption, cost)
@@ -37,6 +37,17 @@ struct HomeConsumptionAnalysis: View {
             result = result + data.consumption
         }
         let cost = homeData.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
+            result += data.cost
+        }
+        return (consumption, cost)
+    }
+    
+    var discountData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
+        let discountData = filteredData.filter { $0.dataType == .discount }
+        let consumption = discountData.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
+            result = result + data.consumption
+        }
+        let cost = discountData.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
             result += data.cost
         }
         return (consumption, cost)
@@ -69,6 +80,8 @@ struct HomeConsumptionAnalysis: View {
         let totalCost = totalData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? totalData.cost
         let homeConsumption = homeData.consumption.converted(to: UserSettings.shared.energyUnit)
         let homeCost = homeData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? homeData.cost
+        let discountConsumption = discountData.consumption.converted(to: UserSettings.shared.energyUnit)
+        let discountCost = discountData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? discountData.cost
         let homeChargingConsumption = homeChargingData.consumption.converted(to: UserSettings.shared.energyUnit)
         let homeChargingCost = homeChargingData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? homeChargingData.cost
         let refundedChargingConsumption = refundedChargingData.consumption.converted(to: UserSettings.shared.energyUnit)
@@ -107,82 +120,12 @@ struct HomeConsumptionAnalysis: View {
                 }
             }
             
-            Section(header: Text("This month's gross data considering refunding")) {
-                HStack {
-                    Text("Consumption:")
-                    Spacer()
-                    Text("\((totalConsumption - refundedChargingConsumption).formatted())")
-                        .bold()
-                }
-                HStack {
-                    Text("Cost:")
-                    Spacer()
-                    Text((totalCost - refundedChargingCost).formatted())
-                        .bold()
-                }
-                HStack {
-                    Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
-                    Spacer()
-                    let specificCost = Cost(
-                        amount: (totalConsumption - refundedChargingConsumption).value > 0 ? (totalCost - refundedChargingCost).amount / (totalConsumption - refundedChargingConsumption).value : 0,
-                        currency: totalCost.currency
-                    )
-                    Text("\(specificCost.formatted())")
-                        .bold()
-                }
-            }
-            
-            Section(header: Text("This month's home consumption data")) {
-                HStack {
-                    Text("Consumption:")
-                    Spacer()
-                    Text("\(homeConsumption.formatted())")
-                        .bold()
-                }
-                HStack {
-                    Text("Cost:")
-                    Spacer()
-                    Text(homeCost.formatted())
-                        .bold()
-                }
-                HStack {
-                    Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
-                    Spacer()
-                    let specificCost = Cost(
-                        amount: homeConsumption.value > 0 ? homeCost.amount / homeConsumption.value : 0,
-                        currency: homeCost.currency
-                    )
-                    Text("\(specificCost.formatted())")
-                        .bold()
-                }
-            }
-            
-            Section(header: Text("This month's charging data")) {
-                HStack {
-                    Text("Consumption:")
-                    Spacer()
-                    Text("\(homeChargingConsumption.formatted())")
-                        .bold()
-                }
-                HStack {
-                    Text("Cost:")
-                    Spacer()
-                    Text(homeChargingCost.formatted())
-                        .bold()
-                }
-                HStack {
-                    Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
-                    Spacer()
-                    let specificCost = Cost(
-                        amount: homeChargingConsumption.value > 0 ? homeChargingCost.amount / homeChargingConsumption.value : 0,
-                        currency: homeChargingCost.currency
-                    )
-                    Text("\(specificCost.formatted())")
-                        .bold()
-                }
-            }
-            
-            Section(header: Text("This month's related refunding")) {
+            Section(header: HStack {
+                Image(systemName: "minus.circle.fill")
+                    .imageScale(.large)
+                    .foregroundStyle(.orange)
+                Text("This month's related refunding")
+            }) {
                 HStack {
                     Text("Consumption:")
                     Spacer()
@@ -207,6 +150,128 @@ struct HomeConsumptionAnalysis: View {
                 }
             }
             
+            Section(header: HStack {
+                Image(systemName: "equal.circle.fill")
+                    .imageScale(.large)
+                    .foregroundStyle(.orange)
+                Text("This month's gross data considering refunding")
+            }) {
+                HStack {
+                    Text("Consumption:")
+                    Spacer()
+                    Text("\((totalConsumption - refundedChargingConsumption).formatted())")
+                        .bold()
+                }
+                HStack {
+                    Text("Cost:")
+                    Spacer()
+                    Text((totalCost - refundedChargingCost).formatted())
+                        .bold()
+                }
+                HStack {
+                    Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
+                    Spacer()
+                    let specificCost = Cost(
+                        amount: (totalConsumption - refundedChargingConsumption).value > 0 ? (totalCost - refundedChargingCost).amount / (totalConsumption - refundedChargingConsumption).value : 0,
+                        currency: totalCost.currency
+                    )
+                    Text("\(specificCost.formatted())")
+                        .bold()
+                }
+            }
+            
+            if discountCost.amount != 0 {
+                Section(header: HStack {
+                    Image(systemName: "minus.circle.fill")
+                        .imageScale(.large)
+                        .foregroundStyle(.orange)
+                    Text("This month's charging discount")
+                }) {
+                    HStack {
+                        Text("Consumption:")
+                        Spacer()
+                        Text("(\(discountConsumption.formatted()))")
+                            .bold()
+                    }
+                    HStack {
+                        Text("Cost:")
+                        Spacer()
+                        Text(discountCost.formatted())
+                            .bold()
+                    }
+                    HStack {
+                        Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
+                        Spacer()
+                        let specificCost = Cost(
+                            amount: discountConsumption.value > 0 ? discountCost.amount / discountConsumption.value : 0,
+                            currency: discountCost.currency
+                        )
+                        Text("\(specificCost.formatted())")
+                            .bold()
+                    }
+                }
+            }
+            
+            Section(header: HStack {
+                Image(systemName: "minus.circle.fill")
+                    .imageScale(.large)
+                    .foregroundStyle(.orange)
+                Text("This month's charging data")
+            }) {
+                HStack {
+                    Text("Consumption:")
+                    Spacer()
+                    Text("\(homeChargingConsumption.formatted())")
+                        .bold()
+                }
+                HStack {
+                    Text("Cost:")
+                    Spacer()
+                    Text(homeChargingCost.formatted())
+                        .bold()
+                }
+                HStack {
+                    Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
+                    Spacer()
+                    let specificCost = Cost(
+                        amount: homeChargingConsumption.value > 0 ? homeChargingCost.amount / homeChargingConsumption.value : 0,
+                        currency: homeChargingCost.currency
+                    )
+                    Text("\(specificCost.formatted())")
+                        .bold()
+                }
+            }
+            
+            Section(header: HStack {
+                Image(systemName: "equal.circle.fill")
+                    .imageScale(.large)
+                    .foregroundStyle(.orange)
+                Text("This month's home consumption data")
+            }) {
+                HStack {
+                    Text("Consumption:")
+                    Spacer()
+                    Text("\(homeConsumption.formatted())")
+                        .bold()
+                }
+                HStack {
+                    Text("Cost:")
+                    Spacer()
+                    Text(homeCost.formatted())
+                        .bold()
+                }
+                HStack {
+                    Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
+                    Spacer()
+                    let specificCost = Cost(
+                        amount: homeConsumption.value > 0 ? homeCost.amount / homeConsumption.value : 0,
+                        currency: homeCost.currency
+                    )
+                    Text("\(specificCost.formatted())")
+                        .bold()
+                }
+            }
+            
             Section(header: Text("Ending this month")) {
                 ForEach(homeConsumptions, id: \.self) { homeConsumption in
                     VStack(alignment: .leading) {
@@ -218,20 +283,12 @@ struct HomeConsumptionAnalysis: View {
                             Text("\(homeConsumption.consumption.converted(to: UserSettings.shared.energyUnit).value.formatted()) \(UserSettings.shared.energyUnit.symbol)")
                         }
                         HStack {
-                            Text("Gross Cost:")
+                            Text("Cost:")
                             Spacer()
                             Text(homeConsumption.totalCost(
                                 includingVAT: UserSettings.shared.displayGrossPrices,
                                 useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
-                            ).gross.formatted())
-                        }
-                        HStack {
-                            Text("Net Cost:")
-                            Spacer()
-                            Text(homeConsumption.totalCost(
-                                includingVAT: UserSettings.shared.displayGrossPrices,
-                                useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
-                            ).net.formatted())
+                            ).formatted())
                         }
                     }
                     .padding(.vertical)

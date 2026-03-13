@@ -35,9 +35,9 @@ struct HomeConsumptionsList: View {
                     Section(header: Text(month, format: UserSettings.shared.displayDateFormatInSection)) {
                         // The total cost for the month
                         HStack {
-                            Text("Net Total:")
+                            Text("Total:")
                             Spacer()
-                            Text(totalCost(for: month).net.formatted())
+                            Text(cost(for: month).formatted())
                             Button {
                                 self.selectedConsumptions = .init(
                                     consumptions: groupedByMonths[month]!,
@@ -66,7 +66,7 @@ struct HomeConsumptionsList: View {
                                         Text(homeConsumption.totalCost(
                                             includingVAT: UserSettings.shared.displayGrossPrices,
                                             useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
-                                        ).net.formatted())
+                                        ).formatted())
                                             .font(.subheadline)
                                             .foregroundColor(.secondary)
                                     }
@@ -163,20 +163,15 @@ struct HomeConsumptionsList: View {
         try? modelContext.save()
     }
     
-    private func totalCost(for month: Date) -> (gross: Cost, net: Cost) {
+    private func cost(for month: Date) -> Cost {
         let monthString = UserSettings.shared.groupingDateFormatter.string(from: month)
-        var totalGross: Cost = .init(amount: 0.0)
-        var totalNet: Cost = .init(amount: 0.0)
+        var total: Cost = .init(amount: 0.0)
         for homeConsumption in homeConsumptions {
-            totalGross += homeConsumption.totalCostPerMonth(
+            total += homeConsumption.totalCostPerMonth(
                 includingVAT: UserSettings.shared.displayGrossPrices,
                 useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
-            )[monthString]?.gross ?? .init(amount: 0.0)
-            totalNet += homeConsumption.totalCostPerMonth(
-                includingVAT: UserSettings.shared.displayGrossPrices,
-                useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
-            )[monthString]?.net ?? .init(amount: 0.0)
+            )[monthString] ?? .init(amount: 0.0)
         }
-        return (gross: totalGross, net: totalNet)
+        return total
     }
 }

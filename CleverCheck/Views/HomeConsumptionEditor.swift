@@ -88,21 +88,12 @@ struct HomeConsumptionEditor: View {
             
             Section(header: Text("Results")) {
                 HStack {
-                    Text("Gross Cost")
+                    Text("Cost")
                     Spacer()
                     Text(homeConsumption?.totalCost(
                         includingVAT: UserSettings.shared.displayGrossPrices,
                         useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
-                    ).gross.formatted() ?? "-")
-                        .multilineTextAlignment(.trailing)
-                }
-                HStack {
-                    Text("Net Cost")
-                    Spacer()
-                    Text(homeConsumption?.totalCost(
-                        includingVAT: UserSettings.shared.displayGrossPrices,
-                        useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
-                    ).net.formatted() ?? "-")
+                    ).formatted() ?? "-")
                         .multilineTextAlignment(.trailing)
                 }
             }
