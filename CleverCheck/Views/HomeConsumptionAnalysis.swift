@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import Charts
 
 struct HomeConsumptionAnalysis: View {
     @Environment(\.modelContext) private var modelContext
@@ -87,15 +88,69 @@ struct HomeConsumptionAnalysis: View {
         let refundedChargingConsumption = refundedChargingData.consumption.converted(to: UserSettings.shared.energyUnit)
         let refundedChargingCost = refundedChargingData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? refundedChargingData.cost
         
-        Text(timeBox.formattedTime)
-            .font(.title)
+        Text(location.name)
+            .font(.headline)
             .padding(.top)
             .padding(.horizontal)
-        List {
-            Text("Location: \(location.name)")
-                .bold()
+        Text(timeBox.formattedTime)
+            .font(.subheadline)
+            .padding(.horizontal)
+        
+        Chart {
+            // The total bar, reaching from 0 to the total consumption
+            barMark(
+                xText: Location.DataType.total.rawValue,
+                yText: "Consumption",
+                yEnd: totalConsumption.value,
+                color: Location.DataType.total.color()
+            )
             
-            Section(header: Text("This month's gross data")) {
+            if refundedChargingConsumption.value > 0 {
+                // Subtracting the refunded charging, i.e., the top of the bar needs to be at the level of the total
+                barMark(
+                    xText: Location.DataType.refundedCharging.rawValue,
+                    yText: "Consumption",
+                    yStart: totalConsumption.value - refundedChargingConsumption.value,
+                    yEnd: totalConsumption.value,
+                    color: Location.DataType.refundedCharging.color()
+                )
+                
+                // The total considering refunding bar, reaching from 0 to the total consumption - refunded charging consumption
+                barMark(
+                    xText: "Total (including refunds)",
+                    yText: "Consumption",
+                    yEnd: totalConsumption.value - refundedChargingConsumption.value,
+                    color: .gray
+                )
+            }
+            
+            // Subtracting the home charging, i.e., the top of the bar needs to be at the level of the total considering refunding
+            barMark(
+                xText: Location.DataType.homeCharging.rawValue,
+                yText: "Consumption",
+                yStart: totalConsumption.value - refundedChargingConsumption.value - homeChargingConsumption.value,
+                yEnd: totalConsumption.value - refundedChargingConsumption.value,
+                color: Location.DataType.homeCharging.color()
+            )
+            
+            // The home consumption bar
+            barMark(
+                xText: Location.DataType.homeConsumption.rawValue,
+                yText: "Consumption",
+                yEnd: homeConsumption.value,
+                color: Location.DataType.homeConsumption.color()
+            )
+        }
+        .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
+        .padding()
+        
+        List {
+            Section(header: HStack {
+                Image(systemName: "circle.fill")
+                    .imageScale(.large)
+                    .foregroundStyle(Location.DataType.total.color().toColor())
+                Text("This month's gross data")
+            }) {
                 HStack {
                     Text("Consumption:")
                     Spacer()
@@ -123,7 +178,7 @@ struct HomeConsumptionAnalysis: View {
             Section(header: HStack {
                 Image(systemName: "minus.circle.fill")
                     .imageScale(.large)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Location.DataType.refundedCharging.color().toColor())
                 Text("This month's related refunding")
             }) {
                 HStack {
@@ -153,7 +208,7 @@ struct HomeConsumptionAnalysis: View {
             Section(header: HStack {
                 Image(systemName: "equal.circle.fill")
                     .imageScale(.large)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.gray)
                 Text("This month's gross data considering refunding")
             }) {
                 HStack {
@@ -184,7 +239,7 @@ struct HomeConsumptionAnalysis: View {
                 Section(header: HStack {
                     Image(systemName: "minus.circle.fill")
                         .imageScale(.large)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Location.DataType.discount.color().toColor())
                     Text("This month's charging discount")
                 }) {
                     HStack {
@@ -215,7 +270,7 @@ struct HomeConsumptionAnalysis: View {
             Section(header: HStack {
                 Image(systemName: "minus.circle.fill")
                     .imageScale(.large)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Location.DataType.homeCharging.color().toColor())
                 Text("This month's charging data")
             }) {
                 HStack {
@@ -245,7 +300,7 @@ struct HomeConsumptionAnalysis: View {
             Section(header: HStack {
                 Image(systemName: "equal.circle.fill")
                     .imageScale(.large)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Location.DataType.homeConsumption.color().toColor())
                 Text("This month's home consumption data")
             }) {
                 HStack {
@@ -296,4 +351,42 @@ struct HomeConsumptionAnalysis: View {
             }
         }
     }
+    
+    private func barMark(xText: String, yText: String, yStart: Double? = nil, yEnd: Double, color: DisplayColor) -> some ChartContent {
+        if let yStart {
+            return BarMark(
+                x: .value(xText, NSLocalizedString(xText, comment: "")),
+                yStart: .value(yText, yStart),
+                yEnd: .value(yText, yEnd)
+            )
+            .foregroundStyle(color.toColor())
+            .annotation(position: .overlay, alignment: .center) {
+                Group {
+                    Text(UserSettings.shared.format(yEnd - yStart, withSignificantDigits: 3))
+                }
+                .font(.caption)
+                .foregroundColor(.black)
+                .padding(4)
+                .background(Color.white.opacity(0.8))
+                .cornerRadius(6)
+            }
+        } else {
+            return BarMark(
+                x: .value(xText, NSLocalizedString(xText, comment: "")),
+                y: .value(yText, yEnd)
+            )
+            .foregroundStyle(color.toColor())
+            .annotation(position: .top, alignment: .center) {
+                Group {
+                    Text(UserSettings.shared.format(yEnd, withSignificantDigits: 3))
+                }
+                .font(.caption)
+                .foregroundColor(.black)
+                .padding(4)
+                .background(Color.white.opacity(0.8))
+                .cornerRadius(6)
+            }
+        }
+    }
 }
+

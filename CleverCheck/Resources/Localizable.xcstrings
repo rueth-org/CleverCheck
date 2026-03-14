@@ -2936,6 +2936,7 @@
       }
     },
     "Location: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "da" : {
           "stringUnit" : {
@@ -5276,6 +5277,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gesamt"
+          }
+        }
+      }
+    },
+    "Total (including refunds)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total (med tilbagebetaling)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesamt (mit Rückerstattung)"
           }
         }
       }

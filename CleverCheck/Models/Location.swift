@@ -21,11 +21,11 @@ final class Location: Identifiable {
         func color() -> DisplayColor {
             switch self {
             case .total:
-                return .gray
-            case .homeConsumption:
                 return .blue
+            case .homeConsumption:
+                return .red
             case .homeCharging:
-                return .green
+                return .yellow
             case .refundedCharging:
                 return .orange
             case .discount:
