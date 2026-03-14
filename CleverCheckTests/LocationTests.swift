@@ -81,7 +81,7 @@ struct LocationTests {
         Location.invalidateCache()
         let data = await location.data(in: timeBox, useRelatedConsumption: true, modelContext: modelContainer.mainContext)
         
-        let analysis = HomeConsumptionAnalysis(homeConsumptions: [], timeBox: timeBox, data: data, location: location)
+        let analysis = HomeConsumptionWaterfallChart(homeConsumptions: [], timeBox: timeBox, data: data, location: location)
         let totalData = await analysis.totalData
         let homeData = await analysis.homeData
         let chargingData = await analysis.homeChargingData

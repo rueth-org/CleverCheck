@@ -63,129 +63,11 @@ struct HomeViewChart: View {
          let data = filteredHomeData
          let sortedData = data.sorted()
 
-         // Compute aggregated sums from the single captured data set
-         let aggregatedEnergySumsLocal: [(timeKey: String, sum: Double)] = {
-             let grouped = Dictionary(grouping: data) { $0.displayKey }
-             return grouped.map { key, values in
-                 (timeKey: key, sum: values.reduce(0) { acc, item in acc + item.consumption.converted(to: .kilowattHours).value })
-             }
-         }()
- 
-         // Compute aggregated cost sums from the single captured data set
-         let aggregatedCostSumsLocal: [(timeKey: String, sum: Double)] = {
-             let currency = UserSettings.shared.currencyIdentifier
-             let grouped = Dictionary(grouping: data) { $0.displayKey }
-             return grouped.map { key, values in
-                 (timeKey: key, sum: values.reduce(0) { acc, item in acc + (item.cost.converted(to: currency)?.amount ?? 0.0) })
-             }
-         }()
-
          let tabViews: [AnyView] = [
-            AnyView(
-                VStack {
-                    Text("Consumption")
-                        .font(.headline)
-                        .padding(.top)
-                        .padding(.horizontal)
-                    if sortedData.isEmpty {
-                        Text("No consumption data available for this period.")
-                            .italic()
-                            .padding()
-                        Spacer()
-                    } else {
-                        Chart {
-                            ForEach(sortedData, id: \.id) { dataSet in
-                                BarMark(
-                                    x: .value("Month", dataSet.displayKey),
-                                    y: .value("Consumption", dataSet.consumption.value)
-                                )
-                                .foregroundStyle(by: .value("Data Type", NSLocalizedString(dataSet.dataType.rawValue, comment: "")))
-                            }
-                            
-                            ForEach(aggregatedEnergySumsLocal, id: \.timeKey) { item in
-                                PointMark(
-                                    x: .value("Month", item.timeKey),
-                                    y: .value("Total", item.sum)
-                                )
-                                .symbol(.circle)
-                                .opacity(0)
-                                .annotation(position: .top, alignment: .center) {
-                                    Group {
-                                        Text(UserSettings.shared.format(item.sum, withSignificantDigits: 3))
-                                    }
-                                    .font(.caption)
-                                    .foregroundColor(.black)
-                                    .padding(4)
-                                    .background(Color.white.opacity(0.8))
-                                    .cornerRadius(6)
-                                }
-                            }
-                        }
-                        .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
-                        .chartForegroundStyleScale(range: displayColors(for: sortedData))
-                        .chartLegend(.visible)
-                        .chartOverlay { proxy in
-                            readTappedPosition(proxy, aggregatedSums: aggregatedEnergySumsLocal, data: data)
-                        }
-                    }
-                }
-            ),
-            
+            AnyView(consumptionBarChart(sortedData)),
             AnyView(energyChart()),
-            
-            AnyView(
-                VStack {
-                    Text("Cost")
-                        .font(.headline)
-                        .padding(.top)
-                        .padding(.horizontal)
-                    if sortedData.isEmpty {
-                        Text("No cost data available for this period.")
-                            .italic()
-                            .padding()
-                        Spacer()
-                    } else {
-                        Chart {
-                            ForEach(sortedData, id: \.id) { dataSet in
-                                BarMark(
-                                    x: .value("Month", dataSet.displayKey),
-                                    y: .value("Cost", dataSet.cost.amount)
-                                )
-                                .foregroundStyle(by: .value("Data Type", NSLocalizedString(dataSet.dataType.rawValue, comment: "")))
-                            }
-                            
-                            ForEach(aggregatedCostSumsLocal, id: \.timeKey) { item in
-                                PointMark(
-                                    x: .value("Month", item.timeKey),
-                                    y: .value("Total", item.sum)
-                                )
-                                .symbol(.circle)
-                                .opacity(0)
-                                .annotation(position: .top, alignment: .center) {
-                                    Group {
-                                        Text(UserSettings.shared.format(item.sum, withSignificantDigits: 3))
-                                    }
-                                    .font(.caption)
-                                    .foregroundColor(.black)
-                                    .padding(4)
-                                    .background(Color.white.opacity(0.8))
-                                    .cornerRadius(6)
-                                }
-                            }
-                        }
-                        .chartYAxisLabel(UserSettings.shared.currencyIdentifier)
-                        .chartForegroundStyleScale(range: displayColors(for: sortedData))
-                        .chartLegend(.visible)
-                        .chartOverlay { proxy in
-                            readTappedPosition(proxy, aggregatedSums: aggregatedCostSumsLocal, data: data)
-                        }
-                    }
-                }
-            ),
-            
-            AnyView(costChart()),
-            
-            //AnyView(HomeViewSummary(location: location, timeBox: timeBox))
+            AnyView(costBarChart(sortedData)),
+            AnyView(costChart())
         ]
                 
         return DotIndicatorScrollView(tabViews: tabViews)
@@ -263,6 +145,76 @@ struct HomeViewChart: View {
     }
     
     @ViewBuilder
+    private func consumptionBarChart(_ sortedData: [Location.Data]) -> some View {
+        if timeBox.selectedResolution == .yearly {
+            // Compute aggregated sums from the single captured data set
+            let aggregatedEnergySumsLocal: [(timeKey: String, sum: Double)] = {
+                let grouped = Dictionary(grouping: sortedData) { $0.displayKey }
+                return grouped.map { key, values in
+                    (timeKey: key, sum: values.reduce(0) { acc, item in acc + item.consumption.converted(to: .kilowattHours).value })
+                }
+            }()
+    
+            VStack {
+                Text("Consumption")
+                    .font(.headline)
+                    .padding(.top)
+                    .padding(.horizontal)
+                if sortedData.isEmpty {
+                    Text("No consumption data available for this period.")
+                        .italic()
+                        .padding()
+                    Spacer()
+                } else {
+                    Chart {
+                        ForEach(sortedData, id: \.id) { dataSet in
+                            BarMark(
+                                x: .value("Month", dataSet.displayKey),
+                                y: .value("Consumption", dataSet.consumption.value)
+                            )
+                            .foregroundStyle(by: .value("Data Type", NSLocalizedString(dataSet.dataType.rawValue, comment: "")))
+                        }
+                        
+                        ForEach(aggregatedEnergySumsLocal, id: \.timeKey) { item in
+                            PointMark(
+                                x: .value("Month", item.timeKey),
+                                y: .value("Total", item.sum)
+                            )
+                            .symbol(.circle)
+                            .opacity(0)
+                            .annotation(position: .top, alignment: .center) {
+                                Group {
+                                    Text(UserSettings.shared.format(item.sum, withSignificantDigits: 3))
+                                }
+                                .font(.caption)
+                                .foregroundColor(.black)
+                                .padding(4)
+                                .background(Color.white.opacity(0.8))
+                                .cornerRadius(6)
+                            }
+                        }
+                    }
+                    .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
+                    .chartForegroundStyleScale(range: displayColors(for: sortedData))
+                    .chartLegend(.visible)
+                    .chartOverlay { proxy in
+                        readTappedPosition(proxy, aggregatedSums: aggregatedEnergySumsLocal, data: data)
+                    }
+                }
+            }
+        } else if timeBox.selectedResolution == .monthly {
+            HomeConsumptionWaterfallChart(
+                timeBox: timeBox,
+                data: data,
+                chartType: .consumption
+            )
+        } else {
+            Text("Please select a year or month.")
+                .italic()
+        }
+    }
+    
+    @ViewBuilder
     private func energyChart() -> some View {
         VStack {
             Text("Total consumption")
@@ -318,6 +270,77 @@ struct HomeViewChart: View {
                 }
                 .padding()
             }
+        }
+    }
+    
+    @ViewBuilder
+    private func costBarChart(_ sortedData: [Location.Data]) -> some View {
+        if timeBox.selectedResolution == .yearly {
+            // Compute aggregated cost sums from the single captured data set
+            let aggregatedCostSumsLocal: [(timeKey: String, sum: Double)] = {
+                let currency = UserSettings.shared.currencyIdentifier
+                let grouped = Dictionary(grouping: sortedData) { $0.displayKey }
+                return grouped.map { key, values in
+                    (timeKey: key, sum: values.reduce(0) { acc, item in acc + (item.cost.converted(to: currency)?.amount ?? 0.0) })
+                }
+            }()
+
+            VStack {
+                Text("Cost")
+                    .font(.headline)
+                    .padding(.top)
+                    .padding(.horizontal)
+                if sortedData.isEmpty {
+                    Text("No cost data available for this period.")
+                        .italic()
+                        .padding()
+                    Spacer()
+                } else {
+                    Chart {
+                        ForEach(sortedData, id: \.id) { dataSet in
+                            BarMark(
+                                x: .value("Month", dataSet.displayKey),
+                                y: .value("Cost", dataSet.cost.amount)
+                            )
+                            .foregroundStyle(by: .value("Data Type", NSLocalizedString(dataSet.dataType.rawValue, comment: "")))
+                        }
+                        
+                        ForEach(aggregatedCostSumsLocal, id: \.timeKey) { item in
+                            PointMark(
+                                x: .value("Month", item.timeKey),
+                                y: .value("Total", item.sum)
+                            )
+                            .symbol(.circle)
+                            .opacity(0)
+                            .annotation(position: .top, alignment: .center) {
+                                Group {
+                                    Text(UserSettings.shared.format(item.sum, withSignificantDigits: 3))
+                                }
+                                .font(.caption)
+                                .foregroundColor(.black)
+                                .padding(4)
+                                .background(Color.white.opacity(0.8))
+                                .cornerRadius(6)
+                            }
+                        }
+                    }
+                    .chartYAxisLabel(UserSettings.shared.currencyIdentifier)
+                    .chartForegroundStyleScale(range: displayColors(for: sortedData))
+                    .chartLegend(.visible)
+                    .chartOverlay { proxy in
+                        readTappedPosition(proxy, aggregatedSums: aggregatedCostSumsLocal, data: data)
+                    }
+                }
+            }
+        } else if timeBox.selectedResolution == .monthly {
+            HomeConsumptionWaterfallChart(
+                timeBox: timeBox,
+                data: data,
+                chartType: .cost
+            )
+        } else {
+            Text("Please select a year or month.")
+                .italic()
         }
     }
     

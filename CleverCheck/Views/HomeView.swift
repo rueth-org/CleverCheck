@@ -26,14 +26,12 @@ struct HomeView: View {
     @State private var timeBox: TimeBox = TimeBox(
         selectedDate: Date.now,
         selectedResolution: .yearly,
-        allowedResolutions: [.yearly],
+        allowedResolutions: [.yearly, .monthly],
         selectIndividualItem: { _ in }
     )
     @State private var showHomeData: Bool = true
     @State private var showHomeChargingData: Bool = true
     @State private var showRefundedChargingData: Bool = true
-    
-    @State private var showingHomeConsumptionAnalysis: Bool = false
     
     @Query(filter: #Predicate<Location> { location in
         location.isArchived == false
@@ -147,22 +145,6 @@ struct HomeView: View {
                         energyUnitSymbol: energyUnitSymbol
                     )
                 }
-            }
-        }
-        .sheet(item: $selectedConsumptions) { selectedConsumptions in
-            if let selectedLocation {
-                HomeConsumptionAnalysis(
-                    homeConsumptions: selectedConsumptions.consumptions,
-                    timeBox: selectedConsumptions.timeBox,
-                    data: data,
-                    location: selectedLocation
-                )
-                .presentationDragIndicator(.visible)
-            } else {
-                Text("No location selected")
-                    .italic()
-                    .padding()
-                    .presentationDragIndicator(.visible)
             }
         }
         .onAppear {

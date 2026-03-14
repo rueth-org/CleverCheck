@@ -25,11 +25,11 @@ final class Location: Identifiable {
             case .homeConsumption:
                 return .red
             case .homeCharging:
-                return .yellow
+                return .green
             case .refundedCharging:
                 return .orange
             case .discount:
-                return .pink
+                return .yellow
             }
         }
     }
@@ -89,7 +89,7 @@ final class Location: Identifiable {
         // Build a cache key using essential inputs that influence the result
         let startTs = timeBox.timePeriod?.start.timeIntervalSince1970 ?? 0
         let endTs = timeBox.timePeriod?.end.timeIntervalSince1970 ?? 0
-        let key = "loc:" + id.uuidString + "|res:\(timeBox.selectedResolution)|start:\(startTs)|end:\(endTs)|gross:\(UserSettings.shared.displayGrossPrices)|energyUnit:\(UserSettings.shared.energyUnit.symbol)|useRelatedConsumption:\(UserSettings.shared.useRelatedConsumptions.description)"
+        let key = "loc:" + id.uuidString + "|date:\(timeBox.selectedDate)" + "|res:\(timeBox.selectedResolution)|start:\(startTs)|end:\(endTs)|gross:\(UserSettings.shared.displayGrossPrices)|energyUnit:\(UserSettings.shared.energyUnit.symbol)|useRelatedConsumption:\(UserSettings.shared.useRelatedConsumptions.description)"
 
         // Try cached value
         if let cached = Location.cachedData(forKey: key) {
