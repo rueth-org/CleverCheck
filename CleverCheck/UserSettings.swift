@@ -196,7 +196,7 @@ final class UserSettings: ObservableObject {
     }
     
     func format(_ value: Double, withSignificantDigits: Int) -> String {
-        if value == .infinity || value == .greatestFiniteMagnitude { return "-" }
+        if !value.isFinite || value == .greatestFiniteMagnitude || value.isNaN { return "-" }
         let integerPart = Int(floor(value)) // Get the whole number part
         let digitCount = String(integerPart.magnitude).count // Count digits in the magnitude
         let digits = withSignificantDigits < digitCount ? digitCount : withSignificantDigits

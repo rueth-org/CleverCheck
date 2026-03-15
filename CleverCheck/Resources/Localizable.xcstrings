@@ -5684,13 +5684,19 @@
         "da" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Når der anvendes relateret forbrug, vil appen i stedet for at bruge det forbrug, som brugeren har indtastet manuelt, bruge forbrugsdataene fra relaterede ladesessioner. Dette gælder kun for ladeplaner af typen 'refunderet', og kun hvis ladesessionen har et relateret hjemmeforbrug tildelt. Dette kan føre til mere præcise omkostningsberegninger, men også til manglende omkostningsberegninger, hvis der ikke er tildelt et relateret hjemmeforbrug."
+            "value" : "Når der anvendes relateret forbrug, vil appen i stedet for at bruge det forbrug, som brugeren har indtastet manuelt, bruge forbrugsdataene fra relaterede ladesessioner. Dette gælder kun for ladeplaner af typen ‚refunderet‘ eller ‚med rabat‘, og kun hvis ladesessionen har et relateret hjemmeforbrug tildelt. Dette kan føre til mere præcise omkostningsberegninger, men også til manglende omkostningsberegninger, hvis der ikke er tildelt et relateret hjemmeforbrug."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bei Verwendung des verbundenen Verbrauchs greift die App anstelle des manuell eingegebenen Verbrauchs auf die Verbrauchsdaten verknüpfter Ladevorgänge zurück. Dies gilt nur für Ladekostenpläne vom Typ „Erstattet“ und nur, wenn dem Ladevorgang ein zugehöriger Heimverbrauch zugeordnet ist. Dadurch können die Kosten genauer berechnet werden, es kann aber auch zu fehlenden Kostenberechnungen kommen, wenn kein zugehöriger Haushaltsverbrauch zugeordnet ist."
+            "value" : "Bei Verwendung des verbundenen Verbrauchs greift die App anstelle des manuell eingegebenen Verbrauchs auf die Verbrauchsdaten verknüpfter Ladevorgänge zurück. Dies gilt nur für Ladekostenpläne vom Typ „erstattet“ oder „rabattiert“ und nur, wenn dem Ladevorgang ein zugehöriger Heimverbrauch zugeordnet ist. Dadurch können die Kosten genauer berechnet werden, es kann aber auch zu fehlenden Kostenberechnungen kommen, wenn kein zugehöriger Haushaltsverbrauch zugeordnet ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When using related consumption, instead of using the consumption manually entered by the user, the app will use the consumption data from related charging sessions. This only applies for charging cost plans of type 'refunded' or 'discounted' and only if the charging session has a related home consumption assigned. This can lead to more accurate cost calculations, but also to missing cost calculations if no related home consumption is assigned."
           }
         }
       }

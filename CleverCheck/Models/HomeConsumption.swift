@@ -151,7 +151,7 @@ final class HomeConsumption: Comparable {
     /// Returns the consumption for the home consumption, either using the entered consumption or the consumption from related charging sessions. If the consumption is marked as included elsewhere and includeIfIncludedElsewhere is false, 0 is returned.
     /// - Parameters:
     ///   - includeIfIncludedElsewhere: If true, the consumption is returned even if it is marked as included elsewhere.
-    ///   - useRelatedConsumptions: If true, the consumption from related charging sessions is used instead of the entered consumption.
+    ///   - useRelatedConsumptions: If true, the consumption from related charging sessions is used instead of the entered consumption. If no related charging sessions are available, the entered consumption is used.
     /// - Returns: The consumption as a Measurement<UnitEnergy>.
     func consumption(includeIfIncludedElsewhere: Bool, useRelatedConsumptions: Bool) -> Measurement<UnitEnergy> {
         if consumptionIncludedElsewhere && !includeIfIncludedElsewhere {
