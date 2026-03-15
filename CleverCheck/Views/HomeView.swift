@@ -13,16 +13,9 @@ struct HomeView: View {
         case HomeConsumptions
     }
     
-    struct ConsumptionContainer: Identifiable {
-        let id = UUID()
-        let consumptions: [HomeConsumption]
-        let timeBox: TimeBox
-    }
-    
     @Environment(\.modelContext) private var modelContext
     @State private var navigationPath = NavigationPath()
     @State private var selectedLocation: Location? = nil
-    @State private var selectedConsumptions: ConsumptionContainer? = nil
     @State private var timeBox: TimeBox = TimeBox(
         selectedDate: Date.now,
         selectedResolution: .yearly,
@@ -109,7 +102,7 @@ struct HomeView: View {
             .navigationDestination(for: NavigationDestination.self) { screen in
                 switch screen {
                 case .HomeConsumptions:
-                    HomeConsumptionsView(navigationPath: $navigationPath, selectedLocation: $selectedLocation, timeBox: timeBox, selectedConsumptions: $selectedConsumptions)
+                    HomeConsumptionsView(navigationPath: $navigationPath, selectedLocation: $selectedLocation, timeBox: timeBox)
                 }
             }
             .navigationDestination(for: HomeConsumptionsView.NavigationDestination.self) { screen in
@@ -168,8 +161,6 @@ struct HomeView: View {
                     settings.selectedLocationId = locations.first?.id.uuidString
                 }
             }
-            
-            timeBox.selectIndividualItem = selectMonth
         }
     }
     
@@ -179,28 +170,6 @@ struct HomeView: View {
     
     private func addHomeConsumption() {
         navigationPath.append(HomeConsumptionsView.NavigationDestination.NewConsumption(location: selectedLocation))
-    }
-    
-    private func selectMonth(date: Date) {
-        if let selectedLocation {
-            // Collect all consumptions ending in the selected month
-            let calendar = Calendar.current
-            let selectedYear = calendar.component(.year, from: date)
-            let selectedMonth = calendar.component(.month, from: date)
-            let selectedConsumptions = selectedLocation.homeConsumptions(in: timeBox).filter { consumption in
-                calendar.component(.year, from: consumption.validUntil) == selectedYear &&
-                calendar.component(.month, from: consumption.validUntil) == selectedMonth
-            }
-            self.selectedConsumptions = ConsumptionContainer(
-                consumptions: selectedConsumptions,
-                timeBox: TimeBox(
-                    selectedDate: date,
-                    selectedResolution: .monthly,
-                    allowedResolutions: [.monthly],
-                    selectIndividualItem: { _ in }
-                )
-            )
-        }
     }
 }
 

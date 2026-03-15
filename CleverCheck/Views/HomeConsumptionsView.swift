@@ -17,7 +17,6 @@ struct HomeConsumptionsView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     @Binding var selectedLocation: Location?
-    @Binding var selectedConsumptions: HomeView.ConsumptionContainer?
     
     @State private var timeBox: TimeBox
     
@@ -38,7 +37,7 @@ struct HomeConsumptionsView: View {
                 TimeBoxPicker(timeBox: timeBox)
                     .padding(.horizontal)
             }
-            HomeConsumptionsList(navigationPath: $navigationPath, timeBox: timeBox, associatedLocation: selectedLocation, selectedConsumptions: $selectedConsumptions)
+            HomeConsumptionsList(navigationPath: $navigationPath, timeBox: timeBox, associatedLocation: selectedLocation)
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -76,13 +75,11 @@ struct HomeConsumptionsView: View {
     init(
         navigationPath: Binding<NavigationPath>,
         selectedLocation: Binding<Location?>,
-        timeBox: TimeBox,
-        selectedConsumptions: Binding<HomeView.ConsumptionContainer?>
+        timeBox: TimeBox
     ) {
         self._navigationPath = navigationPath
         self._selectedLocation = selectedLocation
         self._timeBox = State(initialValue: timeBox)
-        self._selectedConsumptions = selectedConsumptions
     }
     
     private func addHomeConsumption() {
