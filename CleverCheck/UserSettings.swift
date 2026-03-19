@@ -77,6 +77,7 @@ final class UserSettings: ObservableObject {
     @AppStorage("vatRate") var vatRate: Double = 0.25
     @AppStorage("displayGrossPrices") var displayGrossPrices: Bool = true
     @AppStorage("referenceSOC") var referenceSOC: Double = 0.8
+    @AppStorage("disableCache") var disableCache: Bool = false
     
     @AppStorage("useRelatedConsumptions") private var useRelatedConsumptionsRaw: Bool = true {
         didSet {

@@ -10,12 +10,26 @@ import SwiftData
 
 @Model
 final class HomeConsumption: Comparable {
+    enum ConsumptionType: String, Codable, CustomStringConvertible, CaseIterable {
+        case home = "Home consumption"
+        case homeRefunded = "Refunded home consumption"
+        case homeDiscount = "Discount on home consumption"
+        case charging = "Charging"
+        case chargingRefunded = "Refunded charging"
+        case chargingDiscount = "Discount on charging"
+        
+        var description: String {
+            NSLocalizedString(self.rawValue, comment: "")
+        }
+    }
+    
     var id: UUID = UUID()
     var name: String = ""
     var validFrom: Date = Date.now.startOfMonth
     var validUntil: Date = Date.now.endOfMonth
     var consumptionKWh: Double = 0.0
     var consumptionIncludedElsewhere: Bool = false
+    var consumptionType: ConsumptionType = ConsumptionType.home
     var associatedLocation: Location?
     var comment: String = ""
     
@@ -134,6 +148,7 @@ final class HomeConsumption: Comparable {
         validUntil: Date,
         consumption: Measurement<UnitEnergy>,
         consumptionIncludedElsewhere: Bool,
+        consumptionType: ConsumptionType = .home,
         associatedLocation: Location? = nil,
         comment: String? = nil
     ) {
@@ -142,6 +157,7 @@ final class HomeConsumption: Comparable {
         self.validUntil = validUntil
         self.consumptionKWh = consumption.converted(to: .kilowattHours).value
         self.consumptionIncludedElsewhere = consumptionIncludedElsewhere
+        self.consumptionType = consumptionType
         self.associatedLocation = associatedLocation
         if let comment {
             self.comment = comment

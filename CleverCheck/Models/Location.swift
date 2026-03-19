@@ -89,10 +89,10 @@ final class Location: Identifiable {
         // Build a cache key using essential inputs that influence the result
         let startTs = timeBox.timePeriod?.start.timeIntervalSince1970 ?? 0
         let endTs = timeBox.timePeriod?.end.timeIntervalSince1970 ?? 0
-        let key = "loc:" + id.uuidString + "|date:\(timeBox.selectedDate)" + "|res:\(timeBox.selectedResolution)|start:\(startTs)|end:\(endTs)|gross:\(UserSettings.shared.displayGrossPrices)|energyUnit:\(UserSettings.shared.energyUnit.symbol)|useRelatedConsumption:\(UserSettings.shared.useRelatedConsumptions.description)"
+        let key = "loc:" + id.uuidString + "|res:\(timeBox.selectedResolution)|start:\(startTs)|end:\(endTs)|gross:\(UserSettings.shared.displayGrossPrices)|energyUnit:\(UserSettings.shared.energyUnit.symbol)|useRelatedConsumption:\(UserSettings.shared.useRelatedConsumptions.description)"
 
         // Try cached value
-        if let cached = Location.cachedData(forKey: key) {
+        if !UserSettings.shared.disableCache, let cached = Location.cachedData(forKey: key) {
             return cached
         }
 
@@ -113,6 +113,7 @@ final class Location: Identifiable {
         var homeChargingCostPerMonth: [[String: Cost]] = []
 
         for consumption in homeConsumptions {
+            debugPrint("Processing home consumption \(consumption.name) - period: \(consumption.validFrom) to \(consumption.validUntil) - includedElsewhere: \(consumption.consumptionIncludedElsewhere), consumption: \(consumption.consumption), cost: \(consumption.totalCost(includingVAT: UserSettings.shared.displayGrossPrices, useRelatedConsumptions: useRelatedConsumption))")
             if !consumption.consumptionIncludedElsewhere {
                 // The consumption is not included elsewhere, i.e., it's part of the total consumption
                 totalConsumptionPerMonth.append(consumption.consumptionPerMonth(includeIfIncludedElsewhere: false, useRelatedConsumptions: useRelatedConsumption))

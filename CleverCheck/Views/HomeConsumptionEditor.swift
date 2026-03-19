@@ -31,6 +31,7 @@ struct HomeConsumptionEditor: View {
     @State private var validUntil: Date = Date.now.endOfMonth
     @State private var consumption: Measurement<UnitEnergy> = .init(value: 0.0, unit: .kilowattHours)
     @State private var consumptionIncludedElsewhere: Bool = false
+    @State private var consumptionType: HomeConsumption.ConsumptionType = .home
     @State private var comment: String = ""
 
     @State private var showingChargingSessionPicker: Bool = false
@@ -55,6 +56,11 @@ struct HomeConsumptionEditor: View {
     var body: some View {
         Form {
             TextField("Name", text: $name)
+            Picker("Type", selection: $consumptionType) {
+                ForEach(HomeConsumption.ConsumptionType.allCases, id: \.self) { type in
+                    Text(type.description).tag(type)
+                }
+            }
             DatePicker("Valid from", selection: $validFrom, displayedComponents: .date)
             DatePicker("Valid until", selection: $validUntil, displayedComponents: .date)
             Picker("Location", selection: $selectedLocation) {
@@ -70,6 +76,7 @@ struct HomeConsumptionEditor: View {
                     .multilineTextAlignment(.trailing)
                 Text(consumption.unit.symbol)
             }
+            
             Toggle("Consumption included elsewhere", isOn: $consumptionIncludedElsewhere)
             
             HStack {
@@ -180,6 +187,7 @@ struct HomeConsumptionEditor: View {
                 self.validUntil = homeConsumption.validUntil
                 self.consumption = homeConsumption.consumption
                 self.consumptionIncludedElsewhere = homeConsumption.consumptionIncludedElsewhere
+                self.consumptionType = homeConsumption.consumptionType
                 self.selectedLocation = homeConsumption.associatedLocation
                 self.comment = homeConsumption.comment
             }
@@ -249,6 +257,7 @@ struct HomeConsumptionEditor: View {
             homeConsumption.validUntil = self.validUntil.endOfDay
             homeConsumption.consumption = self.consumption
             homeConsumption.consumptionIncludedElsewhere = self.consumptionIncludedElsewhere
+            homeConsumption.consumptionType = self.consumptionType
             homeConsumption.associatedLocation = self.selectedLocation
             homeConsumption.comment = self.comment
         } else {
@@ -258,7 +267,8 @@ struct HomeConsumptionEditor: View {
                 validFrom: self.validFrom.startOfDay,
                 validUntil: self.validUntil.endOfDay,
                 consumption: self.consumption,
-                consumptionIncludedElsewhere: self.consumptionIncludedElsewhere
+                consumptionIncludedElsewhere: self.consumptionIncludedElsewhere,
+                consumptionType: self.consumptionType
             )
             newHomeConsumption.associatedLocation = self.selectedLocation
             newHomeConsumption.comment = self.comment

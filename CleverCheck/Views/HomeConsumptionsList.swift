@@ -43,7 +43,7 @@ struct HomeConsumptionsList: View {
                         ForEach(groupedByMonths[month]!, id: \.self) { homeConsumption in
                             NavigationLink(value: HomeConsumptionsView.NavigationDestination.EditConsumption(homeConsumption: homeConsumption)) {
                                 VStack(alignment: .leading) {
-                                    Text(homeConsumption.name)
+                                    Text("\(homeConsumption.name) (\(homeConsumption.consumptionType.description))")
                                     HStack {
                                         //Display dateoFrm - dateUntil  inshort format
                                         Text("\(homeConsumption.validFrom, format: UserSettings.shared.displayDateFormat) - \(homeConsumption.validUntil, format: UserSettings.shared.displayDateFormat)")

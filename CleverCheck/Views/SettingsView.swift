@@ -195,6 +195,8 @@ struct SettingsView: View {
                         let message = "The following sessions have been assigned a home consumption:\n\(updatedChargingSessions.joined(separator: "\n"))"
                         Text(message)
                     }
+                    
+                    Toggle("Disable cache (not recommended)", isOn: UserSettings.shared.$disableCache)
                 }
                 
                 Section(header: Text("Import/Export")) {
