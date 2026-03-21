@@ -36,23 +36,23 @@ struct HomeViewChart: View {
 
     private var filteredHomeData: [Location.Data] {
         // We never show .total or .discount
-        let shownData = data.filter { $0.dataType != .total && $0.dataType != .discount }
+        let shownData = data.filter { $0.dataType == .home || $0.dataType == .homeRefunded || $0.dataType == .charging || $0.dataType == .chargingRefunded }
         
         // Go through all combinations of the three boolean filters and return the correct subset
         if showHomeData && showHomeChargingData && showRefundedChargingData {
             return shownData
         } else if showHomeData && !showHomeChargingData && !showRefundedChargingData {
-            return shownData.filter { $0.dataType == .homeConsumption }
+            return shownData.filter { $0.dataType == .home }
         } else if !showHomeData && showHomeChargingData && !showRefundedChargingData {
-            return shownData.filter { $0.dataType == .homeCharging }
+            return shownData.filter { $0.dataType == .charging }
         } else if !showHomeData && !showHomeChargingData && showRefundedChargingData {
-            return shownData.filter { $0.dataType == .refundedCharging }
+            return shownData.filter { $0.dataType == .chargingRefunded }
         } else if showHomeData && showHomeChargingData && !showRefundedChargingData {
-            return shownData.filter { $0.dataType == .homeConsumption || $0.dataType == .homeCharging }
+            return shownData.filter { $0.dataType == .home || $0.dataType == .charging }
         } else if showHomeData && !showHomeChargingData && showRefundedChargingData {
-            return shownData.filter { $0.dataType == .homeConsumption || $0.dataType == .refundedCharging }
+            return shownData.filter { $0.dataType == .home || $0.dataType == .chargingRefunded }
         } else if !showHomeData && showHomeChargingData && showRefundedChargingData {
-            return shownData.filter { $0.dataType == .homeCharging || $0.dataType == .refundedCharging }
+            return shownData.filter { $0.dataType == .charging || $0.dataType == .chargingRefunded }
         } else {
             return []
         }

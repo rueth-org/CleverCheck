@@ -106,12 +106,16 @@ struct DataEncoder {
     }
 
     struct HomeConsumptionDTO: Codable {
+        enum ConsumptionTypeDTO: Codable {
+            case total, home, homeDiscount, homeRefunded, charging, chargingDiscount, chargingRefunded
+        }
+        
         var id: UUID
         var name: String
         var validFrom: Date
         var validUntil: Date
         var consumptionKWh: Double
-        var consumptionIncludedElsewhere: Bool
+        var consumptionType: ConsumptionTypeDTO
         var associatedLocationId: UUID?
         var comment: String
         var priceElementIds: [UUID]
@@ -293,13 +297,25 @@ struct DataEncoder {
         }
 
         let homeConsumptionDTOs = homeConsumptions.map { home in
-            HomeConsumptionDTO(
+            // Map consumption type
+            let consumptionTypeDTO: HomeConsumptionDTO.ConsumptionTypeDTO
+            switch home.consumptionType {
+            case .total: consumptionTypeDTO = .total
+            case .home: consumptionTypeDTO = .home
+            case .homeDiscount: consumptionTypeDTO = .homeDiscount
+            case .homeRefunded: consumptionTypeDTO = .homeRefunded
+            case .charging: consumptionTypeDTO = .charging
+            case .chargingDiscount: consumptionTypeDTO = .chargingDiscount
+            case .chargingRefunded: consumptionTypeDTO = .chargingRefunded
+            }
+            
+            return HomeConsumptionDTO(
                 id: home.id,
                 name: home.name,
                 validFrom: home.validFrom,
                 validUntil: home.validUntil,
                 consumptionKWh: home.consumptionKWh,
-                consumptionIncludedElsewhere: home.consumptionIncludedElsewhere,
+                consumptionType: consumptionTypeDTO,
                 associatedLocationId: home.associatedLocation?.id,
                 comment: home.comment,
                 priceElementIds: home.priceElements?.map { $0.id } ?? [],

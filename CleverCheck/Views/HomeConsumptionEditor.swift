@@ -31,7 +31,7 @@ struct HomeConsumptionEditor: View {
     @State private var validUntil: Date = Date.now.endOfMonth
     @State private var consumption: Measurement<UnitEnergy> = .init(value: 0.0, unit: .kilowattHours)
     @State private var consumptionIncludedElsewhere: Bool = false
-    @State private var consumptionType: HomeConsumption.ConsumptionType = .home
+    @State private var consumptionType: HomeConsumption.ConsumptionType = .total
     @State private var comment: String = ""
 
     @State private var showingChargingSessionPicker: Bool = false
@@ -186,7 +186,6 @@ struct HomeConsumptionEditor: View {
                 self.validFrom = homeConsumption.validFrom
                 self.validUntil = homeConsumption.validUntil
                 self.consumption = homeConsumption.consumption
-                self.consumptionIncludedElsewhere = homeConsumption.consumptionIncludedElsewhere
                 self.consumptionType = homeConsumption.consumptionType
                 self.selectedLocation = homeConsumption.associatedLocation
                 self.comment = homeConsumption.comment
@@ -256,7 +255,6 @@ struct HomeConsumptionEditor: View {
             homeConsumption.validFrom = self.validFrom.startOfDay
             homeConsumption.validUntil = self.validUntil.endOfDay
             homeConsumption.consumption = self.consumption
-            homeConsumption.consumptionIncludedElsewhere = self.consumptionIncludedElsewhere
             homeConsumption.consumptionType = self.consumptionType
             homeConsumption.associatedLocation = self.selectedLocation
             homeConsumption.comment = self.comment
@@ -267,7 +265,6 @@ struct HomeConsumptionEditor: View {
                 validFrom: self.validFrom.startOfDay,
                 validUntil: self.validUntil.endOfDay,
                 consumption: self.consumption,
-                consumptionIncludedElsewhere: self.consumptionIncludedElsewhere,
                 consumptionType: self.consumptionType
             )
             newHomeConsumption.associatedLocation = self.selectedLocation

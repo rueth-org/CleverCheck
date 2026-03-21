@@ -117,7 +117,7 @@ struct HomeConsumptionsList: View {
             validFrom: homeConsumption.validFrom,
             validUntil: homeConsumption.validUntil,
             consumption: homeConsumption.consumption,
-            consumptionIncludedElsewhere: homeConsumption.consumptionIncludedElsewhere,
+            consumptionType: homeConsumption.consumptionType,
             associatedLocation: homeConsumption.associatedLocation
         )
         

@@ -28,82 +28,79 @@ struct HomeConsumptionWaterfallChart: View {
     }
     
     var totalData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
-        let totalData = filteredData.filter { $0.dataType == .total }
-        let consumption = totalData.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
-            result = result + data.consumption
-        }
-        let cost = totalData.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
-            result += data.cost
-        }
-        return (consumption, cost)
+        let dataSet = filteredData.filter { $0.dataType == .total }
+        return data(dataSet)
     }
     
     var homeData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
-        let homeData = filteredData.filter { $0.dataType == .homeConsumption }
-        let consumption = homeData.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
-            result = result + data.consumption
-        }
-        let cost = homeData.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
-            result += data.cost
-        }
-        return (consumption, cost)
+        let dataSet = filteredData.filter { $0.dataType == .home }
+        return data(dataSet)
     }
     
-    var discountData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
-        let discountData = filteredData.filter { $0.dataType == .discount }
-        let consumption = discountData.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
-            result = result + data.consumption
-        }
-        let cost = discountData.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
-            result += data.cost
-        }
-        return (consumption, cost)
+    var homeDiscountData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
+        let dataSet = filteredData.filter { $0.dataType == .homeDiscount }
+        return data(dataSet)
     }
     
-    var homeChargingData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
-        let chargingData = filteredData.filter { $0.dataType == .homeCharging }
-        let consumption = chargingData.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
-            result = result + data.consumption
-        }
-        let cost = chargingData.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
-            result += data.cost
-        }
-        return (consumption, cost)
+    var homeRefundedData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
+        let dataSet = filteredData.filter { $0.dataType == .homeRefunded }
+        return data(dataSet)
     }
     
-    var refundedChargingData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
-        let chargingData = filteredData.filter { $0.dataType == .refundedCharging }
-        let consumption = chargingData.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
-            result = result + data.consumption
-        }
-        let cost = chargingData.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
-            result += data.cost
-        }
-        return (consumption, cost)
+    var chargingData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
+        let dataSet = filteredData.filter { $0.dataType == .charging }
+        return data(dataSet)
+    }
+    
+    var chargingDiscountData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
+        let dataSet = filteredData.filter { $0.dataType == .chargingDiscount }
+        return data(dataSet)
+    }
+    
+    var chargingRefundedData: (consumption: Measurement<UnitEnergy>, cost: Cost) {
+        let dataSet = filteredData.filter { $0.dataType == .chargingRefunded }
+        return data(dataSet)
     }
     
     var body: some View {
+        let totalData = self.totalData
+        let homeData = self.homeData
+        let homeRefundedData = self.homeRefundedData
+        let homeDiscountData = self.homeDiscountData
+        let chargingData = self.chargingData
+        let chargingDiscountData = self.chargingDiscountData
+        let chargingRefundedData = self.chargingRefundedData
+        
         let totalConsumption = totalData.consumption.converted(to: UserSettings.shared.energyUnit)
         let totalCost = totalData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? totalData.cost
         let homeConsumption = homeData.consumption.converted(to: UserSettings.shared.energyUnit)
         let homeCost = homeData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? homeData.cost
-        let discountConsumption = discountData.consumption.converted(to: UserSettings.shared.energyUnit)
-        let discountCost = discountData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? discountData.cost
-        let homeChargingConsumption = homeChargingData.consumption.converted(to: UserSettings.shared.energyUnit)
-        let homeChargingCost = homeChargingData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? homeChargingData.cost
-        let refundedChargingConsumption = refundedChargingData.consumption.converted(to: UserSettings.shared.energyUnit)
-        let refundedChargingCost = refundedChargingData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? refundedChargingData.cost
+        let homeRefundedConsumption = homeRefundedData.consumption.converted(to: UserSettings.shared.energyUnit)
+        let homeRefundedCost = homeRefundedData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? homeRefundedData.cost
+        let homeDiscountConsumption = homeDiscountData.consumption.converted(to: UserSettings.shared.energyUnit)
+        let homeDiscountCost = homeDiscountData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? homeDiscountData.cost
+        let chargingConsumption = chargingData.consumption.converted(to: UserSettings.shared.energyUnit)
+        let chargingCost = chargingData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? chargingData.cost
+        let chargingRefundedConsumption = chargingRefundedData.consumption.converted(to: UserSettings.shared.energyUnit)
+        let chargingRefundedCost = chargingRefundedData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? chargingRefundedData.cost
+        let chargingDiscountConsumption = chargingDiscountData.consumption.converted(to: UserSettings.shared.energyUnit)
+        let chargingDiscountCost = chargingDiscountData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? chargingDiscountData.cost
         
         waterfallChart(
             totalConsumption,
             totalCost,
-            refundedChargingConsumption,
-            refundedChargingCost,
-            discountCost,
-            homeChargingConsumption,
-            homeChargingCost,
             homeConsumption,
-            homeCost
+            homeCost,
+            homeRefundedConsumption,
+            homeRefundedCost,
+            homeDiscountConsumption,
+            homeDiscountCost,
+            chargingConsumption,
+            chargingCost,
+            chargingRefundedConsumption,
+            chargingRefundedCost,
+            chargingDiscountConsumption,
+            chargingDiscountCost
         )
         .onTapGesture {
             showCalculation = true
@@ -113,183 +110,88 @@ struct HomeConsumptionWaterfallChart: View {
                 Section(header: HStack {
                     Image(systemName: "circle.fill")
                         .imageScale(.large)
-                        .foregroundStyle(Location.DataType.total.color().toColor())
+                        .foregroundStyle(HomeConsumption.ConsumptionType.total.color().toColor())
                     Text("This month's gross data")
                 }) {
-                    HStack {
-                        Text("Consumption:")
-                        Spacer()
-                        Text("\(totalConsumption.formatted())")
-                            .bold()
-                    }
-                    HStack {
-                        Text("Cost:")
-                        Spacer()
-                        Text(totalCost.formatted())
-                            .bold()
-                    }
-                    HStack {
-                        Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
-                        Spacer()
-                        let specificCost = Cost(
-                            amount: totalConsumption.value > 0 ? totalCost.amount / totalConsumption.value : 0,
-                            currency: totalCost.currency
-                        )
-                        Text("\(specificCost.formatted())")
-                            .bold()
-                    }
+                    consumptionSummary(totalConsumption, totalCost)
                 }
                 
-                Section(header: HStack {
-                    Image(systemName: "minus.circle.fill")
-                        .imageScale(.large)
-                        .foregroundStyle(Location.DataType.refundedCharging.color().toColor())
-                    Text("This month's related refunding")
-                }) {
-                    HStack {
-                        Text("Consumption:")
-                        Spacer()
-                        Text("\(refundedChargingConsumption.formatted())")
-                            .bold()
-                    }
-                    HStack {
-                        Text("Cost:")
-                        Spacer()
-                        Text(refundedChargingCost.formatted())
-                            .bold()
-                    }
-                    HStack {
-                        Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
-                        Spacer()
-                        let specificCost = Cost(
-                            amount: refundedChargingConsumption.value > 0 ? refundedChargingCost.amount / refundedChargingConsumption.value : 0,
-                            currency: refundedChargingCost.currency
-                        )
-                        Text("\(specificCost.formatted())")
-                            .bold()
-                    }
-                }
-                
-                Section(header: HStack {
-                    Image(systemName: "equal.circle.fill")
-                        .imageScale(.large)
-                        .foregroundStyle(ImagePaint(image: pattern(Location.DataType.total.color()), scale: 0.5))
-                    Text("This month's gross data considering refunding")
-                }) {
-                    HStack {
-                        Text("Consumption:")
-                        Spacer()
-                        Text("\((totalConsumption - refundedChargingConsumption).formatted())")
-                            .bold()
-                    }
-                    HStack {
-                        Text("Cost:")
-                        Spacer()
-                        Text((totalCost - refundedChargingCost).formatted())
-                            .bold()
-                    }
-                    HStack {
-                        Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
-                        Spacer()
-                        let specificCost = Cost(
-                            amount: (totalConsumption - refundedChargingConsumption).value > 0 ? (totalCost - refundedChargingCost).amount / (totalConsumption - refundedChargingConsumption).value : 0,
-                            currency: totalCost.currency
-                        )
-                        Text("\(specificCost.formatted())")
-                            .bold()
-                    }
-                }
-                
-                if discountCost.amount != 0 {
+                if homeRefundedConsumption.value != 0 || homeRefundedCost.amount != 0 {
                     Section(header: HStack {
                         Image(systemName: "minus.circle.fill")
                             .imageScale(.large)
-                            .foregroundStyle(Location.DataType.discount.color().toColor())
+                            .foregroundStyle(HomeConsumption.ConsumptionType.homeRefunded.color().toColor())
+                        Text("This month's refunded home consumption")
+                    }) {
+                        consumptionSummary(homeRefundedConsumption, homeRefundedCost)
+                    }
+                }
+                
+                if chargingRefundedConsumption.value != 0 || chargingRefundedCost.amount != 0 {
+                    Section(header: HStack {
+                        Image(systemName: "minus.circle.fill")
+                            .imageScale(.large)
+                            .foregroundStyle(HomeConsumption.ConsumptionType.chargingRefunded.color().toColor())
+                        Text("This month's refunded charging")
+                    }) {
+                        consumptionSummary(chargingRefundedConsumption, chargingRefundedCost)
+                    }
+                }
+                
+                if homeRefundedConsumption.value != 0 || homeRefundedCost.amount != 0 || chargingRefundedConsumption.value != 0 || chargingRefundedCost.amount != 0 {
+                    Section(header: HStack {
+                        Image(systemName: "equal.circle.fill")
+                            .imageScale(.large)
+                            .foregroundStyle(ImagePaint(image: pattern(HomeConsumption.ConsumptionType.total.color()), scale: 0.5))
+                        Text("This month's gross data considering refunding")
+                    }) {
+                        let refundedConsumption = homeRefundedConsumption.value + chargingRefundedConsumption.value
+                        let refundedCost = homeRefundedCost.amount + chargingRefundedCost.amount
+                        consumptionSummary(
+                            Measurement(value: totalConsumption.value - refundedConsumption, unit: totalConsumption.unit),
+                            Cost(amount: totalCost.amount + refundedCost, currency: totalCost.currency) // Plus because refunded cost is negative
+                        )
+                    }
+                }
+                
+                if homeDiscountCost.amount != 0 {
+                    Section(header: HStack {
+                        Image(systemName: "minus.circle.fill")
+                            .imageScale(.large)
+                            .foregroundStyle(HomeConsumption.ConsumptionType.homeDiscount.color().toColor())
+                        Text("This month's home consumption discount")
+                    }) {
+                        consumptionSummary(homeDiscountConsumption, homeDiscountCost)
+                    }
+                }
+                
+                if chargingDiscountCost.amount != 0 {
+                    Section(header: HStack {
+                        Image(systemName: "minus.circle.fill")
+                            .imageScale(.large)
+                            .foregroundStyle(HomeConsumption.ConsumptionType.chargingDiscount.color().toColor())
                         Text("This month's charging discount")
                     }) {
-                        HStack {
-                            Text("Consumption:")
-                            Spacer()
-                            Text("(\(discountConsumption.formatted()))")
-                                .bold()
-                        }
-                        HStack {
-                            Text("Cost:")
-                            Spacer()
-                            Text(discountCost.formatted())
-                                .bold()
-                        }
-                        HStack {
-                            Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
-                            Spacer()
-                            let specificCost = Cost(
-                                amount: discountConsumption.value > 0 ? discountCost.amount / discountConsumption.value : 0,
-                                currency: discountCost.currency
-                            )
-                            Text("\(specificCost.formatted())")
-                                .bold()
-                        }
+                        consumptionSummary(chargingDiscountConsumption, chargingDiscountCost)
                     }
                 }
                 
                 Section(header: HStack {
                     Image(systemName: "minus.circle.fill")
                         .imageScale(.large)
-                        .foregroundStyle(Location.DataType.homeCharging.color().toColor())
+                        .foregroundStyle(HomeConsumption.ConsumptionType.charging.color().toColor())
                     Text("This month's charging data")
                 }) {
-                    HStack {
-                        Text("Consumption:")
-                        Spacer()
-                        Text("\(homeChargingConsumption.formatted())")
-                            .bold()
-                    }
-                    HStack {
-                        Text("Cost:")
-                        Spacer()
-                        Text(homeChargingCost.formatted())
-                            .bold()
-                    }
-                    HStack {
-                        Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
-                        Spacer()
-                        let specificCost = Cost(
-                            amount: homeChargingConsumption.value > 0 ? homeChargingCost.amount / homeChargingConsumption.value : 0,
-                            currency: homeChargingCost.currency
-                        )
-                        Text("\(specificCost.formatted())")
-                            .bold()
-                    }
+                    consumptionSummary(chargingConsumption, chargingCost)
                 }
                 
                 Section(header: HStack {
                     Image(systemName: "equal.circle.fill")
                         .imageScale(.large)
-                        .foregroundStyle(Location.DataType.homeConsumption.color().toColor())
+                        .foregroundStyle(HomeConsumption.ConsumptionType.home.color().toColor())
                     Text("This month's home consumption data")
                 }) {
-                    HStack {
-                        Text("Consumption:")
-                        Spacer()
-                        Text("\(homeConsumption.formatted())")
-                            .bold()
-                    }
-                    HStack {
-                        Text("Cost:")
-                        Spacer()
-                        Text(homeCost.formatted())
-                            .bold()
-                    }
-                    HStack {
-                        Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
-                        Spacer()
-                        let specificCost = Cost(
-                            amount: homeConsumption.value > 0 ? homeCost.amount / homeConsumption.value : 0,
-                            currency: homeCost.currency
-                        )
-                        Text("\(specificCost.formatted())")
-                            .bold()
-                    }
+                    consumptionSummary(homeConsumption, homeCost)
                 }
             }
             .presentationDetents([.medium, .large])
@@ -334,59 +236,77 @@ struct HomeConsumptionWaterfallChart: View {
     private func waterfallChart(
         _ totalConsumption: Measurement<UnitEnergy>,
         _ totalCost: Cost,
-        _ refundedChargingConsumption: Measurement<UnitEnergy>,
-        _ refundedChargingCost: Cost,
-        _ discountCost: Cost,
-        _ homeChargingConsumption: Measurement<UnitEnergy>,
-        _ homeChargingCost: Cost,
         _ homeConsumption: Measurement<UnitEnergy>,
-        _ homeCost: Cost
+        _ homeCost: Cost,
+        _ homeRefundedConsumption: Measurement<UnitEnergy>,
+        _ homeRefundedCost: Cost,
+        _ homeDiscountConsumption: Measurement<UnitEnergy>,
+        _ homeDiscountCost: Cost,
+        _ chargingConsumption: Measurement<UnitEnergy>,
+        _ chargingCost: Cost,
+        _ chargingRefundedConsumption: Measurement<UnitEnergy>,
+        _ chargingRefundedCost: Cost,
+        _ chargingDiscountConsumption: Measurement<UnitEnergy>,
+        _ chargingDiscountCost: Cost
     ) -> some View {
         switch chartType {
         case .consumption:
             Chart {
                 // The total bar, reaching from 0 to the total consumption
                 barMark(
-                    xText: Location.DataType.total.rawValue,
+                    xText: HomeConsumption.ConsumptionType.total.rawValue,
                     yText: "Consumption",
                     yEnd: totalConsumption.value,
-                    style: Location.DataType.total.color().toColor()
+                    style: HomeConsumption.ConsumptionType.total.color().toColor()
                 )
                 
-                if refundedChargingConsumption.value > 0 {
-                    // Subtracting the refunded charging, i.e., the top of the bar needs to be at the level of the total
+                if homeRefundedConsumption.value != 0 {
+                    // Subtracting the refunded home, i.e., the top of the bar needs to be at the level of the total
                     barMark(
-                        xText: Location.DataType.refundedCharging.rawValue,
+                        xText: HomeConsumption.ConsumptionType.homeRefunded.rawValue,
                         yText: "Consumption",
-                        yStart: totalConsumption.value - refundedChargingConsumption.value,
+                        yStart: totalConsumption.value - homeRefundedConsumption.value,
                         yEnd: totalConsumption.value,
-                        style: Location.DataType.refundedCharging.color().toColor()
+                        style: HomeConsumption.ConsumptionType.homeRefunded.color().toColor()
                     )
-                    
-                    // The total considering refunding bar, reaching from 0 to the total consumption - refunded charging consumption
+                }
+                
+                if chargingRefundedConsumption.value != 0 {
+                    // Subtracting the refunded charging, i.e., the top of the bar needs to be at the level of the total minus refunded home consumption
+                    barMark(
+                        xText: HomeConsumption.ConsumptionType.chargingRefunded.rawValue,
+                        yText: "Consumption",
+                        yStart: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value,
+                        yEnd: totalConsumption.value - homeRefundedConsumption.value,
+                        style: HomeConsumption.ConsumptionType.chargingRefunded.color().toColor()
+                    )
+                }
+                
+                if homeRefundedConsumption.value != 0 || chargingRefundedConsumption.value != 0 {
+                    // The total considering refunding bar, reaching from 0 to the total consumption - refunded home - refunded charging consumption
                     barMark(
                         xText: "Total (including refunds)",
                         yText: "Consumption",
-                        yEnd: totalConsumption.value - refundedChargingConsumption.value,
-                        style: ImagePaint(image: pattern(Location.DataType.total.color()), scale: 0.5)
+                        yEnd: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value,
+                        style: ImagePaint(image: pattern(HomeConsumption.ConsumptionType.total.color()), scale: 0.5)
                     )
                 }
                 
                 // Subtracting the home charging, i.e., the top of the bar needs to be at the level of the total considering refunding
                 barMark(
-                    xText: Location.DataType.homeCharging.rawValue,
+                    xText: HomeConsumption.ConsumptionType.charging.rawValue,
                     yText: "Consumption",
-                    yStart: totalConsumption.value - refundedChargingConsumption.value - homeChargingConsumption.value,
-                    yEnd: totalConsumption.value - refundedChargingConsumption.value,
-                    style: Location.DataType.homeCharging.color().toColor()
+                    yStart: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value - chargingConsumption.value,
+                    yEnd: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value,
+                    style: HomeConsumption.ConsumptionType.home.color().toColor()
                 )
                 
                 // The home consumption bar
                 barMark(
-                    xText: Location.DataType.homeConsumption.rawValue,
+                    xText: HomeConsumption.ConsumptionType.home.rawValue,
                     yText: "Consumption",
                     yEnd: homeConsumption.value,
-                    style: Location.DataType.homeConsumption.color().toColor()
+                    style: HomeConsumption.ConsumptionType.home.color().toColor()
                 )
             }
             .chartYAxisLabel(UserSettings.shared.energyUnitSymbol)
@@ -395,61 +315,84 @@ struct HomeConsumptionWaterfallChart: View {
             Chart {
                 // The total bar, reaching from 0 to the total cost
                 barMark(
-                    xText: Location.DataType.total.rawValue,
+                    xText: HomeConsumption.ConsumptionType.total.rawValue,
                     yText: "Cost",
                     yEnd: totalCost.amount,
-                    style: Location.DataType.total.color().toColor()
+                    style: HomeConsumption.ConsumptionType.total.color().toColor()
                 )
                 
-                if refundedChargingCost.amount > 0 {
-                    // Subtracting the refunded charging, i.e., the top of the bar needs to be at the level of the total
+                if homeRefundedCost.amount != 0 {
+                    // Subtracting the refunded home
                     barMark(
-                        xText: Location.DataType.refundedCharging.rawValue,
+                        xText: HomeConsumption.ConsumptionType.homeRefunded.rawValue,
                         yText: "Cost",
-                        yStart: totalCost.amount - refundedChargingCost.amount,
+                        yStart: totalCost.amount - homeRefundedCost.amount,
                         yEnd: totalCost.amount,
-                        style: Location.DataType.refundedCharging.color().toColor()
+                        style: HomeConsumption.ConsumptionType.homeRefunded.color().toColor()
                     )
-                    
-                    // The total considering refunding bar, reaching from 0 to the total cost - refunded charging cost
+                }
+                
+                if chargingRefundedCost.amount != 0 {
+                    // Subtracting the refunded charging
+                    barMark(
+                        xText: HomeConsumption.ConsumptionType.chargingRefunded.rawValue,
+                        yText: "Cost",
+                        yStart: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount,
+                        yEnd: totalCost.amount - homeRefundedCost.amount,
+                        style: HomeConsumption.ConsumptionType.chargingRefunded.color().toColor()
+                    )
+                }
+                
+                if homeRefundedCost.amount != 0 || chargingRefundedCost.amount != 0 {
+                    // The total considering refunding bar, reaching from 0 to total - refunded home - refunded charging
                     barMark(
                         xText: "Total (including refunds)",
                         yText: "Cost",
-                        yEnd: totalCost.amount - refundedChargingCost.amount,
-                        style: ImagePaint(image: pattern(Location.DataType.total.color()), scale: 0.5)
+                        yEnd: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount,
+                        style: ImagePaint(image: pattern(HomeConsumption.ConsumptionType.total.color()), scale: 0.5)
                     )
                 }
                 
-                // Subtracting the discount
-                if discountCost.amount > 0 {
+                // Subtracting the charging discount
+                if chargingDiscountCost.amount != 0 {
                     barMark(
-                        xText: Location.DataType.discount.rawValue,
+                        xText: HomeConsumption.ConsumptionType.chargingDiscount.rawValue,
                         yText: "Cost",
-                        yStart: totalCost.amount - refundedChargingCost.amount - discountCost.amount,
-                        yEnd: totalCost.amount - refundedChargingCost.amount,
-                        style: Location.DataType.discount.color().toColor()
+                        yStart: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - chargingDiscountCost.amount,
+                        yEnd: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount,
+                        style: HomeConsumption.ConsumptionType.chargingDiscount.color().toColor()
                     )
                 }
                 
-                // Subtracting the home charging, i.e., the top of the bar needs to be at the level of the total considering refunding
+                // Subtracting the home charging
                 barMark(
-                    xText: Location.DataType.homeCharging.rawValue,
+                    xText: HomeConsumption.ConsumptionType.charging.rawValue,
                     yText: "Cost",
-                    yStart: totalCost.amount - refundedChargingCost.amount - discountCost.amount - homeChargingCost.amount,
-                    yEnd: totalCost.amount - refundedChargingCost.amount - discountCost.amount,
-                    style: Location.DataType.homeCharging.color().toColor()
+                    yStart: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - chargingDiscountCost.amount - chargingCost.amount,
+                    yEnd: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - chargingDiscountCost.amount,
+                    style: HomeConsumption.ConsumptionType.home.color().toColor()
                 )
                 
-                // The home cost bar
+                // The home consumption bar
                 barMark(
-                    xText: Location.DataType.homeConsumption.rawValue,
+                    xText: HomeConsumption.ConsumptionType.home.rawValue,
                     yText: "Cost",
                     yEnd: homeCost.amount,
-                    style: Location.DataType.homeConsumption.color().toColor()
+                    style: HomeConsumption.ConsumptionType.home.color().toColor()
                 )
             }
             .chartYAxisLabel(UserSettings.shared.currencyIdentifier)
         }
+    }
+    
+    private func data(_ dataSet: [Location.Data]) -> (consumption: Measurement<UnitEnergy>, cost: Cost) {
+        let consumption = dataSet.reduce(into: Measurement(value: 0, unit: UserSettings.shared.energyUnit)) { result, data in
+            result = result + data.consumption
+        }
+        let cost = dataSet.reduce(into: Cost(amount: 0, currency: UserSettings.shared.currencyIdentifier)) { result, data in
+            result += data.cost
+        }
+        return (consumption, cost)
     }
     
     // Create a striped pattern image
@@ -467,6 +410,32 @@ struct HomeConsumptionWaterfallChart: View {
             stroke(from: .init(x: 40, y: 0), to: .init(x: 0, y: 30))
             stroke(from: .init(x: 40, y: -30), to: .zero)
             stroke(from: .init(x: 40, y: 30), to: .init(x: 0, y: 60))
+        }
+    }
+    
+    @ViewBuilder
+    private func consumptionSummary(_ consumption: Measurement<UnitEnergy>, _ cost: Cost) -> some View {
+        HStack {
+            Text("Consumption:")
+            Spacer()
+            Text("\(consumption.formatted())")
+                .bold()
+        }
+        HStack {
+            Text("Cost:")
+            Spacer()
+            Text(cost.formatted())
+                .bold()
+        }
+        HStack {
+            Text("Cost per \(UserSettings.shared.energyUnit.symbol):")
+            Spacer()
+            let specificCost = Cost(
+                amount: consumption.value > 0 ? cost.amount / consumption.value : 0,
+                currency: cost.currency
+            )
+            Text("\(specificCost.formatted())")
+                .bold()
         }
     }
 }

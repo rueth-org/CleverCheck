@@ -181,12 +181,25 @@ public struct DataImporter {
                 let location = dto.associatedLocationId.flatMap { locationsById[$0] } ?? dto.associatedLocationId.flatMap { existingLocationsById[$0] }
 
                 let consumption = Measurement<UnitEnergy>(value: dto.consumptionKWh, unit: .kilowattHours)
+                
+                // Map consumption type
+                let consumptionType: HomeConsumption.ConsumptionType
+                switch dto.consumptionType {
+                case .total: consumptionType = .total
+                case .home: consumptionType = .home
+                case .homeDiscount: consumptionType = .homeDiscount
+                case .homeRefunded: consumptionType = .homeRefunded
+                case .charging: consumptionType = .charging
+                case .chargingDiscount: consumptionType = .chargingDiscount
+                case .chargingRefunded: consumptionType = .chargingRefunded
+                }
+                
                 let home = HomeConsumption(
                     name: dto.name,
                     validFrom: dto.validFrom,
                     validUntil: dto.validUntil,
                     consumption: consumption,
-                    consumptionIncludedElsewhere: dto.consumptionIncludedElsewhere,
+                    consumptionType: consumptionType,
                     associatedLocation: location,
                     comment: dto.comment
                 )

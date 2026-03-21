@@ -11,6 +11,7 @@ import SwiftData
 @Model
 final class HomeConsumption: Comparable {
     enum ConsumptionType: String, Codable, CustomStringConvertible, CaseIterable {
+        case total = "Total consumption"
         case home = "Home consumption"
         case homeRefunded = "Refunded home consumption"
         case homeDiscount = "Discount on home consumption"
@@ -28,8 +29,7 @@ final class HomeConsumption: Comparable {
     var validFrom: Date = Date.now.startOfMonth
     var validUntil: Date = Date.now.endOfMonth
     var consumptionKWh: Double = 0.0
-    var consumptionIncludedElsewhere: Bool = false
-    var consumptionType: ConsumptionType = ConsumptionType.home
+    var consumptionType: ConsumptionType = ConsumptionType.total
     var associatedLocation: Location?
     var comment: String = ""
     
@@ -147,8 +147,7 @@ final class HomeConsumption: Comparable {
         validFrom: Date,
         validUntil: Date,
         consumption: Measurement<UnitEnergy>,
-        consumptionIncludedElsewhere: Bool,
-        consumptionType: ConsumptionType = .home,
+        consumptionType: ConsumptionType = .total,
         associatedLocation: Location? = nil,
         comment: String? = nil
     ) {
@@ -156,7 +155,6 @@ final class HomeConsumption: Comparable {
         self.validFrom = validFrom
         self.validUntil = validUntil
         self.consumptionKWh = consumption.converted(to: .kilowattHours).value
-        self.consumptionIncludedElsewhere = consumptionIncludedElsewhere
         self.consumptionType = consumptionType
         self.associatedLocation = associatedLocation
         if let comment {
@@ -166,28 +164,18 @@ final class HomeConsumption: Comparable {
     
     /// Returns the consumption for the home consumption, either using the entered consumption or the consumption from related charging sessions. If the consumption is marked as included elsewhere and includeIfIncludedElsewhere is false, 0 is returned.
     /// - Parameters:
-    ///   - includeIfIncludedElsewhere: If true, the consumption is returned even if it is marked as included elsewhere.
     ///   - useRelatedConsumptions: If true, the consumption from related charging sessions is used instead of the entered consumption. If no related charging sessions are available, the entered consumption is used.
     /// - Returns: The consumption as a Measurement<UnitEnergy>.
-    func consumption(includeIfIncludedElsewhere: Bool, useRelatedConsumptions: Bool) -> Measurement<UnitEnergy> {
-        if consumptionIncludedElsewhere && !includeIfIncludedElsewhere {
-            return Measurement<UnitEnergy>(value: 0.0, unit: UserSettings.shared.energyUnit)
-        } else {
-            return useRelatedConsumptions ? (consumptionFromRelatedChargingSessions ?? consumption) : consumption
-        }
+    func consumption(useRelatedConsumptions: Bool) -> Measurement<UnitEnergy> {
+        useRelatedConsumptions ? (consumptionFromRelatedChargingSessions ?? consumption) : consumption
     }
     
     /// Returns the consumption per month for the home consumption, either using the entered consumption or the consumption from related charging sessions. If the consumption is marked as included elsewhere and includeIfIncludedElsewhere is false, an empty dictionary is returned.
     /// - Parameters:
-    ///   - includeIfIncludedElsewhere: If true, the consumption is returned even if it is marked as included elsewhere.
     ///   - useRelatedConsumptions: If true, the consumption from related charging sessions is used instead of the entered consumption.
     /// - Returns: A dictionary with month keys and consumption values.
-    func consumptionPerMonth(includeIfIncludedElsewhere: Bool, useRelatedConsumptions: Bool) -> [String: Measurement<UnitEnergy>] {
-        if consumptionIncludedElsewhere && !includeIfIncludedElsewhere {
-            return [:]
-        }
-        
-        let totalConsumption = consumption(includeIfIncludedElsewhere: includeIfIncludedElsewhere, useRelatedConsumptions: useRelatedConsumptions).converted(to: .kilowattHours).value
+    func consumptionPerMonth(useRelatedConsumptions: Bool) -> [String: Measurement<UnitEnergy>] {
+        let totalConsumption = consumption(useRelatedConsumptions: useRelatedConsumptions).converted(to: .kilowattHours).value
         
         // Determine the number of days for each of the covered months, calculate each month's consumption portion, and store them in a dictionary
         var consumptionPerMonth: [String: Double] = [:]
@@ -219,8 +207,8 @@ final class HomeConsumption: Comparable {
     ///   - includeIfIncludedElsewhere: Indicates whether to include consumption that is marked as included elsewhere.
     ///   - useRelatedConsumptions: If true, the consumption from related charging sessions is used instead of the entered consumption. If no charging sessions are availale, the entered consumption is used.
     /// - Returns: The total consumption for the specified month as a Double.
-    func consumptionForMonth(monthKey: String, includeIfIncludedElsewhere: Bool, useRelatedConsumptions: Bool) -> Measurement<UnitEnergy> {
-        return consumptionPerMonth(includeIfIncludedElsewhere: includeIfIncludedElsewhere, useRelatedConsumptions: useRelatedConsumptions)[monthKey] ?? .init(value: 0.0, unit: UserSettings.shared.energyUnit)
+    func consumptionForMonth(monthKey: String, useRelatedConsumptions: Bool) -> Measurement<UnitEnergy> {
+        return consumptionPerMonth(useRelatedConsumptions: useRelatedConsumptions)[monthKey] ?? .init(value: 0.0, unit: UserSettings.shared.energyUnit)
     }
     
     /// Calculates the total cost for the home consumption over its entire duration, adding up all price elements.
