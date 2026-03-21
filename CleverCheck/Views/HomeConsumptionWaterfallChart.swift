@@ -261,7 +261,7 @@ struct HomeConsumptionWaterfallChart: View {
                 )
                 
                 if homeRefundedConsumption.value != 0 {
-                    // Subtracting the refunded home, i.e., the top of the bar needs to be at the level of the total
+                    // Subtracting the refunded home
                     barMark(
                         xText: HomeConsumption.ConsumptionType.homeRefunded.rawValue,
                         yText: "Consumption",
@@ -272,7 +272,7 @@ struct HomeConsumptionWaterfallChart: View {
                 }
                 
                 if chargingRefundedConsumption.value != 0 {
-                    // Subtracting the refunded charging, i.e., the top of the bar needs to be at the level of the total minus refunded home consumption
+                    // Subtracting the refunded charging
                     barMark(
                         xText: HomeConsumption.ConsumptionType.chargingRefunded.rawValue,
                         yText: "Consumption",
@@ -283,7 +283,7 @@ struct HomeConsumptionWaterfallChart: View {
                 }
                 
                 if homeRefundedConsumption.value != 0 || chargingRefundedConsumption.value != 0 {
-                    // The total considering refunding bar, reaching from 0 to the total consumption - refunded home - refunded charging consumption
+                    // The total considering refunding bar
                     barMark(
                         xText: "Total (including refunds)",
                         yText: "Consumption",
@@ -292,13 +292,13 @@ struct HomeConsumptionWaterfallChart: View {
                     )
                 }
                 
-                // Subtracting the home charging, i.e., the top of the bar needs to be at the level of the total considering refunding
+                // Subtracting the charging (use charging color)
                 barMark(
                     xText: HomeConsumption.ConsumptionType.charging.rawValue,
                     yText: "Consumption",
                     yStart: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value - chargingConsumption.value,
                     yEnd: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value,
-                    style: HomeConsumption.ConsumptionType.home.color().toColor()
+                    style: HomeConsumption.ConsumptionType.charging.color().toColor()
                 )
                 
                 // The home consumption bar
@@ -344,7 +344,7 @@ struct HomeConsumptionWaterfallChart: View {
                 }
                 
                 if homeRefundedCost.amount != 0 || chargingRefundedCost.amount != 0 {
-                    // The total considering refunding bar, reaching from 0 to total - refunded home - refunded charging
+                    // The total considering refunding bar
                     barMark(
                         xText: "Total (including refunds)",
                         yText: "Cost",
@@ -364,13 +364,13 @@ struct HomeConsumptionWaterfallChart: View {
                     )
                 }
                 
-                // Subtracting the home charging
+                // Subtracting the charging (use charging color)
                 barMark(
                     xText: HomeConsumption.ConsumptionType.charging.rawValue,
                     yText: "Cost",
                     yStart: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - chargingDiscountCost.amount - chargingCost.amount,
                     yEnd: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - chargingDiscountCost.amount,
-                    style: HomeConsumption.ConsumptionType.home.color().toColor()
+                    style: HomeConsumption.ConsumptionType.charging.color().toColor()
                 )
                 
                 // The home consumption bar

@@ -489,7 +489,7 @@ extension HomeConsumption.ConsumptionType {
     func color() -> DisplayColor {
         switch self {
         case .total: return .gray
-        case .home: return .red
+        case .home: return .blue
         case .homeDiscount: return .purple
         case .homeRefunded: return .indigo
         case .charging: return .green
