@@ -167,6 +167,12 @@ final class Location: Identifiable {
                 chargingCost += cost
             }
             
+            // If we don't have have any total values (e.g., because no invoice was entered yet for the month), we can skip the month, as there is no valid data to show
+            if totalConsumption.value == 0.0 && totalCost.amount == 0.0 {
+                currentDate = calendar.date(byAdding: .month, value: 1, to: currentDate)!
+                continue
+            }
+            
             // Sum up the refunded consumption and cost for this month
             var homeRefundedConsumption: Measurement<UnitEnergy> = .init(value: 0.0, unit: UserSettings.shared.energyUnit)
             var homeRefundedCost: Cost = .init(amount: 0.0)

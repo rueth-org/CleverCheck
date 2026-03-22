@@ -40,40 +40,17 @@ struct HomeViewChart: View {
         location.data(in: timeBox, useRelatedConsumption: settings.useRelatedConsumptions, modelContext: modelContext)
     }
     
-    private var filteredHomeData: [Location.Data] {
-        // We never show .total or .discount
-        let shownData = data.filter { $0.dataType == .home || $0.dataType == .homeRefunded || $0.dataType == .charging || $0.dataType == .chargingRefunded }
-        
-        // Go through all combinations of the three boolean filters and return the correct subset
-        if showHomeData && showHomeChargingData && showRefundedChargingData {
-            return shownData
-        } else if showHomeData && !showHomeChargingData && !showRefundedChargingData {
-            return shownData.filter { $0.dataType == .home }
-        } else if !showHomeData && showHomeChargingData && !showRefundedChargingData {
-            return shownData.filter { $0.dataType == .charging }
-        } else if !showHomeData && !showHomeChargingData && showRefundedChargingData {
-            return shownData.filter { $0.dataType == .chargingRefunded }
-        } else if showHomeData && showHomeChargingData && !showRefundedChargingData {
-            return shownData.filter { $0.dataType == .home || $0.dataType == .charging }
-        } else if showHomeData && !showHomeChargingData && showRefundedChargingData {
-            return shownData.filter { $0.dataType == .home || $0.dataType == .chargingRefunded }
-        } else if !showHomeData && showHomeChargingData && showRefundedChargingData {
-            return shownData.filter { $0.dataType == .charging || $0.dataType == .chargingRefunded }
-        } else {
-            return []
-        }
-     }
-     
-     var body: some View {
-         // Capture filtered data once to avoid multiple computed-property evaluations
-         let data = filteredHomeData
-         let sortedData = data.sorted()
+    var body: some View {
+        // Capture filtered data once to avoid multiple computed-property evaluations
+        let data = self.data
+        let filteredData = filteredHomeData(from: data)
+        let sortedData = filteredData.sorted()
 
-         let tabViews: [AnyView] = [
-            AnyView(consumptionBarChart(sortedData)),
-            AnyView(energyChart()),
-            AnyView(costBarChart(sortedData)),
-            AnyView(costChart())
+        let tabViews: [AnyView] = [
+            AnyView(consumptionBarChart(data, sortedData)),
+            AnyView(energyChart(filteredData)),
+            AnyView(costBarChart(data, sortedData)),
+            AnyView(costChart(filteredData))
         ]
                 
         return DotIndicatorScrollView(tabViews: tabViews)
@@ -151,7 +128,7 @@ struct HomeViewChart: View {
     }
     
     @ViewBuilder
-    private func consumptionBarChart(_ sortedData: [Location.Data]) -> some View {
+    private func consumptionBarChart(_ data: [Location.Data], _ sortedData: [Location.Data]) -> some View {
         if timeBox.selectedResolution == .yearly {
             // Compute aggregated sums from the single captured data set
             let aggregatedEnergySumsLocal: [(timeKey: String, sum: Double)] = {
@@ -221,7 +198,7 @@ struct HomeViewChart: View {
     }
     
     @ViewBuilder
-    private func energyChart() -> some View {
+    private func energyChart(_ filteredHomeData: [Location.Data]) -> some View {
         VStack {
             Text("Total consumption")
                 .font(.headline)
@@ -280,7 +257,7 @@ struct HomeViewChart: View {
     }
     
     @ViewBuilder
-    private func costBarChart(_ sortedData: [Location.Data]) -> some View {
+    private func costBarChart(_ data: [Location.Data], _ sortedData: [Location.Data]) -> some View {
         if timeBox.selectedResolution == .yearly {
             // Compute aggregated cost sums from the single captured data set
             let aggregatedCostSumsLocal: [(timeKey: String, sum: Double)] = {
@@ -351,7 +328,7 @@ struct HomeViewChart: View {
     }
     
     @ViewBuilder
-    private func costChart() -> some View {
+    private func costChart(_ filteredHomeData: [Location.Data]) -> some View {
         VStack {
             Text("Total cost")
                 .font(.headline)
@@ -408,4 +385,28 @@ struct HomeViewChart: View {
             }
         }
     }
+    
+    private func filteredHomeData(from data: [Location.Data]) -> [Location.Data] {
+        // We never show .total or .discount
+        let shownData = data.filter { $0.dataType == .home || $0.dataType == .homeRefunded || $0.dataType == .charging || $0.dataType == .chargingRefunded }
+        
+        // Go through all combinations of the three boolean filters and return the correct subset
+        if showHomeData && showHomeChargingData && showRefundedChargingData {
+            return shownData
+        } else if showHomeData && !showHomeChargingData && !showRefundedChargingData {
+            return shownData.filter { $0.dataType == .home }
+        } else if !showHomeData && showHomeChargingData && !showRefundedChargingData {
+            return shownData.filter { $0.dataType == .charging }
+        } else if !showHomeData && !showHomeChargingData && showRefundedChargingData {
+            return shownData.filter { $0.dataType == .chargingRefunded }
+        } else if showHomeData && showHomeChargingData && !showRefundedChargingData {
+            return shownData.filter { $0.dataType == .home || $0.dataType == .charging }
+        } else if showHomeData && !showHomeChargingData && showRefundedChargingData {
+            return shownData.filter { $0.dataType == .home || $0.dataType == .chargingRefunded }
+        } else if !showHomeData && showHomeChargingData && showRefundedChargingData {
+            return shownData.filter { $0.dataType == .charging || $0.dataType == .chargingRefunded }
+        } else {
+            return []
+        }
+     }
 }
