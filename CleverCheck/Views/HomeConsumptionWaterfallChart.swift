@@ -16,11 +16,18 @@ struct HomeConsumptionWaterfallChart: View {
     }
     
     @Environment(\.modelContext) private var modelContext
+    var location: Location
     var timeBox: TimeBox
-    var data: [Location.Data]
     var chartType: ChartType
     
+    // Observe UserSettings so changes to published properties cause the view to refresh
+    @ObservedObject private var settings = UserSettings.shared
+
     @State private var showCalculation: Bool = false
+    
+    private var data: [Location.Data] {
+        location.data(in: timeBox, useRelatedConsumption: settings.useRelatedConsumptions, modelContext: modelContext)
+    }
     
     var filteredData: [Location.Data] {
         let monthKeyGrouping = UserSettings.shared.groupingDateFormatter.string(from: timeBox.referenceDate)
@@ -200,15 +207,20 @@ struct HomeConsumptionWaterfallChart: View {
     }
     
     private func barMark(xText: String, yText: String, yStart: Double? = nil, yEnd: Double, style: some ShapeStyle) -> some ChartContent {
-        if let yStart {
+        if var ys = yStart {
+            var ye = yEnd
+            // Ensure start <= end to avoid invisible/negative bars
+            if ys > ye {
+                swap(&ys, &ye)
+            }
             return BarMark(
                 x: .value(xText, NSLocalizedString(xText, comment: "")),
-                yStart: .value(yText, yStart),
-                yEnd: .value(yText, yEnd)
+                yStart: .value(yText, ys),
+                yEnd: .value(yText, ye)
             )
             .foregroundStyle(style)
             .annotation(position: .overlay, alignment: .center) {
-                Text(UserSettings.shared.format(yEnd - yStart, withSignificantDigits: 3))
+                Text(UserSettings.shared.format(ye - ys, withSignificantDigits: 3))
                     .font(.caption)
                     .foregroundColor(.black)
                     .padding(4)
@@ -439,4 +451,3 @@ struct HomeConsumptionWaterfallChart: View {
         }
     }
 }
-

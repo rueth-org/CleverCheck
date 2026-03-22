@@ -22,7 +22,6 @@ struct HomeViewChart: View {
     @Environment(\.modelContext) private var modelContext
     var location: Location
     var timeBox: TimeBox
-    var data: [Location.Data]
     
     @Binding var showHomeData: Bool
     @Binding var showHomeChargingData: Bool
@@ -30,10 +29,17 @@ struct HomeViewChart: View {
 
     // pending tap location relative to the TapLocationView bounds
     @State private var pendingTapLocation: CGPoint? = nil
+    
+    // Observe UserSettings so changes to published properties cause the view to refresh
+    @ObservedObject private var settings = UserSettings.shared
 
     // Optional callback invoked when a bar is tapped; receives the x-axis key (month) as String
     var onBarTap: ((String) -> Void)? = nil
 
+    private var data: [Location.Data] {
+        location.data(in: timeBox, useRelatedConsumption: settings.useRelatedConsumptions, modelContext: modelContext)
+    }
+    
     private var filteredHomeData: [Location.Data] {
         // We never show .total or .discount
         let shownData = data.filter { $0.dataType == .home || $0.dataType == .homeRefunded || $0.dataType == .charging || $0.dataType == .chargingRefunded }
@@ -204,8 +210,8 @@ struct HomeViewChart: View {
             }
         } else if timeBox.selectedResolution == .monthly {
             HomeConsumptionWaterfallChart(
+                location: location,
                 timeBox: timeBox,
-                data: data,
                 chartType: .consumption
             )
         } else {
@@ -334,8 +340,8 @@ struct HomeViewChart: View {
             }
         } else if timeBox.selectedResolution == .monthly {
             HomeConsumptionWaterfallChart(
+                location: location,
                 timeBox: timeBox,
-                data: data,
                 chartType: .cost
             )
         } else {

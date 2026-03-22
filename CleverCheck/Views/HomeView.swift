@@ -33,11 +33,6 @@ struct HomeView: View {
     // Observe UserSettings so changes to published properties cause the view to refresh
     @ObservedObject private var settings = UserSettings.shared
 
-    private var data: [Location.Data] {
-        guard let selectedLocation else { return [] }
-        return selectedLocation.data(in: timeBox, useRelatedConsumption: settings.useRelatedConsumptions, modelContext: modelContext)
-    }
-    
     var body: some View {
         NavigationStack(path: $navigationPath) {
             VStack {
@@ -55,7 +50,6 @@ struct HomeView: View {
                     HomeViewChart(
                         location: selectedLocation,
                         timeBox: timeBox,
-                        data: data,
                         showHomeData: $showHomeData,
                         showHomeChargingData: $showHomeChargingData,
                         showRefundedChargingData: $showRefundedChargingData,

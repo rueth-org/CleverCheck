@@ -89,9 +89,8 @@ struct LocationTests {
 
         // Call the data function. For these tests we will not rely on cache, but ensure to invalidate first.
         Location.invalidateCache()
-        let data = await location.data(in: timeBox, useRelatedConsumption: true, modelContext: modelContainer.mainContext)
         
-        let analysis = HomeConsumptionWaterfallChart(timeBox: timeBox, data: data, chartType: .consumption)
+        let analysis = HomeConsumptionWaterfallChart(location: location, timeBox: timeBox, chartType: .consumption)
         let totalData = await analysis.totalData
         let homeData = await analysis.homeData
         let chargingData = await analysis.chargingData
