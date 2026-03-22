@@ -6,7 +6,17 @@ import SwiftData
 
 @Suite("Location data aggregation")
 struct LocationTests {
-    @Test("data() with two sets of home consumptions", arguments: [
+    @Test("data() with several sets of home consumptions", arguments: [
+        ("Irisvej 33", 2025, 10,
+         totalConsumptionKWh: 767,
+         totalCost: Cost(amount: 1575.65),
+         refundedConsumptionKWh: 139.1,
+         refundedCost: Cost(amount: 258.73),
+         chargingConsumptionKWh: 299.65,
+         chargingCost: Cost(amount: 399.28),
+         homeConsumptionKWh: 328.25,
+         homeCost: Cost(amount: 688.45)
+        ),
         ("Irisvej 33", 2025, 11,
          totalConsumptionKWh: 1071.0,
          totalCost: Cost(amount: 2416.91),
@@ -81,11 +91,11 @@ struct LocationTests {
         Location.invalidateCache()
         let data = await location.data(in: timeBox, useRelatedConsumption: true, modelContext: modelContainer.mainContext)
         
-        let analysis = HomeConsumptionWaterfallChart(homeConsumptions: [], timeBox: timeBox, data: data, location: location)
+        let analysis = HomeConsumptionWaterfallChart(timeBox: timeBox, data: data, chartType: .consumption)
         let totalData = await analysis.totalData
         let homeData = await analysis.homeData
-        let chargingData = await analysis.homeChargingData
-        let refundedData = await analysis.refundedChargingData
+        let chargingData = await analysis.chargingData
+        let refundedData = await analysis.chargingRefundedData
         
         // Verify total data
         let calculatedTotalConsumptionKWh = totalData.consumption.converted(to: .kilowattHours).value
