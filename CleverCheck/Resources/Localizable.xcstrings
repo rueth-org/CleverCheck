@@ -1368,6 +1368,7 @@
       }
     },
     "Consumption included elsewhere" : {
+      "extractionState" : "stale",
       "localizations" : {
         "da" : {
           "stringUnit" : {
@@ -5050,13 +5051,52 @@
       }
     },
     "This month's home consumption discount" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne måneds rabat på boligforbrug"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heimverbrauchsrabatt des Monats"
+          }
+        }
+      }
     },
     "This month's refunded charging" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne måneds refunderede opladning"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laderückerstattung des Monats"
+          }
+        }
+      }
     },
     "This month's refunded home consumption" : {
-
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne måneds refunderede boligforbrug"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heimverbrauchsrückerstattung des Monats"
+          }
+        }
+      }
     },
     "This month's related refunding" : {
       "comment" : "A section header that indicates the related refunding for the current month.",

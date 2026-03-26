@@ -30,7 +30,6 @@ struct HomeConsumptionEditor: View {
     @State private var validFrom: Date = Date.now.startOfMonth
     @State private var validUntil: Date = Date.now.endOfMonth
     @State private var consumption: Measurement<UnitEnergy> = .init(value: 0.0, unit: .kilowattHours)
-    @State private var consumptionIncludedElsewhere: Bool = false
     @State private var consumptionType: HomeConsumption.ConsumptionType = .total
     @State private var comment: String = ""
 
@@ -76,8 +75,6 @@ struct HomeConsumptionEditor: View {
                     .multilineTextAlignment(.trailing)
                 Text(consumption.unit.symbol)
             }
-            
-            Toggle("Consumption included elsewhere", isOn: $consumptionIncludedElsewhere)
             
             HStack {
                 Text("\(homeConsumption?.chargingSessions?.count ?? 0) related charging sessions: \(consumptionFromRelatedSessions.formatted())")

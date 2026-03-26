@@ -86,6 +86,7 @@ struct HomeConsumptionWaterfallChart: View {
             }
             .sheet(isPresented: $showCalculation) {
                 List {
+                    // Total consumption
                     Section(header: HStack {
                         Image(systemName: "circle.fill")
                             .imageScale(.large)
@@ -95,6 +96,7 @@ struct HomeConsumptionWaterfallChart: View {
                         consumptionSummary(totalConsumption, totalCost)
                     }
                     
+                    // ... - home refunding
                     if homeRefundedConsumption.value != 0 || homeRefundedCost.amount != 0 {
                         Section(header: HStack {
                             Image(systemName: "minus.circle.fill")
@@ -106,6 +108,7 @@ struct HomeConsumptionWaterfallChart: View {
                         }
                     }
                     
+                    // ... - charging refunding
                     if chargingRefundedConsumption.value != 0 || chargingRefundedCost.amount != 0 {
                         Section(header: HStack {
                             Image(systemName: "minus.circle.fill")
@@ -117,6 +120,7 @@ struct HomeConsumptionWaterfallChart: View {
                         }
                     }
                     
+                    // ... = total considering refunding
                     if homeRefundedConsumption.value != 0 || homeRefundedCost.amount != 0 || chargingRefundedConsumption.value != 0 || chargingRefundedCost.amount != 0 {
                         Section(header: HStack {
                             Image(systemName: "equal.circle.fill")
@@ -128,11 +132,12 @@ struct HomeConsumptionWaterfallChart: View {
                             let refundedCost = homeRefundedCost.amount + chargingRefundedCost.amount
                             consumptionSummary(
                                 Measurement(value: totalConsumption.value - refundedConsumption, unit: totalConsumption.unit),
-                                Cost(amount: totalCost.amount + refundedCost, currency: totalCost.currency) // Plus because refunded cost is negative
+                                Cost(amount: totalCost.amount - refundedCost, currency: totalCost.currency) // Plus because refunded cost is negative
                             )
                         }
                     }
                     
+                    // ... - home discount
                     if homeDiscountCost.amount != 0 {
                         Section(header: HStack {
                             Image(systemName: "minus.circle.fill")
@@ -144,6 +149,7 @@ struct HomeConsumptionWaterfallChart: View {
                         }
                     }
                     
+                    // ... - charging discount
                     if chargingDiscountCost.amount != 0 {
                         Section(header: HStack {
                             Image(systemName: "minus.circle.fill")
@@ -155,6 +161,7 @@ struct HomeConsumptionWaterfallChart: View {
                         }
                     }
                     
+                    // ... - charging
                     Section(header: HStack {
                         Image(systemName: "minus.circle.fill")
                             .imageScale(.large)
@@ -164,6 +171,7 @@ struct HomeConsumptionWaterfallChart: View {
                         consumptionSummary(chargingConsumption, chargingCost)
                     }
                     
+                    // ... = home consumption
                     Section(header: HStack {
                         Image(systemName: "equal.circle.fill")
                             .imageScale(.large)
