@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Cost: Codable, Hashable {
+struct Cost: Codable, Hashable, Comparable {
     enum CostError: Error {
         case currencyServiceUnavailable
         case currencyNotFound(currency: String)
@@ -35,6 +35,12 @@ struct Cost: Codable, Hashable {
         formatter.numberStyle = .currency
         formatter.currencyCode = currency
         return formatter.string(from: NSNumber(value: amount)) ?? "–"
+    }
+    
+    static func < (lhs: Cost, rhs: Cost) -> Bool {
+        let lhsConverted = lhs.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? 0.0
+        let rhsConverted = rhs.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? 0.0
+        return lhsConverted < rhsConverted
     }
 }
 

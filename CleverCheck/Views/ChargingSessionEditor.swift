@@ -36,8 +36,8 @@ struct ChargingSessionEditor: View {
     var possibleHomeConsumptionsRefunded: [HomeConsumption]? {
         chargingSession?.possibleHomeConsumptionsRefunded(modelContext: modelContext, ignorePlan: ignorePlan, ignoreDate: ignoreDate)
     }
-    var possibleHomeConsumptionsDiscounted: [HomeConsumption]? {
-        chargingSession?.possibleHomeConsumptionsDiscounted(modelContext: modelContext, ignoreDate: ignoreDate)
+    var possibleHomeConsumptions: [HomeConsumption]? {
+        chargingSession?.possibleHomeConsumptions(modelContext: modelContext, ignoreDate: ignoreDate)
     }
     
     @State private var selectedCar: Car?
@@ -148,10 +148,10 @@ struct ChargingSessionEditor: View {
             }
             
             // When editing a session (if new, we present it later after saving) ...
-            if chargingSession != nil, chargingCostPlan?.planType == .refunded || chargingCostPlan?.planType == .homeDiscounted {
+            if chargingSession != nil, chargingCostPlan?.planType != .individual {
                 // Ask for a home consumption
                 HStack {
-                    chargingCostPlan?.planType == .refunded ? Text("Home Consumption for refunding: \(relatedHomeConsumption?.descriptionWithDate ?? "-")") : Text("Home Consumption for discount: \(relatedHomeConsumption?.descriptionWithDate ?? "-")")
+                    Text("Related home consumption: \(relatedHomeConsumption?.descriptionWithDate ?? "-")")
                     Spacer()
                     Button(action: {
                         isShowingHomeConsumptionPickerSheet = true
@@ -474,29 +474,19 @@ struct ChargingSessionEditor: View {
                 if let comment = chargingSession.comment {
                     self.comment = comment
                 }
-                if chargingSession.chargingCostPlan?.planType == .refunded, relatedHomeConsumption == nil {
-                    if let possibleHomeConsumptionsRefunded, possibleHomeConsumptionsRefunded.count == 1 {
-                        if let relatedHomeConsumption = possibleHomeConsumptionsRefunded.first {
-                            self.relatedHomeConsumption = relatedHomeConsumption
-                            activeAlert = SimpleAlert(type: .notice(message: "Automatically determined related home consumption \(relatedHomeConsumption.descriptionWithDate). Please save this session or correct."))
-                            showingAlert = true
-                        }
-                    }
-                }
-                if chargingSession.chargingCostPlan?.planType == .homeDiscounted, relatedHomeConsumption == nil {
-                    if let possibleHomeConsumptionsDiscounted, possibleHomeConsumptionsDiscounted.count == 1 {
-                        if let relatedHomeConsumption = possibleHomeConsumptionsDiscounted.first {
-                            self.relatedHomeConsumption = relatedHomeConsumption
-                            activeAlert = SimpleAlert(type: .notice(message: "Automatically determined related home consumption \(relatedHomeConsumption.descriptionWithDate). Please save this session or correct."))
-                            showingAlert = true
-                        }
+                if let planType = chargingSession.chargingCostPlan?.planType, planType != .individual && relatedHomeConsumption == nil {
+                    let possibleConsumptions = (planType == .refunded ? self.possibleHomeConsumptionsRefunded : self.possibleHomeConsumptions)
+                    if let relatedHomeConsumption = assignUniqueHomeConsumption(possibleConsumptions) {
+                        self.relatedHomeConsumption = relatedHomeConsumption
+                        activeAlert = SimpleAlert(type: .notice(message: "Automatically determined related home consumption \(relatedHomeConsumption.descriptionWithDate). Please save this session or correct."))
+                        showingAlert = true
                     }
                 }
             }
         }
         .sheet(isPresented: $isShowingHomeConsumptionPickerSheet) {
             HomeConsumptionPicker(
-                possibleHomeConsumptions: chargingCostPlan?.planType == .refunded ? possibleHomeConsumptionsRefunded : possibleHomeConsumptionsDiscounted,
+                possibleHomeConsumptions: chargingCostPlan?.planType == .refunded ? possibleHomeConsumptionsRefunded : possibleHomeConsumptions,
                 selectedHomeConsumption: $relatedHomeConsumption,
                 chooseLater: $chooseHomeConsumptionLater,
                 ignorePlan: $ignorePlan,
@@ -660,21 +650,20 @@ struct ChargingSessionEditor: View {
         try? modelContext.save()
         
         if chooseHomeConsumptionLater ||
-            (selectedPlan.planType != .refunded && selectedPlan.planType != .homeDiscounted) ||
-            (selectedPlan.planType == .refunded && relatedHomeConsumption != nil) ||
-            (selectedPlan.planType == .homeDiscounted && relatedHomeConsumption != nil)
+            selectedPlan.planType == .individual ||
+            (selectedPlan.planType != .individual && relatedHomeConsumption != nil)
         {
             andExit()
         } else {
             // Data check: Home consumption is recommended if charging cost plan type is refunded
             activeAlert = SimpleAlert(
-                type: .notice(message: selectedPlan.planType == .refunded ? "A home consumption entry is recommended for a refunded charging cost plan." : "A home consumption entry is recommended for a home discounted charging cost plan."),
+                type: .notice(message: "Please connect to a home consumption."),
                 customButtons: [
-                    SimpleAlertButton(title: NSLocalizedString("Add now", comment: ""), role: nil) {
+                    SimpleAlertButton(title: NSLocalizedString("Connect now", comment: ""), role: nil) {
                         // Open the home consumption picker
                         isShowingHomeConsumptionPickerSheet = true
                     },
-                    SimpleAlertButton(title: NSLocalizedString("Add later", comment: ""), role: nil) {
+                    SimpleAlertButton(title: NSLocalizedString("Connect later", comment: ""), role: nil) {
                         andExit()
                     }
                 ]
@@ -733,6 +722,15 @@ struct ChargingSessionEditor: View {
                 self.specificCost = self.specificCost.converted(to: currencyIdentifier) ?? self.specificCost
             }
         }
+    }
+    
+    private func assignUniqueHomeConsumption(_ possibleHomeConsumptions: [HomeConsumption]?) -> HomeConsumption? {
+        if let possibleHomeConsumptions, possibleHomeConsumptions.count == 1 {
+            if let relatedHomeConsumption = possibleHomeConsumptions.first {
+                return relatedHomeConsumption
+            }
+        }
+        return nil
     }
     
     @MainActor private func getDataFromImage(_ sourceType: UIImagePickerController.SourceType) async {

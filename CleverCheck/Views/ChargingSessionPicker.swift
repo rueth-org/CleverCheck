@@ -13,11 +13,12 @@ struct ChargingSessionPicker: View {
     @Binding var isShowing: Bool
     var homeConsumption: HomeConsumption
     var possibleSessions: [ChargingSession] {
-        homeConsumption.possibleChargingSessions(modelContext: modelContext) ?? []
+        homeConsumption.possibleChargingSessions(ignoreConsumptionType: ignoreConsumptionType, modelContext: modelContext) ?? []
     }
     
     @State private var selectAll: Bool = false
     @State private var selectedSessions: Set<ChargingSession> = []
+    @State var ignoreConsumptionType: Bool = false
     
     var body: some View {
         VStack {
@@ -60,6 +61,10 @@ struct ChargingSessionPicker: View {
             .background(Color.blue)
             .cornerRadius(25)
             .padding()
+            
+            Toggle("Ignore consumption type", isOn: $ignoreConsumptionType)
+                .padding(.horizontal)
+            Divider()
             
             Button(action: {
                 selectAll.toggle()

@@ -388,7 +388,13 @@ struct HomeViewChart: View {
     
     private func filteredHomeData(from data: [Location.Data]) -> [Location.Data] {
         // We never show .total or .discount
-        let shownData = data.filter { $0.dataType == .home || $0.dataType == .homeRefunded || $0.dataType == .charging || $0.dataType == .chargingRefunded }
+        let shownData = data.filter {
+            $0.dataType == .home ||
+            $0.dataType == .homeRefunded ||
+            $0.dataType == .charging ||
+            $0.dataType == .chargingRefunded ||
+            $0.dataType == .refundingOtherPlan
+        }
         
         // Go through all combinations of the three boolean filters and return the correct subset
         if showHomeData && showHomeChargingData && showRefundedChargingData {

@@ -31,16 +31,22 @@ struct HomeConsumptionsList: View {
         } else {
             List {
                 ForEach(groupedByMonths.keys.sorted(by: { $0 > $1 }), id: \.self) { month in
+                    let costForMonth = cost(for: month)
                     Section(header: Text(month, format: UserSettings.shared.displayDateFormatInSection)) {
                         // The total cost for the month
                         HStack {
                             Text("Total:")
                             Spacer()
-                            Text(cost(for: month).formatted())
+                            Text((costForMonth.home + costForMonth.charging).formatted())
                         }
                         
                         // The list of home consumptions ending this month
                         ForEach(groupedByMonths[month]!, id: \.self) { homeConsumption in
+                            let cost = homeConsumption.totalCost(
+                                includingVAT: UserSettings.shared.displayGrossPrices,
+                                useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions,
+                                reduceTotalBy: nil
+                            )
                             NavigationLink(value: HomeConsumptionsView.NavigationDestination.EditConsumption(homeConsumption: homeConsumption)) {
                                 VStack(alignment: .leading) {
                                     Text("\(homeConsumption.name) (\(homeConsumption.consumptionType.description))")
@@ -48,10 +54,7 @@ struct HomeConsumptionsList: View {
                                         //Display dateoFrm - dateUntil  inshort format
                                         Text("\(homeConsumption.validFrom, format: UserSettings.shared.displayDateFormat) - \(homeConsumption.validUntil, format: UserSettings.shared.displayDateFormat)")
                                         Spacer()
-                                        Text(homeConsumption.totalCost(
-                                            includingVAT: UserSettings.shared.displayGrossPrices,
-                                            useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
-                                        ).formatted())
+                                        Text((cost.home + cost.charging).formatted())
                                             .font(.subheadline)
                                             .foregroundColor(.secondary)
                                     }
@@ -146,15 +149,19 @@ struct HomeConsumptionsList: View {
         try? modelContext.save()
     }
     
-    private func cost(for month: Date) -> Cost {
+    private func cost(for month: Date) -> (home: Cost, charging: Cost) {
         let monthString = UserSettings.shared.groupingDateFormatter.string(from: month)
-        var total: Cost = .init(amount: 0.0)
+        var home: Cost = .init(amount: 0.0)
+        var charging: Cost = .init(amount: 0.0)
         for homeConsumption in homeConsumptions {
-            total += homeConsumption.totalCostPerMonth(
+            let costPerMonth = homeConsumption.costPerMonth(
                 includingVAT: UserSettings.shared.displayGrossPrices,
-                useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
-            )[monthString] ?? .init(amount: 0.0)
+                useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions,
+                reduceTotalBy: nil
+            )[monthString] ?? (home: .init(amount: 0.0), charging: .init(amount: 0.0))
+            home += costPerMonth.home
+            charging += costPerMonth.charging
         }
-        return total
+        return (home: home, charging: charging)
     }
 }

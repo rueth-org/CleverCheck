@@ -192,6 +192,7 @@ public struct DataImporter {
                 case .charging: consumptionType = .charging
                 case .chargingDiscount: consumptionType = .chargingDiscount
                 case .chargingRefunded: consumptionType = .chargingRefunded
+                case .refundingOtherPlan: consumptionType = .refundingOtherPlan
                 }
                 
                 let home = HomeConsumption(

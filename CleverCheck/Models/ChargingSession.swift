@@ -140,7 +140,7 @@ final class ChargingSession: Comparable {
         chargedEnergy.converted(to: unitEnergy)
     }
     
-    func possibleHomeConsumptionsDiscounted(modelContext: ModelContext, ignoreDate: Bool = false) -> [HomeConsumption]? {
+    func possibleHomeConsumptions(modelContext: ModelContext, ignoreDate: Bool = false) -> [HomeConsumption]? {
         if let homeConsumptions = try? modelContext.fetch(FetchDescriptor<HomeConsumption>()) {
             if homeConsumptions.isEmpty {
                 return nil

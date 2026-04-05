@@ -49,6 +49,7 @@ struct HomeConsumptionWaterfallChart: View {
             let chargingData = filter(filtered, for: .charging)
             let chargingRefundedData = filter(filtered, for: .chargingRefunded)
             let chargingDiscountData = filter(filtered, for: .chargingDiscount)
+            let refundingOtherPlanData = filter(filtered, for: .refundingOtherPlan)
             
             let totalConsumption = totalData.consumption.converted(to: UserSettings.shared.energyUnit)
             let totalCost = totalData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? totalData.cost
@@ -64,6 +65,8 @@ struct HomeConsumptionWaterfallChart: View {
             let chargingRefundedCost = chargingRefundedData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? chargingRefundedData.cost
             let chargingDiscountConsumption = chargingDiscountData.consumption.converted(to: UserSettings.shared.energyUnit)
             let chargingDiscountCost = chargingDiscountData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? chargingDiscountData.cost
+            let refundingOtherPlanConsumption = refundingOtherPlanData.consumption.converted(to: UserSettings.shared.energyUnit)
+            let refundingOtherPlanCost = refundingOtherPlanData.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? refundingOtherPlanData.cost
             
             waterfallChart(
                 totalConsumption,
@@ -79,7 +82,9 @@ struct HomeConsumptionWaterfallChart: View {
                 chargingRefundedConsumption,
                 chargingRefundedCost,
                 chargingDiscountConsumption,
-                chargingDiscountCost
+                chargingDiscountCost,
+                refundingOtherPlanConsumption,
+                refundingOtherPlanCost
             )
             .onTapGesture {
                 showCalculation = true
@@ -240,7 +245,9 @@ struct HomeConsumptionWaterfallChart: View {
         _ chargingRefundedConsumption: Measurement<UnitEnergy>,
         _ chargingRefundedCost: Cost,
         _ chargingDiscountConsumption: Measurement<UnitEnergy>,
-        _ chargingDiscountCost: Cost
+        _ chargingDiscountCost: Cost,
+        _ refundingOtherPlanConsumption: Measurement<UnitEnergy>,
+        _ refundingOtherPlanCost: Cost
     ) -> some View {
         switch chartType {
         case .consumption:
@@ -275,12 +282,23 @@ struct HomeConsumptionWaterfallChart: View {
                     )
                 }
                 
-                if homeRefundedConsumption.value != 0 || chargingRefundedConsumption.value != 0 {
+                if refundingOtherPlanConsumption.value != 0 {
+                    // Subtracting the refunding from other plan
+                    barMark(
+                        xText: HomeConsumption.ConsumptionType.refundingOtherPlan.rawValue,
+                        yText: "Consumption",
+                        yStart: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value - refundingOtherPlanConsumption.value,
+                        yEnd: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value,
+                        style: HomeConsumption.ConsumptionType.refundingOtherPlan.color().toColor()
+                    )
+                }
+                
+                if homeRefundedConsumption.value != 0 || chargingRefundedConsumption.value != 0 || refundingOtherPlanConsumption.value != 0 {
                     // The total considering refunding bar
                     barMark(
                         xText: "Total (including refunds)",
                         yText: "Consumption",
-                        yEnd: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value,
+                        yEnd: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value - refundingOtherPlanConsumption.value,
                         style: ImagePaint(image: pattern(HomeConsumption.ConsumptionType.total.color()), scale: 0.5)
                     )
                 }
@@ -289,8 +307,8 @@ struct HomeConsumptionWaterfallChart: View {
                 barMark(
                     xText: HomeConsumption.ConsumptionType.charging.rawValue,
                     yText: "Consumption",
-                    yStart: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value - chargingConsumption.value,
-                    yEnd: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value,
+                    yStart: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value - refundingOtherPlanConsumption.value - chargingConsumption.value,
+                    yEnd: totalConsumption.value - homeRefundedConsumption.value - chargingRefundedConsumption.value - refundingOtherPlanConsumption.value,
                     style: HomeConsumption.ConsumptionType.charging.color().toColor()
                 )
                 
@@ -336,12 +354,23 @@ struct HomeConsumptionWaterfallChart: View {
                     )
                 }
                 
-                if homeRefundedCost.amount != 0 || chargingRefundedCost.amount != 0 {
+                if refundingOtherPlanCost.amount != 0 {
+                    // Subtracting the refunding from other plan
+                    barMark(
+                        xText: HomeConsumption.ConsumptionType.refundingOtherPlan.rawValue,
+                        yText: "Cost",
+                        yStart: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - refundingOtherPlanCost.amount,
+                        yEnd: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount,
+                        style: HomeConsumption.ConsumptionType.refundingOtherPlan.color().toColor()
+                    )
+                }
+                
+                if homeRefundedCost.amount != 0 || chargingRefundedCost.amount != 0 || refundingOtherPlanCost.amount != 0 {
                     // The total considering refunding bar
                     barMark(
                         xText: "Total (including refunds)",
                         yText: "Cost",
-                        yEnd: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount,
+                        yEnd: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - refundingOtherPlanCost.amount,
                         style: ImagePaint(image: pattern(HomeConsumption.ConsumptionType.total.color()), scale: 0.5)
                     )
                 }
@@ -351,8 +380,8 @@ struct HomeConsumptionWaterfallChart: View {
                     barMark(
                         xText: HomeConsumption.ConsumptionType.chargingDiscount.rawValue,
                         yText: "Cost",
-                        yStart: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - chargingDiscountCost.amount,
-                        yEnd: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount,
+                        yStart: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - refundingOtherPlanCost.amount - chargingDiscountCost.amount,
+                        yEnd: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - refundingOtherPlanCost.amount,
                         style: HomeConsumption.ConsumptionType.chargingDiscount.color().toColor()
                     )
                 }
@@ -361,8 +390,8 @@ struct HomeConsumptionWaterfallChart: View {
                 barMark(
                     xText: HomeConsumption.ConsumptionType.charging.rawValue,
                     yText: "Cost",
-                    yStart: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - chargingDiscountCost.amount - chargingCost.amount,
-                    yEnd: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - chargingDiscountCost.amount,
+                    yStart: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - refundingOtherPlanCost.amount - chargingDiscountCost.amount - chargingCost.amount,
+                    yEnd: totalCost.amount - homeRefundedCost.amount - chargingRefundedCost.amount - refundingOtherPlanCost.amount - chargingDiscountCost.amount,
                     style: HomeConsumption.ConsumptionType.charging.color().toColor()
                 )
                 

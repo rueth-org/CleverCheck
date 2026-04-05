@@ -31,6 +31,7 @@ struct HomeConsumptionEditor: View {
     @State private var validUntil: Date = Date.now.endOfMonth
     @State private var consumption: Measurement<UnitEnergy> = .init(value: 0.0, unit: .kilowattHours)
     @State private var consumptionType: HomeConsumption.ConsumptionType = .total
+    @State private var defaultToEnteredConsumption: Bool = true
     @State private var comment: String = ""
 
     @State private var showingChargingSessionPicker: Bool = false
@@ -75,6 +76,10 @@ struct HomeConsumptionEditor: View {
                     .multilineTextAlignment(.trailing)
                 Text(consumption.unit.symbol)
             }
+            VStack {
+                Toggle("Default to entered consumption", isOn: $defaultToEnteredConsumption)
+                Text("If enabled, the entered consumption will be used for calculation if 'Use related consumption' is enabled in the settings and no related consumptions are found.").font(.caption).italic()
+            }
             
             HStack {
                 Text("\(homeConsumption?.chargingSessions?.count ?? 0) related charging sessions: \(consumptionFromRelatedSessions.formatted())")
@@ -91,13 +96,21 @@ struct HomeConsumptionEditor: View {
                 .lineLimit(3)
             
             Section(header: Text("Results")) {
+                let totalCost = homeConsumption?.totalCost(
+                    includingVAT: UserSettings.shared.displayGrossPrices,
+                    useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions,
+                    reduceTotalBy: nil
+                )
                 HStack {
-                    Text("Cost")
+                    Text("Home cost")
                     Spacer()
-                    Text(homeConsumption?.totalCost(
-                        includingVAT: UserSettings.shared.displayGrossPrices,
-                        useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions
-                    ).formatted() ?? "-")
+                    Text(totalCost?.home.formatted() ?? "-")
+                        .multilineTextAlignment(.trailing)
+                }
+                HStack {
+                    Text("Charging cost")
+                    Spacer()
+                    Text(totalCost?.charging.formatted() ?? "-")
                         .multilineTextAlignment(.trailing)
                 }
             }
@@ -185,6 +198,7 @@ struct HomeConsumptionEditor: View {
                 self.consumption = homeConsumption.consumption
                 self.consumptionType = homeConsumption.consumptionType
                 self.selectedLocation = homeConsumption.associatedLocation
+                self.defaultToEnteredConsumption = homeConsumption.defaultToEnteredConsumption
                 self.comment = homeConsumption.comment
             }
         }
@@ -254,6 +268,7 @@ struct HomeConsumptionEditor: View {
             homeConsumption.consumption = self.consumption
             homeConsumption.consumptionType = self.consumptionType
             homeConsumption.associatedLocation = self.selectedLocation
+            homeConsumption.defaultToEnteredConsumption = self.defaultToEnteredConsumption
             homeConsumption.comment = self.comment
         } else {
             // Create new home consumption
@@ -265,6 +280,7 @@ struct HomeConsumptionEditor: View {
                 consumptionType: self.consumptionType
             )
             newHomeConsumption.associatedLocation = self.selectedLocation
+            newHomeConsumption.defaultToEnteredConsumption = self.defaultToEnteredConsumption
             newHomeConsumption.comment = self.comment
             
             // Insert into model

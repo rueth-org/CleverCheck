@@ -74,6 +74,15 @@ struct ChargingSessionsView: View {
                             VStack {
                                 HStack {
                                     Text(chargingSession.endTime, format: Date.FormatStyle(date: .abbreviated, time: .none))
+                                    if chargingSession.chargingCostPlan?.planType != .individual && chargingSession.relatedHomeConsumption == nil {
+                                        Spacer()
+                                        Button(action: {
+                                            activeAlert = SimpleAlert(type: .warning(message: "This session is not linked to a home consumption. Please link it to ensure accurate cost calculations."))
+                                            showingAlert = true
+                                        }) {
+                                            Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.yellow)
+                                        }.buttonStyle(.plain)
+                                    }
                                     Spacer()
                                     if chargingSession.finalSOC != nil {
                                         Text(chargingSession.finalSOC!.formatted(.percent))
