@@ -125,16 +125,28 @@ struct HomeConsumptionWaterfallChart: View {
                         }
                     }
                     
+                    // ... - refunding for other plan
+                    if refundingOtherPlanConsumption.value != 0 || refundingOtherPlanCost.amount != 0 {
+                        Section(header: HStack {
+                            Image(systemName: "minus.circle.fill")
+                                .imageScale(.large)
+                                .foregroundStyle(HomeConsumption.ConsumptionType.refundingOtherPlan.color().toColor())
+                            Text("This month's refunding for other plan")
+                        }) {
+                            consumptionSummary(refundingOtherPlanConsumption, refundingOtherPlanCost)
+                        }
+                    }
+                    
                     // ... = total considering refunding
-                    if homeRefundedConsumption.value != 0 || homeRefundedCost.amount != 0 || chargingRefundedConsumption.value != 0 || chargingRefundedCost.amount != 0 {
+                    if homeRefundedConsumption.value != 0 || homeRefundedCost.amount != 0 || chargingRefundedConsumption.value != 0 || chargingRefundedCost.amount != 0 || refundingOtherPlanConsumption.value != 0 || refundingOtherPlanCost.amount != 0 {
                         Section(header: HStack {
                             Image(systemName: "equal.circle.fill")
                                 .imageScale(.large)
                                 .foregroundStyle(ImagePaint(image: pattern(HomeConsumption.ConsumptionType.total.color()), scale: 0.5))
                             Text("This month's gross data considering refunding")
                         }) {
-                            let refundedConsumption = homeRefundedConsumption.value + chargingRefundedConsumption.value
-                            let refundedCost = homeRefundedCost.amount + chargingRefundedCost.amount
+                            let refundedConsumption = homeRefundedConsumption.value + chargingRefundedConsumption.value + refundingOtherPlanConsumption.value
+                            let refundedCost = homeRefundedCost.amount + chargingRefundedCost.amount + refundingOtherPlanCost.amount
                             consumptionSummary(
                                 Measurement(value: totalConsumption.value - refundedConsumption, unit: totalConsumption.unit),
                                 Cost(amount: totalCost.amount - refundedCost, currency: totalCost.currency) // Plus because refunded cost is negative
