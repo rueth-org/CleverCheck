@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pixyzehn/currency-converter.git",
       "state" : {
-        "revision" : "156ed0be1dc77f9cdd583a93119045fe36a6553f",
-        "version" : "0.2.7"
+        "revision" : "1e62e3123ab2cfc5fc77fb88fd7c6de3c0af4f5c",
+        "version" : "0.2.8"
       }
     }
   ],
