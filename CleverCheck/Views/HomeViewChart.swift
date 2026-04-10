@@ -23,12 +23,16 @@ struct HomeViewChart: View {
     var location: Location
     var timeBox: TimeBox
     
-    @Binding var showHomeData: Bool
-    @Binding var showHomeChargingData: Bool
-    @Binding var showRefundedChargingData: Bool
+    @State private var showHomeData: Bool = true
+    @State private var showHomeRefundedData: Bool = true
+    @State private var showChargingData: Bool = true
+    @State private var showChargingRefundedData: Bool = true
+    @State private var showRefundingOtherPlanData: Bool = true
 
     // pending tap location relative to the TapLocationView bounds
     @State private var pendingTapLocation: CGPoint? = nil
+    
+    @State private var showingFilterSelection: Bool = false
     
     // Observe UserSettings so changes to published properties cause the view to refresh
     @ObservedObject private var settings = UserSettings.shared
@@ -40,6 +44,53 @@ struct HomeViewChart: View {
         location.data(in: timeBox, useRelatedConsumption: settings.useRelatedConsumptions, modelContext: modelContext)
     }
     
+    // Computed bindings that ensure at least one toggle stays enabled
+    private var safeShowHomeData: Binding<Bool> {
+        Binding<Bool>(get: { self.showHomeData }, set: { newValue in
+            // If attempting to disable and all other toggles are false, ignore the change
+            if newValue == false && !(self.showHomeRefundedData || self.showChargingData || self.showChargingRefundedData || self.showRefundingOtherPlanData) {
+                return
+            }
+            self.showHomeData = newValue
+        })
+    }
+
+    private var safeShowHomeRefundedData: Binding<Bool> {
+        Binding<Bool>(get: { self.showHomeRefundedData }, set: { newValue in
+            if newValue == false && !(self.showHomeData || self.showChargingData || self.showChargingRefundedData || self.showRefundingOtherPlanData) {
+                return
+            }
+            self.showHomeRefundedData = newValue
+        })
+    }
+
+    private var safeShowChargingData: Binding<Bool> {
+        Binding<Bool>(get: { self.showChargingData }, set: { newValue in
+            if newValue == false && !(self.showHomeData || self.showHomeRefundedData || self.showChargingRefundedData || self.showRefundingOtherPlanData) {
+                return
+            }
+            self.showChargingData = newValue
+        })
+    }
+
+    private var safeShowChargingRefundedData: Binding<Bool> {
+        Binding<Bool>(get: { self.showChargingRefundedData }, set: { newValue in
+            if newValue == false && !(self.showHomeData || self.showHomeRefundedData || self.showChargingData || self.showRefundingOtherPlanData) {
+                return
+            }
+            self.showChargingRefundedData = newValue
+        })
+    }
+
+    private var safeShowRefundingOtherPlanData: Binding<Bool> {
+        Binding<Bool>(get: { self.showRefundingOtherPlanData }, set: { newValue in
+            if newValue == false && !(self.showHomeData || self.showHomeRefundedData || self.showChargingData || self.showChargingRefundedData) {
+                return
+            }
+            self.showRefundingOtherPlanData = newValue
+        })
+    }
+
     var body: some View {
         // Capture filtered data once to avoid multiple computed-property evaluations
         let data = self.data
@@ -56,16 +107,23 @@ struct HomeViewChart: View {
         return DotIndicatorScrollView(tabViews: tabViews)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Menu {
-                        Toggle("Home consumption", isOn: $showHomeData)
-                            .disabled(showHomeChargingData == false && showRefundedChargingData == false)
-                        Toggle("Home charging", isOn: $showHomeChargingData)
-                            .disabled(showHomeData == false && showRefundedChargingData == false)
-                        Toggle("Refunded charging", isOn: $showRefundedChargingData)
-                            .disabled(showHomeData == false && showHomeChargingData == false)
+                    Button {
+                        showingFilterSelection.toggle()
                     } label: {
                         Label("Filter", systemImage: "slider.horizontal.3")
-                            .foregroundColor((showHomeData == false || showHomeChargingData == false || showRefundedChargingData == false) ? .blue : .primary)
+                            .foregroundColor((showHomeData == false || showChargingData == false || showChargingRefundedData == false) ? .blue : .primary)
+                    }
+                    .sheet(isPresented: $showingFilterSelection) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.home.rawValue, comment: ""), isOn: safeShowHomeData)
+                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.homeRefunded.rawValue, comment: ""), isOn: safeShowHomeRefundedData)
+                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.charging.rawValue, comment: ""), isOn: safeShowChargingData)
+                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.chargingRefunded.rawValue, comment: ""), isOn: safeShowChargingRefundedData)
+                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.refundingOtherPlan.rawValue, comment: ""), isOn: safeShowRefundingOtherPlanData)
+                        }
+                        .padding()
+                        .presentationDetents([.fraction(0.3), .medium])
+                        .presentationDragIndicator(.visible)
                     }
                 }
             }
@@ -387,32 +445,18 @@ struct HomeViewChart: View {
     }
     
     private func filteredHomeData(from data: [Location.Data]) -> [Location.Data] {
-        // We never show .total or .discount
-        let shownData = data.filter {
-            $0.dataType == .home ||
-            $0.dataType == .homeRefunded ||
-            $0.dataType == .charging ||
-            $0.dataType == .chargingRefunded ||
-            $0.dataType == .refundingOtherPlan
-        }
+        // Build a set of allowed types according to the five filter flags.
+        var allowedTypes = Set<HomeConsumption.ConsumptionType>()
+        if showHomeData { allowedTypes.insert(.home) }
+        if showHomeRefundedData { allowedTypes.insert(.homeRefunded) }
+        if showChargingData { allowedTypes.insert(.charging) }
+        if showChargingRefundedData { allowedTypes.insert(.chargingRefunded) }
+        if showRefundingOtherPlanData { allowedTypes.insert(.refundingOtherPlan) }
         
-        // Go through all combinations of the three boolean filters and return the correct subset
-        if showHomeData && showHomeChargingData && showRefundedChargingData {
-            return shownData
-        } else if showHomeData && !showHomeChargingData && !showRefundedChargingData {
-            return shownData.filter { $0.dataType == .home }
-        } else if !showHomeData && showHomeChargingData && !showRefundedChargingData {
-            return shownData.filter { $0.dataType == .charging }
-        } else if !showHomeData && !showHomeChargingData && showRefundedChargingData {
-            return shownData.filter { $0.dataType == .chargingRefunded }
-        } else if showHomeData && showHomeChargingData && !showRefundedChargingData {
-            return shownData.filter { $0.dataType == .home || $0.dataType == .charging }
-        } else if showHomeData && !showHomeChargingData && showRefundedChargingData {
-            return shownData.filter { $0.dataType == .home || $0.dataType == .chargingRefunded }
-        } else if !showHomeData && showHomeChargingData && showRefundedChargingData {
-            return shownData.filter { $0.dataType == .charging || $0.dataType == .chargingRefunded }
-        } else {
-            return []
-        }
+        // If no filter is selected, return an empty array (nothing to show)
+        if allowedTypes.isEmpty { return [] }
+        
+        // Return only items that match the allowed types
+        return data.filter { allowedTypes.contains($0.dataType) }
      }
 }

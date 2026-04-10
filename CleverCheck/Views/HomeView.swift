@@ -22,9 +22,6 @@ struct HomeView: View {
         allowedResolutions: [.yearly, .monthly],
         selectIndividualItem: { _ in }
     )
-    @State private var showHomeData: Bool = true
-    @State private var showHomeChargingData: Bool = true
-    @State private var showRefundedChargingData: Bool = true
     
     @Query(filter: #Predicate<Location> { location in
         location.isArchived == false
@@ -50,9 +47,6 @@ struct HomeView: View {
                     HomeViewChart(
                         location: selectedLocation,
                         timeBox: timeBox,
-                        showHomeData: $showHomeData,
-                        showHomeChargingData: $showHomeChargingData,
-                        showRefundedChargingData: $showRefundedChargingData,
                         onBarTap: { dateKey in
                             timeBox.switchResolution(dateKey)
                         }
