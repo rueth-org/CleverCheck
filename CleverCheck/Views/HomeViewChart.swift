@@ -44,53 +44,6 @@ struct HomeViewChart: View {
         location.data(in: timeBox, useRelatedConsumption: settings.useRelatedConsumptions, modelContext: modelContext)
     }
     
-    // Computed bindings that ensure at least one toggle stays enabled
-    private var safeShowHomeData: Binding<Bool> {
-        Binding<Bool>(get: { self.showHomeData }, set: { newValue in
-            // If attempting to disable and all other toggles are false, ignore the change
-            if newValue == false && !(self.showHomeRefundedData || self.showChargingData || self.showChargingRefundedData || self.showRefundingOtherPlanData) {
-                return
-            }
-            self.showHomeData = newValue
-        })
-    }
-
-    private var safeShowHomeRefundedData: Binding<Bool> {
-        Binding<Bool>(get: { self.showHomeRefundedData }, set: { newValue in
-            if newValue == false && !(self.showHomeData || self.showChargingData || self.showChargingRefundedData || self.showRefundingOtherPlanData) {
-                return
-            }
-            self.showHomeRefundedData = newValue
-        })
-    }
-
-    private var safeShowChargingData: Binding<Bool> {
-        Binding<Bool>(get: { self.showChargingData }, set: { newValue in
-            if newValue == false && !(self.showHomeData || self.showHomeRefundedData || self.showChargingRefundedData || self.showRefundingOtherPlanData) {
-                return
-            }
-            self.showChargingData = newValue
-        })
-    }
-
-    private var safeShowChargingRefundedData: Binding<Bool> {
-        Binding<Bool>(get: { self.showChargingRefundedData }, set: { newValue in
-            if newValue == false && !(self.showHomeData || self.showHomeRefundedData || self.showChargingData || self.showRefundingOtherPlanData) {
-                return
-            }
-            self.showChargingRefundedData = newValue
-        })
-    }
-
-    private var safeShowRefundingOtherPlanData: Binding<Bool> {
-        Binding<Bool>(get: { self.showRefundingOtherPlanData }, set: { newValue in
-            if newValue == false && !(self.showHomeData || self.showHomeRefundedData || self.showChargingData || self.showChargingRefundedData) {
-                return
-            }
-            self.showRefundingOtherPlanData = newValue
-        })
-    }
-
     var body: some View {
         // Capture filtered data once to avoid multiple computed-property evaluations
         let data = self.data
@@ -114,13 +67,27 @@ struct HomeViewChart: View {
                             .foregroundColor((showHomeData == false || showChargingData == false || showChargingRefundedData == false) ? .blue : .primary)
                     }
                     .sheet(isPresented: $showingFilterSelection) {
-                        ChartFiltersSheet<Text>(toggles: [
-                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.home.rawValue, comment: ""), isOn: safeShowHomeData),
-                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.homeRefunded.rawValue, comment: ""), isOn: safeShowHomeRefundedData),
-                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.charging.rawValue, comment: ""), isOn: safeShowChargingData),
-                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.chargingRefunded.rawValue, comment: ""), isOn: safeShowChargingRefundedData),
-                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.refundingOtherPlan.rawValue, comment: ""), isOn: safeShowRefundingOtherPlanData)
-                        ])
+                        // Only include toggles for types that are present in the captured `data` set
+                        let presentTypes = Set(data.map { $0.dataType })
+                        ChartFiltersSheet<Text>(toggles: {
+                            var toggles = [Toggle<Text>]()
+                            if presentTypes.contains(.home) {
+                                toggles.append(Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.home.rawValue, comment: ""), isOn: $showHomeData))
+                            }
+                            if presentTypes.contains(.homeRefunded) {
+                                toggles.append(Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.homeRefunded.rawValue, comment: ""), isOn: $showHomeRefundedData))
+                            }
+                            if presentTypes.contains(.charging) {
+                                toggles.append(Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.charging.rawValue, comment: ""), isOn: $showChargingData))
+                            }
+                            if presentTypes.contains(.chargingRefunded) {
+                                toggles.append(Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.chargingRefunded.rawValue, comment: ""), isOn: $showChargingRefundedData))
+                            }
+                            if presentTypes.contains(.refundingOtherPlan) {
+                                toggles.append(Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.refundingOtherPlan.rawValue, comment: ""), isOn: $showRefundingOtherPlanData))
+                            }
+                            return toggles
+                        }())
                     }
                 }
             }
