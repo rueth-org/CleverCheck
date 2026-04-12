@@ -47,6 +47,7 @@ struct HomeViewChart: View {
     var body: some View {
         // Capture filtered data once to avoid multiple computed-property evaluations
         let data = self.data
+        let presentTypes = Set(data.map { $0.dataType }) // Capture present types for filter sheet
         let filteredData = filteredHomeData(from: data)
         let sortedData = filteredData.sorted()
 
@@ -64,11 +65,10 @@ struct HomeViewChart: View {
                         showingFilterSelection.toggle()
                     } label: {
                         Label("Filter", systemImage: "slider.horizontal.3")
-                            .foregroundColor((showHomeData == false || showChargingData == false || showChargingRefundedData == false) ? .blue : .primary)
                     }
+                    .tint(noFiltersOn(presentTypes) ? .primary : .blue)
                     .sheet(isPresented: $showingFilterSelection) {
                         // Only include toggles for types that are present in the captured `data` set
-                        let presentTypes = Set(data.map { $0.dataType })
                         ChartFiltersSheet<Text>(toggles: {
                             var toggles = [Toggle<Text>]()
                             if presentTypes.contains(.home) {
@@ -139,6 +139,16 @@ struct HomeViewChart: View {
     func barTapped(_ key: String) {
         debugPrint("HomeViewChart barTapped: \(key)")
         onBarTap?(key)
+    }
+    
+    private func noFiltersOn(_ presentTypes: Set<HomeConsumption.ConsumptionType>) -> Bool {
+        var noFiltersOn = true
+        if presentTypes.contains(.home) && !showHomeData { noFiltersOn = false }
+        if presentTypes.contains(.homeRefunded) && !showHomeRefundedData { noFiltersOn = false }
+        if presentTypes.contains(.charging) && !showChargingData { noFiltersOn = false }
+        if presentTypes.contains(.chargingRefunded) && !showChargingRefundedData { noFiltersOn = false }
+        if presentTypes.contains(.refundingOtherPlan) && !showRefundingOtherPlanData { noFiltersOn = false }
+        return noFiltersOn
     }
     
     private func displayColors(for input: [any GraphItem]) -> [Color] {
