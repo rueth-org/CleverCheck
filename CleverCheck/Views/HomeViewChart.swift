@@ -33,7 +33,7 @@ struct HomeViewChart: View {
     @State private var pendingTapLocation: CGPoint? = nil
     
     @State private var showingFilterSelection: Bool = false
-    
+
     // Observe UserSettings so changes to published properties cause the view to refresh
     @ObservedObject private var settings = UserSettings.shared
 
@@ -103,7 +103,7 @@ struct HomeViewChart: View {
             AnyView(costBarChart(data, sortedData)),
             AnyView(costChart(filteredData))
         ]
-                
+
         return DotIndicatorScrollView(tabViews: tabViews)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -114,16 +114,13 @@ struct HomeViewChart: View {
                             .foregroundColor((showHomeData == false || showChargingData == false || showChargingRefundedData == false) ? .blue : .primary)
                     }
                     .sheet(isPresented: $showingFilterSelection) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.home.rawValue, comment: ""), isOn: safeShowHomeData)
-                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.homeRefunded.rawValue, comment: ""), isOn: safeShowHomeRefundedData)
-                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.charging.rawValue, comment: ""), isOn: safeShowChargingData)
-                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.chargingRefunded.rawValue, comment: ""), isOn: safeShowChargingRefundedData)
+                        ChartFiltersSheet<Text>(toggles: [
+                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.home.rawValue, comment: ""), isOn: safeShowHomeData),
+                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.homeRefunded.rawValue, comment: ""), isOn: safeShowHomeRefundedData),
+                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.charging.rawValue, comment: ""), isOn: safeShowChargingData),
+                            Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.chargingRefunded.rawValue, comment: ""), isOn: safeShowChargingRefundedData),
                             Toggle(NSLocalizedString(HomeConsumption.ConsumptionType.refundingOtherPlan.rawValue, comment: ""), isOn: safeShowRefundingOtherPlanData)
-                        }
-                        .padding()
-                        .presentationDetents([.fraction(0.3), .medium])
-                        .presentationDragIndicator(.visible)
+                        ])
                     }
                 }
             }
