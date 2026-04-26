@@ -6,3 +6,8 @@
 //
 
 import Foundation
+
+struct PowerPrice: Codable, Hashable {
+    var timeUTC: Date
+    var price: Cost
+}

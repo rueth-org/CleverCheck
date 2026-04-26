@@ -38,6 +38,8 @@ final class Location: Identifiable {
     
     var id: UUID = UUID()
     var name: String = ""
+    var powerPriceServiceName: String?
+    var powerPriceRegion: String?
     var isArchived: Bool = false
     
     @Relationship(deleteRule: .nullify, inverse: \HomeConsumption.associatedLocation)
