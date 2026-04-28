@@ -35,6 +35,7 @@ final class ChargingSession: Comparable {
     var chargingCost: Cost?
     var specificChargingCost: Cost?
     var costCalculationMethod: CostCalculationMethod = CostCalculationMethod.none
+    var estimatedRealCost: Cost?
     var relatedHomeConsumption: HomeConsumption?
     var mileageKilometer: Double?
     var initialSOC: Double?
@@ -139,6 +140,44 @@ final class ChargingSession: Comparable {
     func chargedEnergy(in unitEnergy: UnitEnergy) -> Measurement<UnitEnergy> {
         chargedEnergy.converted(to: unitEnergy)
     }
+    
+    func estimateRealCost() async throws -> Cost {
+        // We need either a start time, or the charger's maxPowerKW, to be able to estimate the real cost
+        var startTime: Date? = self.startTime
+        if startTime == nil, let charger = chargingCostPlan?.charger {
+            if let maxPowerKW = charger.maxPowerKW {
+                // We can estimate the duration of the charging session by dividing the charged energy by the max power of the charger
+                let estimatedDurationHours = chargedEnergyKWh / maxPowerKW
+                startTime = endTime.addingTimeInterval(-estimatedDurationHours * 3600)
+            } else {
+                // We don't have a start time, and we can't estimate it, so we can't estimate the real cost
+                throw EnergyDataService.EnergyDataError.cannotDetermineDuration
+            }
+        }
+        
+        guard let startTime = startTime else {
+            throw EnergyDataService.EnergyDataError.cannotDetermineDuration
+        }
+        
+        // We need a location
+        guard let location = chargingCostPlan?.charger?.location else {
+            throw EnergyDataService.EnergyDataError.noLocation
+        }
+        
+        // Calculate the consumed energy per minute
+        let durationMinutes: Double = endTime.timeIntervalSince(startTime) / 60
+        if durationMinutes.isZero {
+            throw EnergyDataService.EnergyDataError.cannotDetermineDuration
+        }
+        let energyPerMinute: Double = chargedEnergyKWh / durationMinutes
+        
+        // Create energy data service and retrieve the power price for the time of the charging session
+        let energyDataService = EnergyDataService()
+        let energyPrices = try await energyDataService.dayAheadPrices(for: location, from: startTime, to: endTime)
+        
+        return .init(amount: 0) // TODO: Calculate the real cost by multiplying the energy price for each minute with the energy consumed in that minute, and summing up the total cost
+    }
+
     
     func possibleHomeConsumptions(modelContext: ModelContext, ignoreDate: Bool = false) -> [HomeConsumption]? {
         if let homeConsumptions = try? modelContext.fetch(FetchDescriptor<HomeConsumption>()) {
