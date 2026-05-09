@@ -49,6 +49,7 @@ struct ChargingSessionEditor: View {
     @State private var enterCost: ChargingSession.CostCalculationMethod = .none
     @State private var cost: Cost = .init(amount: 0, currency: UserSettings.shared.currencyIdentifier)
     @State private var specificCost: Cost = .init(amount: 0, currency: UserSettings.shared.currencyIdentifier)
+    @State private var estimatedRealCost: Cost?
     @State private var enterMileage: Bool = false
     @State private var mileage: Measurement<UnitLength> = .init(value: 0, unit: .kilometers)
     @State private var enterInitialSOC: Bool = false
@@ -299,6 +300,25 @@ struct ChargingSessionEditor: View {
                 .foregroundStyle(.secondary)
             }
             
+            // Estimated real cost
+            HStack {
+                Text("Estimated real cost")
+                Spacer()
+                Text("\(estimatedRealCost?.formatted() ?? "-")")
+                Button {
+                    Task {
+                        do {
+                            try await estimateRealCost()
+                        } catch {
+                            activeAlert = SimpleAlert(type: .error(message: "Failed to estimate real cost: \(error.localizedDescription)"))
+                            showingAlert = true
+                        }
+                    }
+                } label: {
+                    Image(systemName: "plusminus.circle.fill")
+                }
+            }
+            
             // Mileage (optional)
             if enterMileage {
                 HStack {
@@ -445,6 +465,9 @@ struct ChargingSessionEditor: View {
                 }
                 if let specificChargingCost = chargingSession.specificChargingCost {
                     self.specificCost = specificChargingCost
+                }
+                if let estimatedRealCost = chargingSession.estimatedRealCost {
+                    self.estimatedRealCost = estimatedRealCost
                 }
                 self.enterCost = chargingSession.costCalculationMethod
                 if let mileage = chargingSession.mileage {
@@ -625,6 +648,7 @@ struct ChargingSessionEditor: View {
             chargingSession.costCalculationMethod = self.enterCost
             chargingSession.chargingCost = enterCost == .absolute || enterCost == .both ? self.cost : nil
             chargingSession.specificChargingCost = enterCost == .specific || enterCost == .both ? self.specificCost : nil
+            chargingSession.estimatedRealCost = estimatedRealCost
             chargingSession.mileage = enterMileage ? self.mileage : nil
             chargingSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
             chargingSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
@@ -637,6 +661,7 @@ struct ChargingSessionEditor: View {
             newSession.costCalculationMethod = self.enterCost
             newSession.chargingCost = enterCost == .absolute || enterCost == .both ? self.cost : nil
             newSession.specificChargingCost = enterCost == .specific || enterCost == .both ? self.specificCost : nil
+            newSession.estimatedRealCost = estimatedRealCost
             newSession.mileage = enterMileage ? self.mileage : nil
             newSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
             newSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
@@ -731,6 +756,16 @@ struct ChargingSessionEditor: View {
             }
         }
         return nil
+    }
+    
+    private func estimateRealCost() async throws {
+        if let chargingSession = chargingSession {
+            let estimation = try await chargingSession.estimateRealCost()
+            self.estimatedRealCost = estimation
+        } else {
+            activeAlert = SimpleAlert(type: .error(message: "Please save the charging session before estimating the real cost."))
+            showingAlert = true
+        }
     }
     
     @MainActor private func getDataFromImage(_ sourceType: UIImagePickerController.SourceType) async {

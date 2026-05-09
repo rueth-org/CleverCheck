@@ -14,13 +14,22 @@ final class EnergyDataService {
         case missingServiceName
         case serviceClassNotFound(String)
         case invalidResponse
-        case notFound
+        case notFound(String)
         case cannotDetermineDuration
         case noLocation
     }
 
-    private let host = "https://energydata.rueth.info"
+    /// Shared singleton instance
+    static let shared = EnergyDataService()
 
+    // Prevent external instantiation
+    private init() {}
+
+    private let host = "https://energydata.rueth.info"
+    
+    // List of all available energy data providers (classes conforming to PowerPriceAPIProtocol)
+    let availableProviders: [PowerPriceAPIProtocol] = [Energinet()]
+    
     /// Returns the power prices for the given location and time range. Tries to read month JSON files
     /// from the configured webserver first. For any month file that is missing or does not contain
     /// data for the requested range, the corresponding PowerPrice provider's `fetchPowerPrices` is
@@ -61,6 +70,10 @@ final class EnergyDataService {
             if let prices = try? await fetchPricesFromURL(fileURL) {
                 collected.append(contentsOf: prices)
             } else {
+                // If remote file is missing, try local cache first before asking the provider
+                if let cached = try? loadPricesFromLocalCache(filename) {
+                    collected.append(contentsOf: cached)
+                } else {
                 // Need to fetch from provider for this month
                 if providerInstance == nil {
                     guard let providerType = findProviderType(named: serviceName) else {
@@ -88,7 +101,9 @@ final class EnergyDataService {
                 }
             }
 
-            // advance to next month
+                }
+
+                // advance to next month
             guard let next = calendar.date(byAdding: .month, value: 1, to: currentMonth) else { break }
             currentMonth = next
         }
@@ -115,21 +130,16 @@ final class EnergyDataService {
 
     private func findMatchingPrice(in prices: [PowerPrice], for time: Date, region: String?) -> PowerPrice? {
         let calendar = Calendar.current
-        // Try to match using timeLocal first (if present), then timeUTC. Match by hour granularity.
+        // Match using timeLocal. Match by hour granularity.
         for price in prices where (region == nil || price.region == region) {
-            if let local = price.timeLocal {
-                if calendar.isDate(local, equalTo: time, toGranularity: .hour) {
-                    return price
-                }
-            }
-            if calendar.isDate(price.timeUTC, equalTo: time, toGranularity: .hour) {
+            if calendar.isDate(price.timeLocal, equalTo: time, toGranularity: price.granularity) {
                 return price
             }
         }
         return nil
     }
 
-    private func findProviderType(named name: String) -> PowerPriceAPIProtocol.Type? {
+    func findProviderType(named name: String) -> PowerPriceAPIProtocol.Type? {
         // Try module-prefixed name first, then bare name
         let candidates: [String]
         if let module = Bundle.main.infoDictionary?["CFBundleName"] as? String {
@@ -148,11 +158,26 @@ final class EnergyDataService {
     }
 
     private func filterPrices(_ prices: [PowerPrice], from start: Date, to end: Date, region: String?) -> [PowerPrice] {
-        return prices.filter { price in
+        // First, restrict to the requested region (if any) then sort by timeLocal ascending
+        let regionFiltered = prices.filter { price in
             if let r = region, price.region != r { return false }
-            let dateToCheck = price.timeLocal ?? price.timeUTC
-            return dateToCheck >= start && dateToCheck <= end
+            return true
         }
+
+        let sorted = regionFiltered.sorted(by: { $0.timeUTC < $1.timeUTC })
+
+        var result: [PowerPrice] = []
+
+        // Include the last price element strictly before the start (if any)
+        if let lastBefore = sorted.last(where: { $0.timeUTC < start }) {
+            result.append(lastBefore)
+        }
+
+        // Then include all elements within [start, end]
+        let inRange = sorted.filter { $0.timeUTC >= start && $0.timeUTC <= end }
+        result.append(contentsOf: inRange)
+
+        return result
     }
 
     private func writePrices(_ prices: [PowerPrice], toRemoteURL url: URL) async throws {
@@ -185,6 +210,25 @@ final class EnergyDataService {
             try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         }
         let fileURL = dir.appendingPathComponent(filename)
+        debugPrint("Writing energy data to local cache at \(fileURL.path)")
         try data.write(to: fileURL, options: .atomic)
     }
+
+    private func loadPricesFromLocalCache(_ filename: String) throws -> [PowerPrice]? {
+        let fm = FileManager.default
+        let cacheDir = try fm.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        let dir = cacheDir.appendingPathComponent("EnergyData", isDirectory: true)
+        let fileURL = dir.appendingPathComponent(filename)
+
+        if !fm.fileExists(atPath: fileURL.path) {
+            return nil
+        }
+
+        debugPrint("Loading energy data from local cache at \(fileURL.path)")
+        let data = try Data(contentsOf: fileURL)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode([PowerPrice].self, from: data)
+    }
 }
+

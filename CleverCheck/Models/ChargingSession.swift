@@ -171,11 +171,26 @@ final class ChargingSession: Comparable {
         }
         let energyPerMinute: Double = chargedEnergyKWh / durationMinutes
         
-        // Create energy data service and retrieve the power price for the time of the charging session
-        let energyDataService = EnergyDataService()
+        // Use singleton energy data service and retrieve the power price for the time of the charging session
+        let energyDataService = EnergyDataService.shared
         let energyPrices = try await energyDataService.dayAheadPrices(for: location, from: startTime, to: endTime)
         
-        return .init(amount: 0) // TODO: Calculate the real cost by multiplying the energy price for each minute with the energy consumed in that minute, and summing up the total cost
+        // Calculate the real cost by multiplying the energy price for each minute with the energy consumed in that minute, and summing up the total cost
+        var totalCost: Double = 0.0
+        var currentTime = startTime
+        while currentTime < endTime {
+            // Find the energy price for the current time
+            if let price = energyPrices.first(where: { $0.timeUTC <= currentTime && currentTime < $0.timeUTC.addingTimeInterval(Double($0.resolutionMinutes) * 60) }) {
+                // Add the cost for this minute to the total cost
+                let pricePerKWh = price.pricePerKWh.amount // TODO: This is only the raw electricity price, we need to add taxes and fees to it, which we can get from the related home consumption
+                totalCost += pricePerKWh * energyPerMinute
+            } else {
+                throw EnergyDataService.EnergyDataError.notFound("No energy price found for time \(currentTime)")
+            }
+            currentTime = currentTime.addingTimeInterval(60) // Move to the next minute
+        }
+        
+        return .init(amount: totalCost)
     }
 
     
