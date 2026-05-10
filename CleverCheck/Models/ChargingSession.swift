@@ -37,6 +37,7 @@ final class ChargingSession: Comparable {
     var costCalculationMethod: CostCalculationMethod = CostCalculationMethod.none
     var estimatedRealCost: Cost?
     var relatedHomeConsumption: HomeConsumption?
+    var relatedRefundingHomeConsumption: HomeConsumption?
     var mileageKilometer: Double?
     var initialSOC: Double?
     var finalSOC: Double?
@@ -141,7 +142,50 @@ final class ChargingSession: Comparable {
         chargedEnergy.converted(to: unitEnergy)
     }
     
-    func estimateRealCost() async throws -> Cost {
+    func estimateRealCost(modelContext: ModelContext) async throws -> Cost {
+        // We need a location
+        guard let location = chargingCostPlan?.charger?.location else {
+            throw EnergyDataService.EnergyDataError.noLocation
+        }
+        
+        // We need a related home consumption
+        guard var relatedHomeConsumption = relatedHomeConsumption else {
+            throw EnergyDataService.EnergyDataError.noRelatedHomeConsumption
+        }
+        
+        if relatedHomeConsumption.consumptionType == .refundingOtherPlan {
+            // If the type is refundingOtherPlan, we need to find the home consumption of related to this other plan
+            if let relatedRefundingHomeConsumption {
+                relatedHomeConsumption = relatedRefundingHomeConsumption
+            } else {
+                if let candidates = possibleHomeConsumptions(modelContext: modelContext), candidates.count > 0 {
+                    debugPrint("Found \(candidates.count) candidate home consumptions for refunding plan")
+                    debugPrint(candidates.map { $0.description }.joined(separator: "\n"))
+                    if candidates.count == 1 {
+                        relatedHomeConsumption = candidates[0]
+                    } else {
+                        // Filter further by home consumption type .total or .home
+                        let filteredCandidates = candidates.filter { consumption in
+                            consumption.consumptionType == .total || consumption.consumptionType == .home
+                        }
+                        if filteredCandidates.count == 1 {
+                            relatedHomeConsumption = filteredCandidates[0]
+                        } else {
+                            // There are too many candidates, we can't determine which one is the right one, so we throw an error
+                            throw EnergyDataService.EnergyDataError.multipleRelatedHomeConsumptions(filteredCandidates.map { $0.description })
+                        }
+                    }
+                } else {
+                    throw EnergyDataService.EnergyDataError.noRelatedRefundingHomeConsumption
+                }
+            }
+        }
+        
+        // Check if related home consumption is of type .total or .home, everything else does not makes sense
+        if relatedHomeConsumption.consumptionType != .total && relatedHomeConsumption.consumptionType != .home {
+            throw EnergyDataService.EnergyDataError.invalidRelatedHomeConsumptionType
+        }
+        
         // We need either a start time, or the charger's maxPowerKW, to be able to estimate the real cost
         var startTime: Date? = self.startTime
         if startTime == nil, let charger = chargingCostPlan?.charger {
@@ -159,11 +203,6 @@ final class ChargingSession: Comparable {
             throw EnergyDataService.EnergyDataError.cannotDetermineDuration
         }
         
-        // We need a location
-        guard let location = chargingCostPlan?.charger?.location else {
-            throw EnergyDataService.EnergyDataError.noLocation
-        }
-        
         // Calculate the consumed energy per minute
         let durationMinutes: Double = endTime.timeIntervalSince(startTime) / 60
         if durationMinutes.isZero {
@@ -176,21 +215,31 @@ final class ChargingSession: Comparable {
         let energyPrices = try await energyDataService.dayAheadPrices(for: location, from: startTime, to: endTime)
         
         // Calculate the real cost by multiplying the energy price for each minute with the energy consumed in that minute, and summing up the total cost
-        var totalCost: Double = 0.0
+        var totalCost: Cost = .init(amount: 0.0)
         var currentTime = startTime
+        
+        // Caching variables
+        var pricePerKWh: Cost = .init(amount: 0.0)
+        var cost: Cost = .init(amount: 0.0)
+        
         while currentTime < endTime {
             // Find the energy price for the current time
             if let price = energyPrices.first(where: { $0.timeUTC <= currentTime && currentTime < $0.timeUTC.addingTimeInterval(Double($0.resolutionMinutes) * 60) }) {
                 // Add the cost for this minute to the total cost
-                let pricePerKWh = price.pricePerKWh.amount // TODO: This is only the raw electricity price, we need to add taxes and fees to it, which we can get from the related home consumption
-                totalCost += pricePerKWh * energyPerMinute
+                if pricePerKWh != price.pricePerKWh {
+                    // Only recalculate cost if price has changed, otherwise we can reuse the previous cost calculation, which is more efficient
+                    pricePerKWh = price.pricePerKWh
+                    cost = relatedHomeConsumption.simulateCost(of: energyPerMinute, with: price.pricePerKWh, durationInMinutes: 1)
+                }
+                    
+                totalCost += cost
             } else {
                 throw EnergyDataService.EnergyDataError.notFound("No energy price found for time \(currentTime)")
             }
             currentTime = currentTime.addingTimeInterval(60) // Move to the next minute
         }
         
-        return .init(amount: totalCost)
+        return totalCost
     }
 
     

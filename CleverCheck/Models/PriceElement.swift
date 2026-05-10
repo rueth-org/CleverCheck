@@ -50,6 +50,7 @@ final class PriceElement: Identifiable, Equatable {
     var isGross: Bool = true
     var type: PriceElementType = PriceElementType.byConsumption(energyUnitSymbol: UserSettings.shared.energyUnitSymbol)
     var vatRate: Double = 0.25
+    var excludeFromSimulation: Bool = false
     
     /// Returns the amount converted to the user's selected currency. If conversion fails, returns the original amount.
     var converted: Cost {
@@ -86,12 +87,13 @@ final class PriceElement: Identifiable, Equatable {
         isGross ? "Gross" : "Net"
     }
     
-    init(label: String, amount: Cost, inclVAT: Bool, type: PriceElementType, vatRate: Double? = nil) {
+    init(label: String, amount: Cost, inclVAT: Bool, type: PriceElementType, vatRate: Double? = nil, excludeFromSimulation: Bool = false) {
         self.label = label
         self.amount = amount
         self.type = type
         self.vatRate = vatRate ?? UserSettings.shared.vatRate
         self.isGross = inclVAT
+        self.excludeFromSimulation = excludeFromSimulation
     }
     
     /// Returns the converted cost in the user's selected currency, either gross or net based on the isGross parameter.

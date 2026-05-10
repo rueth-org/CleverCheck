@@ -12,11 +12,45 @@ import Foundation
 final class EnergyDataService {
     enum EnergyDataError: Error {
         case missingServiceName
+        case noRelatedHomeConsumption
+        case noRelatedRefundingHomeConsumption
+        case invalidRelatedHomeConsumptionType
+        case multipleRelatedHomeConsumptions([String])
         case serviceClassNotFound(String)
         case invalidResponse
         case notFound(String)
         case cannotDetermineDuration
         case noLocation
+        
+        // Provide localized error descriptions by conforming to LocalizedError and returning
+        // NSLocalizedString keys. Add translations in your Localizable.strings / .xcstrings files.
+        var errorDescription: String {
+            switch self {
+            case .missingServiceName:
+                return NSLocalizedString("The location does not specify a power price service name.", comment: "")
+            case .noRelatedHomeConsumption:
+                return NSLocalizedString("No related home consumption found for the charging session.", comment: "")
+            case .noRelatedRefundingHomeConsumption:
+                return NSLocalizedString("No related refunding home consumption found for the charging session.", comment: "")
+            case .invalidRelatedHomeConsumptionType:
+                return NSLocalizedString("The related home consumption is not of the expected type total or home.", comment: "")
+            case .multipleRelatedHomeConsumptions(let descriptions):
+                let format = NSLocalizedString("Multiple related home consumptions found for the charging session: %@", comment: "")
+                return String(format: format, descriptions.joined(separator: ", "))
+            case .serviceClassNotFound(let name):
+                let format = NSLocalizedString("No PowerPriceAPI class found with name '%@'.", comment: "")
+                return String(format: format, name)
+            case .invalidResponse:
+                return NSLocalizedString("Received an invalid response from the server.", comment: "")
+            case .notFound(let item):
+                let format = NSLocalizedString("%@ not found.", comment: "")
+                return String(format: format, item)
+            case .cannotDetermineDuration:
+                return NSLocalizedString("Cannot determine duration from the provided data.", comment: "")
+            case .noLocation:
+                return NSLocalizedString("No location information available.", comment: "")
+            }
+        }
     }
 
     /// Shared singleton instance
@@ -74,36 +108,35 @@ final class EnergyDataService {
                 if let cached = try? loadPricesFromLocalCache(filename) {
                     collected.append(contentsOf: cached)
                 } else {
-                // Need to fetch from provider for this month
-                if providerInstance == nil {
-                    guard let providerType = findProviderType(named: serviceName) else {
-                        throw EnergyDataError.serviceClassNotFound(serviceName)
+                    // Need to fetch from provider for this month
+                    if providerInstance == nil {
+                        guard let providerType = findProviderType(named: serviceName) else {
+                            throw EnergyDataError.serviceClassNotFound(serviceName)
+                        }
+                        providerInstance = providerType.init()
                     }
-                    providerInstance = providerType.init()
-                }
-
-                // Determine month range for provider call
-                guard let startOfMonth = calendar.date(from: DateComponents(year: year, month: month, day: 1)) else {
-                    throw EnergyDataError.invalidResponse
-                }
-                guard let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth) else {
-                    throw EnergyDataError.invalidResponse
-                }
-
-                let fetchedPrices = try await providerInstance!.fetchPowerPrices(from: startOfMonth, to: startOfNextMonth, for: region != nil ? [region!] : nil)
-                collected.append(contentsOf: fetchedPrices)
-
-                // Try to write back to remote; if it fails, write local cache
-                do {
-                    try await writePrices(fetchedPrices, toRemoteURL: fileURL)
-                } catch {
-                    try writePricesToLocalCache(fetchedPrices, filename: filename)
+                    
+                    // Determine month range for provider call
+                    guard let startOfMonth = calendar.date(from: DateComponents(year: year, month: month, day: 1)) else {
+                        throw EnergyDataError.invalidResponse
+                    }
+                    guard let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth) else {
+                        throw EnergyDataError.invalidResponse
+                    }
+                    
+                    let fetchedPrices = try await providerInstance!.fetchPowerPrices(from: startOfMonth, to: startOfNextMonth, for: region != nil ? [region!] : nil)
+                    collected.append(contentsOf: fetchedPrices)
+                    
+                    // Try to write back to remote; if it fails, write local cache
+                    do {
+                        try await writePrices(fetchedPrices, toRemoteURL: fileURL)
+                    } catch {
+                        try writePricesToLocalCache(fetchedPrices, filename: filename)
+                    }
                 }
             }
 
-                }
-
-                // advance to next month
+            // advance to next month
             guard let next = calendar.date(byAdding: .month, value: 1, to: currentMonth) else { break }
             currentMonth = next
         }

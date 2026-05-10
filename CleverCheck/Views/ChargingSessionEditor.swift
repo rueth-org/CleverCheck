@@ -57,14 +57,17 @@ struct ChargingSessionEditor: View {
     @State private var enterFinalSOC: Bool = false
     @State private var finalSOC: Double = 0.8
     @State private var relatedHomeConsumption: HomeConsumption?
+    @State private var relatedRefundingHomeConsumption: HomeConsumption?
     @State private var comment: String = ""
     @State private var isArchived: Bool = false
     
     @State private var ignorePlan: Bool = false
     @State private var ignoreDate: Bool = false
     @State private var chooseHomeConsumptionLater: Bool = false
+    @State private var chooseRefundingHomeConsumptionLater: Bool = false
     
     @State private var isShowingHomeConsumptionPickerSheet: Bool = false
+    @State private var isShowingRefundingHomeConsumptionPickerSheet: Bool = false
     
     @State private var isShowingCurrencySelector: Bool = false
     @State private var selectedCurrency: String = UserSettings.shared.currencyIdentifier
@@ -158,6 +161,40 @@ struct ChargingSessionEditor: View {
                         isShowingHomeConsumptionPickerSheet = true
                     }) {
                         Image(systemName: "chevron.right")
+                    }
+                    .sheet(isPresented: $isShowingHomeConsumptionPickerSheet) {
+                        HomeConsumptionPicker(
+                            possibleHomeConsumptions: chargingCostPlan?.planType == .refunded ? possibleHomeConsumptionsRefunded : possibleHomeConsumptions,
+                            selectedHomeConsumption: $relatedHomeConsumption,
+                            chooseLater: $chooseHomeConsumptionLater,
+                            ignorePlan: $ignorePlan,
+                            ignoreDate: $ignoreDate
+                        )
+                        .presentationDetents([.medium, .large])
+                    }
+                }
+            }
+            
+            // When editing a session (if new, we present it later after saving) ...
+            if chargingSession != nil, chargingCostPlan?.planType == .refunded {
+                // Ask for a refunding home consumption
+                HStack {
+                    Text("Home consumption for refunding: \(relatedRefundingHomeConsumption?.descriptionWithDate ?? "-")")
+                    Spacer()
+                    Button(action: {
+                        isShowingRefundingHomeConsumptionPickerSheet = true
+                    }) {
+                        Image(systemName: "chevron.right")
+                    }
+                    .sheet(isPresented: $isShowingRefundingHomeConsumptionPickerSheet) {
+                        HomeConsumptionPicker(
+                            possibleHomeConsumptions: possibleHomeConsumptions,
+                            selectedHomeConsumption: $relatedRefundingHomeConsumption,
+                            chooseLater: $chooseRefundingHomeConsumptionLater,
+                            ignorePlan: $ignorePlan,
+                            ignoreDate: $ignoreDate
+                        )
+                        .presentationDetents([.medium, .large])
                     }
                 }
             }
@@ -309,6 +346,9 @@ struct ChargingSessionEditor: View {
                     Task {
                         do {
                             try await estimateRealCost()
+                        } catch let error as EnergyDataService.EnergyDataError {
+                            activeAlert = SimpleAlert(type: .error(message: "Failed to estimate real cost: \(error.errorDescription)"))
+                            showingAlert = true
                         } catch {
                             activeAlert = SimpleAlert(type: .error(message: "Failed to estimate real cost: \(error.localizedDescription)"))
                             showingAlert = true
@@ -494,6 +534,9 @@ struct ChargingSessionEditor: View {
                 if let relatedHomeConsumption = chargingSession.relatedHomeConsumption {
                     self.relatedHomeConsumption = relatedHomeConsumption
                 }
+                if let relatedRefundingHomeConsumption = chargingSession.relatedRefundingHomeConsumption {
+                    self.relatedRefundingHomeConsumption = relatedRefundingHomeConsumption
+                }
                 if let comment = chargingSession.comment {
                     self.comment = comment
                 }
@@ -505,17 +548,15 @@ struct ChargingSessionEditor: View {
                         showingAlert = true
                     }
                 }
+                if let planType = chargingSession.chargingCostPlan?.planType, planType == .refunded && relatedRefundingHomeConsumption == nil {
+                    let possibleConsumptions = self.possibleHomeConsumptions
+                    if let relatedRefundingHomeConsumption = assignUniqueHomeConsumption(possibleConsumptions) {
+                        self.relatedRefundingHomeConsumption = relatedRefundingHomeConsumption
+                        activeAlert = SimpleAlert(type: .notice(message: "Automatically determined related refunding home consumption \(relatedRefundingHomeConsumption.descriptionWithDate). Please save this session or correct."))
+                        showingAlert = true
+                    }
+                }
             }
-        }
-        .sheet(isPresented: $isShowingHomeConsumptionPickerSheet) {
-            HomeConsumptionPicker(
-                possibleHomeConsumptions: chargingCostPlan?.planType == .refunded ? possibleHomeConsumptionsRefunded : possibleHomeConsumptions,
-                selectedHomeConsumption: $relatedHomeConsumption,
-                chooseLater: $chooseHomeConsumptionLater,
-                ignorePlan: $ignorePlan,
-                ignoreDate: $ignoreDate
-            )
-            .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $isShowingCurrencySelector) {
             currencyPicker()
@@ -653,6 +694,7 @@ struct ChargingSessionEditor: View {
             chargingSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
             chargingSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
             chargingSession.relatedHomeConsumption = relatedHomeConsumption
+            chargingSession.relatedRefundingHomeConsumption = relatedRefundingHomeConsumption
             chargingSession.comment = self.comment
         } else {
             // Create new charging session
@@ -666,6 +708,7 @@ struct ChargingSessionEditor: View {
             newSession.initialSOC = enterInitialSOC ? self.initialSOC : nil
             newSession.finalSOC = enterFinalSOC ? self.finalSOC : nil
             newSession.relatedHomeConsumption = relatedHomeConsumption
+            newSession.relatedRefundingHomeConsumption = relatedRefundingHomeConsumption
             newSession.comment = self.comment
             modelContext.insert(newSession)
             self.chargingSession = newSession
@@ -674,19 +717,41 @@ struct ChargingSessionEditor: View {
         // Save data
         try? modelContext.save()
         
-        if chooseHomeConsumptionLater ||
+        // Try to calculate the estimated real cost
+        if estimatedRealCost == nil {
+            Task {
+                do {
+                    try await estimateRealCost()
+                    chargingSession?.estimatedRealCost = estimatedRealCost
+                    try? modelContext.save() // Save the estimated real cost
+                } catch {
+                    // Ignore estimation errors at this stage, as the session is already saved. The user can trigger estimation again manually.
+                }
+            }
+        }
+        
+        if (
+            chooseHomeConsumptionLater ||
             selectedPlan.planType == .individual ||
             (selectedPlan.planType != .individual && relatedHomeConsumption != nil)
-        {
+        ) && (
+            chooseRefundingHomeConsumptionLater ||
+            (selectedPlan.planType == .refunded && relatedRefundingHomeConsumption != nil)
+        ) {
             andExit()
         } else {
-            // Data check: Home consumption is recommended if charging cost plan type is refunded
             activeAlert = SimpleAlert(
                 type: .notice(message: "Please connect to a home consumption."),
                 customButtons: [
                     SimpleAlertButton(title: NSLocalizedString("Connect now", comment: ""), role: nil) {
                         // Open the home consumption picker
-                        isShowingHomeConsumptionPickerSheet = true
+                        if selectedPlan.planType == .refunded {
+                            isShowingRefundingHomeConsumptionPickerSheet = true
+                        } else if selectedPlan.planType == .refunded && relatedRefundingHomeConsumption != nil {
+                            isShowingHomeConsumptionPickerSheet = true
+                        } else {
+                            isShowingHomeConsumptionPickerSheet = true
+                        }
                     },
                     SimpleAlertButton(title: NSLocalizedString("Connect later", comment: ""), role: nil) {
                         andExit()
@@ -760,7 +825,7 @@ struct ChargingSessionEditor: View {
     
     private func estimateRealCost() async throws {
         if let chargingSession = chargingSession {
-            let estimation = try await chargingSession.estimateRealCost()
+            let estimation = try await chargingSession.estimateRealCost(modelContext: modelContext)
             self.estimatedRealCost = estimation
         } else {
             activeAlert = SimpleAlert(type: .error(message: "Please save the charging session before estimating the real cost."))

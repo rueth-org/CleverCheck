@@ -74,7 +74,13 @@ struct ChargingSessionsView: View {
                             VStack {
                                 HStack {
                                     Text(chargingSession.endTime, format: Date.FormatStyle(date: .abbreviated, time: .none))
-                                    if chargingSession.chargingCostPlan?.planType != .individual && chargingSession.relatedHomeConsumption == nil {
+                                    if (
+                                        chargingSession.chargingCostPlan?.planType != .individual &&
+                                        chargingSession.relatedHomeConsumption == nil
+                                    ) || (
+                                        chargingSession.chargingCostPlan?.planType == .refunded &&
+                                        chargingSession.relatedRefundingHomeConsumption == nil
+                                    ) {
                                         Spacer()
                                         Button(action: {
                                             activeAlert = SimpleAlert(type: .warning(message: "This session is not linked to a home consumption. Please link it to ensure accurate cost calculations."))
@@ -94,10 +100,19 @@ struct ChargingSessionsView: View {
                                     Text(chargingSession.chargingCostPlan?.descriptionShortNoCar ?? "Unknown plan")
                                         .font(.subheadline)
                                     Spacer()
+                                    
+                                    // The directly entered total charging cost
                                     let totalChargingCost = chargingSession.totalChargingCost
                                     if totalChargingCost.amount > 0 {
                                         Text(totalChargingCost.converted(to: UserSettings.shared.currencyIdentifier)?.formatted() ?? "")
                                             .italic()
+                                    } else {
+                                        // If no directly entered cost, show the estimated real cost, if available
+                                        if let estimatedRealCost = chargingSession.estimatedRealCost, estimatedRealCost.amount > 0 {
+                                            Text(estimatedRealCost.converted(to: UserSettings.shared.currencyIdentifier)?.formatted() ?? "")
+                                                .italic()
+                                                .foregroundStyle(.gray)
+                                        }
                                     }
                                 }
                             }

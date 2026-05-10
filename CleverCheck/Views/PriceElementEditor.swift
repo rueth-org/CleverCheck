@@ -22,6 +22,7 @@ struct PriceElementEditor: View {
     @State private var includesVAT: Bool = true
     @State private var vatRate: Double = UserSettings.shared.vatRate
     @State private var elementType: PriceElement.PriceElementType = .byConsumption(energyUnitSymbol: UserSettings.shared.energyUnit.symbol)
+    @State private var excludeFromSimulation: Bool = false
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlert?
@@ -36,15 +37,20 @@ struct PriceElementEditor: View {
     
     var body: some View {
         Form {
+            // The label of the price element
             HStack {
                 Text("Label")
                 TextField("Label", text: $label)
             }
+            
+            // Price element type
             Picker("Type", selection: $elementType) {
                 ForEach(PriceElement.PriceElementType.allCases, id: \.self) { type in
                     Text(type.description).tag(type)
                 }
             }
+            
+            // Cost
             HStack {
                 Text("Cost amount")
                 Button(action: {
@@ -60,13 +66,20 @@ struct PriceElementEditor: View {
                     .multilineTextAlignment(.trailing)
                 Text("\(amount.currency)\(elementType.unitExtension)")
             }
+            
+            // Whether the amount includes VAT
             Toggle("Amount is gross", isOn: $includesVAT)
+            
+            // VAT rate
             HStack {
                 Text("VAT Rate")
                 TextField("VAT Rate", value: $vatRate, format: .percent)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
             }
+            
+            // Whether to exclude the price element from simulations
+            Toggle("Exclude from simulation", isOn: $excludeFromSimulation)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -92,6 +105,7 @@ struct PriceElementEditor: View {
                 includesVAT = priceElement.isGross
                 elementType = priceElement.type
                 vatRate = priceElement.vatRate
+                excludeFromSimulation = priceElement.excludeFromSimulation
             }
         }
         .alert(
@@ -150,7 +164,8 @@ struct PriceElementEditor: View {
                 amount: amount,
                 inclVAT: includesVAT,
                 type: elementType,
-                vatRate: vatRate
+                vatRate: vatRate,
+                excludeFromSimulation: excludeFromSimulation
             )
             
             // Relate to home consumption
@@ -165,6 +180,7 @@ struct PriceElementEditor: View {
                 priceElements[index].isGross = includesVAT
                 priceElements[index].type = elementType
                 priceElements[index].vatRate = vatRate
+                priceElements[index].excludeFromSimulation = excludeFromSimulation
             } else {
                 activeAlert = SimpleAlert(type: .fatalError(message: "Could not find the price element to edit."))
                 showingAlert = true

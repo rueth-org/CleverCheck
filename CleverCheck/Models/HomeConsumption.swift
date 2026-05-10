@@ -41,6 +41,9 @@ final class HomeConsumption: Comparable {
     @Relationship(deleteRule: .nullify, inverse: \ChargingSession.relatedHomeConsumption)
     var chargingSessions: [ChargingSession]?
     
+    @Relationship(deleteRule: .nullify, inverse: \ChargingSession.relatedRefundingHomeConsumption)
+    var refundedChargingSessions: [ChargingSession]?
+    
     var consumptionFromRelatedChargingSessions: Measurement<UnitEnergy>? {
         if let chargingSessions, !chargingSessions.isEmpty {
             let consumptions = chargingSessions.compactMap { $0.chargedEnergyKWh }
@@ -382,6 +385,52 @@ final class HomeConsumption: Comparable {
         } else {
             return nil
         }
+    }
+    
+    /// Simulates the cost of home consumption for a given time range and consumption and a given price per kWh. Only price elements not excluded from simulation are used.
+    /// - Parameters:
+    ///   - consumptionKWh: The consumption in kWh to simulate the cost for. This allows to simulate the cost for different consumption values than the one entered in the home consumption, e.g. for a future month or to see how the cost would have changed with a different consumption.
+    ///   - pricePerKWh: The price per kWh to use for the consumption.
+    ///   - start: The start date of the simulation period.
+    ///   - end: The end date of the simulation period.
+    /// - Returns: The simulated cost for the given consumption and time range.
+    func simulateCost(of consumptionKWh: Double, with pricePerKWh: Cost, durationInMinutes: Double) -> Cost {
+        // Calculate the proportion of the time range (start to end) within the validFrom to validUntil range
+        let duration = durationInMinutes * 60 // Convert minutes to seconds
+        let totalDuration = validUntil.timeIntervalSince(validFrom)
+        guard totalDuration > 0 else {
+            return .init(amount: 0.0)
+        }
+        let proportion = duration / totalDuration
+        
+        // Filter the price elements to be included in the simulation
+        guard let priceElements else {
+            return .init(amount: 0.0)
+        }
+        let includedPriceElements = priceElements.filter { $0.excludeFromSimulation == false }
+        
+        // Filter the included price elements by those with types .once and .daily
+        let sumOfPriceElementsOnce = sumOfPriceElements(includedPriceElements.filter {
+            if case .once = $0.type { return true } else { return false }
+        })
+        let sumOfPriceElementsDaily = sumOfPriceElements(includedPriceElements.filter {
+            if case .daily = $0.type { return true } else { return false }
+        })
+        
+        // Calculate the fixed costs (once + daily * number of days)
+        let fixedCosts = sumOfPriceElementsOnce.amount + sumOfPriceElementsDaily.amount * Double(numberOfDays)
+        
+        // Calculate the variable cost
+        let sumOfPriceElementsSpecific = sumOfPriceElements(includedPriceElements.filter {
+            if case .byConsumption(_) = $0.type { return true } else { return false }
+        })
+        
+        // Add the given price per kWh
+        let sumOfPriceElementsByConsumption = sumOfPriceElementsSpecific + pricePerKWh
+        
+        // Calculate simulated cost
+        let simulatedCost = fixedCosts * proportion + sumOfPriceElementsByConsumption.amount * consumptionKWh
+        return .init(amount: simulatedCost)
     }
     
     private func sumOfPriceElements(_ priceElements: [PriceElement]) -> Cost {
