@@ -142,7 +142,7 @@ final class ChargingSession: Comparable {
         chargedEnergy.converted(to: unitEnergy)
     }
     
-    func estimateRealCost(modelContext: ModelContext) async throws -> Cost {
+    func estimateRealCost(modelContext: ModelContext) async throws -> (cost: Cost, refundingHomeConsumption: HomeConsumption?) {
         // We need a location
         guard let location = chargingCostPlan?.charger?.location else {
             throw EnergyDataService.EnergyDataError.noLocation
@@ -153,8 +153,10 @@ final class ChargingSession: Comparable {
             throw EnergyDataService.EnergyDataError.noRelatedHomeConsumption
         }
         
+        var returnRefundingHomeConsumption = false
         if relatedHomeConsumption.consumptionType == .refundingOtherPlan {
             // If the type is refundingOtherPlan, we need to find the home consumption of related to this other plan
+            returnRefundingHomeConsumption = true
             if let relatedRefundingHomeConsumption {
                 relatedHomeConsumption = relatedRefundingHomeConsumption
             } else {
@@ -239,7 +241,7 @@ final class ChargingSession: Comparable {
             currentTime = currentTime.addingTimeInterval(60) // Move to the next minute
         }
         
-        return totalCost
+        return (cost: totalCost, refundingHomeConsumption: returnRefundingHomeConsumption ? relatedHomeConsumption : nil)
     }
 
     

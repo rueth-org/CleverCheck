@@ -826,7 +826,10 @@ struct ChargingSessionEditor: View {
     private func estimateRealCost() async throws {
         if let chargingSession = chargingSession {
             let estimation = try await chargingSession.estimateRealCost(modelContext: modelContext)
-            self.estimatedRealCost = estimation
+            self.estimatedRealCost = estimation.cost
+            if self.relatedRefundingHomeConsumption == nil, let refundingHomeConsumption = estimation.refundingHomeConsumption {
+                self.relatedRefundingHomeConsumption = refundingHomeConsumption
+            }
         } else {
             activeAlert = SimpleAlert(type: .error(message: "Please save the charging session before estimating the real cost."))
             showingAlert = true
