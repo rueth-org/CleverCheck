@@ -54,6 +54,16 @@ final class HomeConsumption: Comparable {
         }
     }
     
+    var consumptionFromRelatedRefundedChargingSessions: Measurement<UnitEnergy>? {
+        if let refundedChargingSessions, !refundedChargingSessions.isEmpty {
+            let consumptions = refundedChargingSessions.compactMap { $0.chargedEnergyKWh }
+            let totalConsumption = consumptions.reduce(0.0, +)
+            return Measurement<UnitEnergy>(value: totalConsumption, unit: .kilowattHours)
+        } else {
+            return nil
+        }
+    }
+    
     @Transient var consumption: Measurement<UnitEnergy> {
         get {
             return Measurement<UnitEnergy>(value: consumptionKWh, unit: .kilowattHours)
@@ -344,7 +354,7 @@ final class HomeConsumption: Comparable {
         return costPerMonthWithCostType
     }
     
-    func possibleChargingSessions(ignoreConsumptionType: Bool, modelContext: ModelContext) -> [ChargingSession]? {
+    func possibleChargingSessions(ignoreConsumptionType: Bool, modelContext: ModelContext, showRefundedSessions: Bool) -> [ChargingSession]? {
         if let chargingSessions = try? modelContext.fetch(FetchDescriptor<ChargingSession>(
             predicate: #Predicate { session in
                 validFrom <= session.endTime && session.endTime <= validUntil
@@ -356,15 +366,19 @@ final class HomeConsumption: Comparable {
                 // Match the possible plan types
                 var planType: ChargingCostPlan.PlanType? = nil
                 if !ignoreConsumptionType {
-                    switch consumptionType {
-                    case .refundingOtherPlan:
+                    if showRefundedSessions {
                         planType = .refunded
-                    case .chargingDiscount:
-                        planType = .homeDiscounted
-                    case .charging:
-                        planType = .homeConsumption
-                    default:
-                        planType = nil
+                    } else {
+                        switch consumptionType {
+                        case .refundingOtherPlan:
+                            planType = .refunded
+                        case .chargingDiscount:
+                            planType = .homeDiscounted
+                        case .charging:
+                            planType = .homeConsumption
+                        default:
+                            planType = nil
+                        }
                     }
                 }
                 

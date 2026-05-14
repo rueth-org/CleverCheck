@@ -35,6 +35,7 @@ struct HomeConsumptionEditor: View {
     @State private var comment: String = ""
 
     @State private var showingChargingSessionPicker: Bool = false
+    @State private var showingRefundedChargingSessionPicker: Bool = false
     
     @State private var showingAlert: Bool = false
     @State private var activeAlert: SimpleAlert?
@@ -49,11 +50,17 @@ struct HomeConsumptionEditor: View {
         homeConsumption?.consumption.unit.symbol ?? UserSettings.shared.energyUnit.symbol
     }
     
-    private var consumptionFromRelatedSessions: Measurement<UnitEnergy> {
+    private var consumptionFromRelatedSessions: Measurement<UnitEnergy> { // TODO: Add estimated real cost as second parameter
         homeConsumption?.consumptionFromRelatedChargingSessions ?? .init(value: 0.0, unit: UserSettings.shared.energyUnit)
     }
     
+    private var consumptionFromRelatedRefundedSessions: Measurement<UnitEnergy> { // TODO: Add estimated real cost as second parameter
+        homeConsumption?.consumptionFromRelatedRefundedChargingSessions ?? .init(value: 0.0, unit: UserSettings.shared.energyUnit)
+    }
+    
     var body: some View {
+        let consumptionFromRelatedSessions = self.consumptionFromRelatedSessions
+        let consumptionFromRelatedRefundedSessions = self.consumptionFromRelatedRefundedSessions
         Form {
             TextField("Name", text: $name)
             Picker("Type", selection: $consumptionType) {
@@ -81,6 +88,7 @@ struct HomeConsumptionEditor: View {
                 Text("If enabled, the entered consumption will be used for calculation if 'Use related consumption' is enabled in the settings and no related consumptions are found.").font(.caption).italic()
             }
             
+            // Related directly linked charging sessions
             HStack {
                 Text("\(homeConsumption?.chargingSessions?.count ?? 0) related charging sessions: \(consumptionFromRelatedSessions.formatted())")
                 Spacer()
@@ -90,8 +98,48 @@ struct HomeConsumptionEditor: View {
                     }) {
                         Image(systemName: "chevron.right")
                     }
+                    .sheet(isPresented: $showingChargingSessionPicker) {
+                        if let homeConsumption {
+                            ChargingSessionPicker(isShowing: $showingChargingSessionPicker, homeConsumption: homeConsumption, showRefundedSessions: false)
+                        } else {
+                            Text("Please save your changes before selecting a charging session.")
+                                .italic()
+                                .padding()
+                        }
+                    }
                 }
             }
+            
+            // Related charging sessions, where this home consumption is being refunded
+            HStack {
+                Text("\(homeConsumption?.refundedChargingSessions?.count ?? 0) related refunded charging sessions: \(consumptionFromRelatedRefundedSessions.formatted())")
+                Spacer()
+                if homeConsumption != nil {
+                    Button(action: {
+                        showingRefundedChargingSessionPicker = true
+                    }) {
+                        Image(systemName: "chevron.right")
+                    }
+                    .sheet(isPresented: $showingRefundedChargingSessionPicker) {
+                        if let homeConsumption {
+                            ChargingSessionPicker(isShowing: $showingRefundedChargingSessionPicker, homeConsumption: homeConsumption, showRefundedSessions: true)
+                        } else {
+                            Text("Please save your changes before selecting a charging session.")
+                                .italic()
+                                .padding()
+                        }
+                    }
+                }
+            }
+            
+            HStack {
+                Text("Home consumption")
+                Spacer()
+                let homeConsumption = consumption - consumptionFromRelatedSessions - consumptionFromRelatedRefundedSessions
+                Text(homeConsumption.formatted())
+            }
+            
+            // Comments
             TextField("Comments", text: $comment, axis: .vertical)
                 .lineLimit(3)
             
@@ -200,15 +248,6 @@ struct HomeConsumptionEditor: View {
                 self.selectedLocation = homeConsumption.associatedLocation
                 self.defaultToEnteredConsumption = homeConsumption.defaultToEnteredConsumption
                 self.comment = homeConsumption.comment
-            }
-        }
-        .sheet(isPresented: $showingChargingSessionPicker) {
-            if let homeConsumption {
-                ChargingSessionPicker(isShowing: $showingChargingSessionPicker, homeConsumption: homeConsumption)
-            } else {
-                Text("Please save your changes before selecting a charging session.")
-                    .italic()
-                    .padding()
             }
         }
         .alert(
