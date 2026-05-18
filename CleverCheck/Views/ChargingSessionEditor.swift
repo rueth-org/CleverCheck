@@ -19,6 +19,11 @@ struct ChargingSessionEditor: View {
     }
     @State private var costType: CostType = .cost
     
+    private enum RelatedHomeConsumptionType {
+        case direct, refunding
+    }
+    @State private var missingRelatedHomeConsumptions = [RelatedHomeConsumptionType]()
+    
     static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -730,27 +735,40 @@ struct ChargingSessionEditor: View {
             }
         }
         
-        if (
-            chooseHomeConsumptionLater ||
-            selectedPlan.planType == .individual ||
-            (selectedPlan.planType != .individual && relatedHomeConsumption != nil)
-        ) && (
-            chooseRefundingHomeConsumptionLater ||
-            (selectedPlan.planType == .refunded && relatedRefundingHomeConsumption != nil)
-        ) {
-            andExit()
+        // Reset missing related home consumptions
+        missingRelatedHomeConsumptions = []
+        
+        // We recommend connecting a home consumption if the plan type is not individual and there's no related home consumption, and if the user has not selected to choose later
+        if selectedPlan.planType != .individual && relatedHomeConsumption == nil && !chooseHomeConsumptionLater {
+            missingRelatedHomeConsumptions.append(.direct)
+        }
+        
+        // We recommend connecting a refunding home consumption if the plan type is refunded and there's no related refunding home consumption, and if the user has not selected to choose later
+        if selectedPlan.planType == .refunded && relatedRefundingHomeConsumption == nil && !chooseRefundingHomeConsumptionLater {
+            missingRelatedHomeConsumptions.append(.refunding)
+        }
+        
+        // If missingRelatedHomeConsumptions is empty, we can exit directly. Otherwise, we show an alert to choose to connect a home consumption now or later. We only show the alert if the user has not already chosen to connect later, or if the required home consumption is still missing (in case the user changed something and came back to save again).
+        if missingRelatedHomeConsumptions.isEmpty {
+             andExit()
         } else {
+            let message: LocalizedStringKey
+            if missingRelatedHomeConsumptions.contains(.direct) && missingRelatedHomeConsumptions.contains(.refunding) {
+                message = "This session should be connected to both a home consumption and a refunding home consumption."
+            } else if missingRelatedHomeConsumptions.contains(.direct) {
+                message = "This session should be connected to a home consumption."
+            } else {
+                message = "This session should be connected to a refunding home consumption."
+            }
             activeAlert = SimpleAlert(
-                type: .notice(message: "Please connect to a home consumption."),
+                type: .notice(message: message),
                 customButtons: [
                     SimpleAlertButton(title: NSLocalizedString("Connect now", comment: ""), role: nil) {
                         // Open the home consumption picker
-                        if selectedPlan.planType == .refunded {
+                        if missingRelatedHomeConsumptions.contains(.direct) {
+                            isShowingHomeConsumptionPickerSheet = true
+                        } else if missingRelatedHomeConsumptions.contains(.refunding) {
                             isShowingRefundingHomeConsumptionPickerSheet = true
-                        } else if selectedPlan.planType == .refunded && relatedRefundingHomeConsumption != nil {
-                            isShowingHomeConsumptionPickerSheet = true
-                        } else {
-                            isShowingHomeConsumptionPickerSheet = true
                         }
                     },
                     SimpleAlertButton(title: NSLocalizedString("Connect later", comment: ""), role: nil) {
