@@ -44,21 +44,41 @@ final class HomeConsumption: Comparable {
     @Relationship(deleteRule: .nullify, inverse: \ChargingSession.relatedRefundingHomeConsumption)
     var refundedChargingSessions: [ChargingSession]?
     
-    var consumptionFromRelatedChargingSessions: Measurement<UnitEnergy>? {
+    var dataFromRelatedChargingSessions: (consumption: Measurement<UnitEnergy>, directCost: Cost, estimatedRealCost: Cost)? {
         if let chargingSessions, !chargingSessions.isEmpty {
+            // Consumption
             let consumptions = chargingSessions.compactMap { $0.chargedEnergyKWh }
             let totalConsumption = consumptions.reduce(0.0, +)
-            return Measurement<UnitEnergy>(value: totalConsumption, unit: .kilowattHours)
+            
+            // Direct cost
+            let directCost = chargingSessions.compactMap { $0.chargingCost }
+            let totalDirectCost = directCost.reduce(.init(amount: 0.0)) { $0 + $1 }
+            
+            // Estimated real cost
+            let estimatedRealCost = chargingSessions.compactMap { $0.estimatedRealCost }
+            let totalEstimatedRealCost = estimatedRealCost.reduce(.init(amount: 0.0)) { $0 + $1 }
+            
+            return (Measurement<UnitEnergy>(value: totalConsumption, unit: .kilowattHours), totalDirectCost, totalEstimatedRealCost)
         } else {
             return nil
         }
     }
     
-    var consumptionFromRelatedRefundedChargingSessions: Measurement<UnitEnergy>? {
+    var dataFromRelatedRefundedChargingSessions: (consumption: Measurement<UnitEnergy>, directCost: Cost, estimatedRealCost: Cost)? {
         if let refundedChargingSessions, !refundedChargingSessions.isEmpty {
+            // Consumption
             let consumptions = refundedChargingSessions.compactMap { $0.chargedEnergyKWh }
             let totalConsumption = consumptions.reduce(0.0, +)
-            return Measurement<UnitEnergy>(value: totalConsumption, unit: .kilowattHours)
+            
+            // Direct cost
+            let directCost = refundedChargingSessions.compactMap { $0.chargingCost }
+            let totalDirectCost = directCost.reduce(.init(amount: 0.0)) { $0 + $1 }
+            
+            // Estimated real cost
+            let estimatedRealCost = refundedChargingSessions.compactMap { $0.estimatedRealCost }
+            let totalEstimatedRealCost = estimatedRealCost.reduce(.init(amount: 0.0)) { $0 + $1 }
+            
+            return (Measurement<UnitEnergy>(value: totalConsumption, unit: .kilowattHours), totalDirectCost, totalEstimatedRealCost)
         } else {
             return nil
         }
@@ -182,8 +202,8 @@ final class HomeConsumption: Comparable {
     /// - Returns: The consumption as a Measurement<UnitEnergy>.
     private func consumption(useRelatedConsumptions: Bool, reduceTotalBy: Measurement<UnitEnergy>) -> Measurement<UnitEnergy> {
         if useRelatedConsumptions {
-            if let consumptionFromRelatedChargingSessions {
-                return max(consumptionFromRelatedChargingSessions - reduceTotalBy, .init(value: 0.0, unit: .kilowattHours)) // Ensure consumption is not negative
+            if let dataFromRelatedChargingSessions {
+                return max(dataFromRelatedChargingSessions.consumption - reduceTotalBy, .init(value: 0.0, unit: .kilowattHours)) // Ensure consumption is not negative
             } else {
                 return defaultToEnteredConsumption ? max(consumption - reduceTotalBy, .init(value: 0.0, unit: .kilowattHours)) : .init(value: 0.0, unit: .kilowattHours)
             }
@@ -196,7 +216,7 @@ final class HomeConsumption: Comparable {
         let reduceTotalBy = reduceTotalBy?.converted(to: .kilowattHours) ?? .init(value: 0.0, unit: .kilowattHours)
         switch consumptionType {
         case .total:
-            let chargingConsumptionKWh = consumptionFromRelatedChargingSessions?.converted(to: .kilowattHours).value ?? 0.0
+            let chargingConsumptionKWh = dataFromRelatedChargingSessions?.consumption.converted(to: .kilowattHours).value ?? 0.0
             let homeConsumptionKWh = max(consumptionKWh - reduceTotalBy.value - chargingConsumptionKWh, 0.0) // Ensure home consumption is not negative
             return (home: .init(value: homeConsumptionKWh, unit: .kilowattHours), charging: .init(value: chargingConsumptionKWh, unit: .kilowattHours))
         case .home, .homeDiscount, .homeRefunded:

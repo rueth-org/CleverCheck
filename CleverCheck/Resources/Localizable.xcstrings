@@ -1844,6 +1844,38 @@
         }
       }
     },
+    "Direct cost from refunded charging sessions" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direkte omkostninger fra refunderede ladesessioner"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direkte Kosten von erstatteten Ladevorgängen"
+          }
+        }
+      }
+    },
+    "Direct cost from related charging sessions" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direkte omkostninger fra relaterede ladesessioner"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direkte Kosten von verbundenen Ladevorgängen"
+          }
+        }
+      }
+    },
     "Disable cache (not recommended)" : {
       "localizations" : {
         "da" : {
@@ -2299,6 +2331,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Geschätzte Realkosten"
+          }
+        }
+      }
+    },
+    "Estimated real cost from refunded charging sessions" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimeret reel omkostning fra refunderede ladesessioner"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschätzte Echtkosten von erstatteten Ladevorgängen"
+          }
+        }
+      }
+    },
+    "Estimated real cost from related charging sessions" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimerede reelle omkostninger fra relaterede ladesessioner"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschätzte Echtkosten von verbundenen Ladevorgängen"
           }
         }
       }

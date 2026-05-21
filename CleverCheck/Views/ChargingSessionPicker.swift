@@ -31,15 +31,28 @@ struct ChargingSessionPicker: View {
                 let sessionsToSave = Array(selectedSessions)
                 let sessionsToRemove = Set(possibleSessions).subtracting(selectedSessions)
                 
+                // If we deal with refunded sessions, we need to update the related home consumption for the individual sessions, otherwise we can just update the relationship from the home consumption side
                 for session in sessionsToSave {
-                    session.relatedHomeConsumption = homeConsumption
+                    if showRefundedSessions {
+                        session.relatedRefundingHomeConsumption = homeConsumption
+                    } else {
+                        session.relatedHomeConsumption = homeConsumption
+                    }
                 }
                 
                 for session in sessionsToRemove {
                     // If the session is assigned to another home consumption, leave it there, otherwise set to nil
-                    if let relatedHomeConsumption = session.relatedHomeConsumption {
-                        if relatedHomeConsumption.id == homeConsumption.id {
-                            session.relatedHomeConsumption = nil
+                    if showRefundedSessions {
+                        if let relatedRefundingHomeConsumption = session.relatedRefundingHomeConsumption {
+                            if relatedRefundingHomeConsumption.id == homeConsumption.id {
+                                session.relatedRefundingHomeConsumption = nil
+                            }
+                        }
+                    } else {
+                        if let relatedHomeConsumption = session.relatedHomeConsumption {
+                            if relatedHomeConsumption.id == homeConsumption.id {
+                                session.relatedHomeConsumption = nil
+                            }
                         }
                     }
                 }

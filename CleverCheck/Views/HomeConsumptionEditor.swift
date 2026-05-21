@@ -50,17 +50,17 @@ struct HomeConsumptionEditor: View {
         homeConsumption?.consumption.unit.symbol ?? UserSettings.shared.energyUnit.symbol
     }
     
-    private var consumptionFromRelatedSessions: Measurement<UnitEnergy> { // TODO: Add estimated real cost as second parameter
-        homeConsumption?.consumptionFromRelatedChargingSessions ?? .init(value: 0.0, unit: UserSettings.shared.energyUnit)
+    private var dataFromRelatedSessions: (consumption: Measurement<UnitEnergy>, directCost: Cost, estimatedRealCost: Cost) {
+        homeConsumption?.dataFromRelatedChargingSessions ?? (.init(value: 0.0, unit: UserSettings.shared.energyUnit), .init(amount: 0.0), .init(amount: 0.0))
     }
     
-    private var consumptionFromRelatedRefundedSessions: Measurement<UnitEnergy> { // TODO: Add estimated real cost as second parameter
-        homeConsumption?.consumptionFromRelatedRefundedChargingSessions ?? .init(value: 0.0, unit: UserSettings.shared.energyUnit)
+    private var dataFromRelatedRefundedSessions: (consumption: Measurement<UnitEnergy>, directCost: Cost, estimatedRealCost: Cost) {
+        homeConsumption?.dataFromRelatedRefundedChargingSessions ?? (.init(value: 0.0, unit: UserSettings.shared.energyUnit), .init(amount: 0.0), .init(amount: 0.0))
     }
     
     var body: some View {
-        let consumptionFromRelatedSessions = self.consumptionFromRelatedSessions
-        let consumptionFromRelatedRefundedSessions = self.consumptionFromRelatedRefundedSessions
+        let dataFromRelatedSessions = self.dataFromRelatedSessions
+        let dataFromRelatedRefundedSessions = self.dataFromRelatedRefundedSessions
         Form {
             TextField("Name", text: $name)
             Picker("Type", selection: $consumptionType) {
@@ -90,7 +90,7 @@ struct HomeConsumptionEditor: View {
             
             // Related directly linked charging sessions
             HStack {
-                Text("\(homeConsumption?.chargingSessions?.count ?? 0) related charging sessions: \(consumptionFromRelatedSessions.formatted())")
+                Text("\(homeConsumption?.chargingSessions?.count ?? 0) related charging sessions: \(dataFromRelatedSessions.consumption.formatted())")
                 Spacer()
                 if homeConsumption != nil {
                     Button(action: {
@@ -112,7 +112,7 @@ struct HomeConsumptionEditor: View {
             
             // Related charging sessions, where this home consumption is being refunded
             HStack {
-                Text("\(homeConsumption?.refundedChargingSessions?.count ?? 0) related refunded charging sessions: \(consumptionFromRelatedRefundedSessions.formatted())")
+                Text("\(homeConsumption?.refundedChargingSessions?.count ?? 0) related refunded charging sessions: \(dataFromRelatedRefundedSessions.consumption.formatted())")
                 Spacer()
                 if homeConsumption != nil {
                     Button(action: {
@@ -135,7 +135,7 @@ struct HomeConsumptionEditor: View {
             HStack {
                 Text("Home consumption")
                 Spacer()
-                let homeConsumption = consumption - consumptionFromRelatedSessions - consumptionFromRelatedRefundedSessions
+                let homeConsumption = consumption - dataFromRelatedSessions.consumption - dataFromRelatedRefundedSessions.consumption
                 Text(homeConsumption.formatted())
             }
             
@@ -159,6 +159,30 @@ struct HomeConsumptionEditor: View {
                     Text("Charging cost")
                     Spacer()
                     Text(totalCost?.charging.formatted() ?? "-")
+                        .multilineTextAlignment(.trailing)
+                }
+                HStack {
+                    Text("Direct cost from related charging sessions")
+                    Spacer()
+                    Text(dataFromRelatedSessions.directCost.formatted())
+                        .multilineTextAlignment(.trailing)
+                }
+                HStack {
+                    Text("Estimated real cost from related charging sessions")
+                    Spacer()
+                    Text(dataFromRelatedSessions.estimatedRealCost.formatted())
+                        .multilineTextAlignment(.trailing)
+                }
+                HStack {
+                    Text("Direct cost from refunded charging sessions")
+                    Spacer()
+                    Text(dataFromRelatedRefundedSessions.directCost.formatted())
+                        .multilineTextAlignment(.trailing)
+                }
+                HStack {
+                    Text("Estimated real cost from refunded charging sessions")
+                    Spacer()
+                    Text(dataFromRelatedRefundedSessions.estimatedRealCost.formatted())
                         .multilineTextAlignment(.trailing)
                 }
             }
