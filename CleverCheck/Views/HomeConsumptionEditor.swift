@@ -161,29 +161,37 @@ struct HomeConsumptionEditor: View {
                     Text(totalCost?.charging.formatted() ?? "-")
                         .multilineTextAlignment(.trailing)
                 }
-                HStack {
-                    Text("Direct cost from related charging sessions")
-                    Spacer()
-                    Text(dataFromRelatedSessions.directCost.formatted())
-                        .multilineTextAlignment(.trailing)
+                if dataFromRelatedSessions.directCost.amount != 0.0 {
+                    HStack {
+                        Text("Direct cost from related charging sessions")
+                        Spacer()
+                        Text(dataFromRelatedSessions.directCost.formatted())
+                            .multilineTextAlignment(.trailing)
+                    }
                 }
-                HStack {
-                    Text("Estimated real cost from related charging sessions")
-                    Spacer()
-                    Text(dataFromRelatedSessions.estimatedRealCost.formatted())
-                        .multilineTextAlignment(.trailing)
+                if dataFromRelatedSessions.estimatedRealCost.amount != 0.0 {
+                    HStack {
+                        Text("Estimated real cost from related charging sessions")
+                        Spacer()
+                        Text(dataFromRelatedSessions.estimatedRealCost.formatted())
+                            .multilineTextAlignment(.trailing)
+                    }
                 }
-                HStack {
-                    Text("Direct cost from refunded charging sessions")
-                    Spacer()
-                    Text(dataFromRelatedRefundedSessions.directCost.formatted())
-                        .multilineTextAlignment(.trailing)
+                if dataFromRelatedRefundedSessions.directCost.amount != 0.0 {
+                    HStack {
+                        Text("Direct cost from refunded charging sessions")
+                        Spacer()
+                        Text(dataFromRelatedRefundedSessions.directCost.formatted())
+                            .multilineTextAlignment(.trailing)
+                    }
                 }
-                HStack {
-                    Text("Estimated real cost from refunded charging sessions")
-                    Spacer()
-                    Text(dataFromRelatedRefundedSessions.estimatedRealCost.formatted())
-                        .multilineTextAlignment(.trailing)
+                if dataFromRelatedRefundedSessions.estimatedRealCost.amount != 0.0 {
+                    HStack {
+                        Text("Estimated real cost from refunded charging sessions")
+                        Spacer()
+                        Text(dataFromRelatedRefundedSessions.estimatedRealCost.formatted())
+                            .multilineTextAlignment(.trailing)
+                    }
                 }
             }
             
