@@ -265,6 +265,11 @@ struct ChargingSessionEditor: View {
                     Text("Start")
                     Spacer()
                     Button {
+                        // If the currently set start time is later than the end time, we reset it to the end time -3h
+                        if startTime > endTime {
+                            startTime = endTime.addingTimeInterval(-10800)
+                        }
+                        
                         enterStartTime = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
