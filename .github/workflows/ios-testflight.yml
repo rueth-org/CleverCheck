@@ -1,5 +1,4 @@
 name: iOS — Build & Deploy to TestFlight
-FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true
 
 on:
   push:
@@ -12,10 +11,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Cache CocoaPods
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: Pods
           key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
@@ -31,13 +30,13 @@ jobs:
           xcode-version: '15.2'
 
       - name: Import Code-Signing Certificate
-        uses: apple-actions/import-codesign-certs@v3
+        uses: apple-actions/import-codesign-certs@v7
         with:
           p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
           p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
 
       - name: Import Provisioning Profile
-        uses: apple-actions/download-provisioning-profiles@v1
+        uses: apple-actions/download-provisioning-profiles@v6
         with:
           bundle-id: 'info.rueth.CleverCheck'
           issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
