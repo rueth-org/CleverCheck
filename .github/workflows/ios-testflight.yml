@@ -38,7 +38,7 @@ jobs:
       - name: Import Provisioning Profile
         uses: apple-actions/download-provisioning-profiles@v1
         with:
-          bundle-id: 'com.yourcompany.yourapp'
+          bundle-id: 'info.rueth.CleverCheck'
           issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
           api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
@@ -46,9 +46,9 @@ jobs:
       - name: Build & Archive
         run: |
           xcodebuild archive \
-            -scheme YourApp \
+            -scheme CleverCheck \
             -configuration Release \
-            -archivePath $RUNNER_TEMP/YourApp.xcarchive \
+            -archivePath $RUNNER_TEMP/CleverCheck.xcarchive \
             -destination "generic/platform=iOS" \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}
@@ -56,14 +56,14 @@ jobs:
       - name: Export IPA
         run: |
           xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/YourApp.xcarchive \
+            -archivePath $RUNNER_TEMP/CleverCheck.xcarchive \
             -exportPath $RUNNER_TEMP/export \
             -exportOptionsPlist ExportOptions.plist
 
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v1
         with:
-          app-path: ${{ runner.temp }}/export/YourApp.ipa
+          app-path: ${{ runner.temp }}/export/CleverCheck.ipa
           issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
           api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
