@@ -1,6 +1,7 @@
 name: iOS — Build & Deploy to TestFlight
 
 on:
+  workflow_call: 
   push:
     branches: [main]
 
