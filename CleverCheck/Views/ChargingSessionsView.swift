@@ -54,6 +54,7 @@ struct ChargingSessionsView: View {
     }
 
     var body: some View {
+        let groupedSessions = self.groupedSessions
         VStack {
             TimeBoxPicker(timeBox: timeBox)
                 .padding(.horizontal)
@@ -150,6 +151,17 @@ struct ChargingSessionsView: View {
             }
         }
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Menu {
+                    Button(action: {
+                        checkForMissingHomeConsumptions(Array(groupedSessions.values))
+                    }) {
+                        Text("Check for related home consumptions")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                }
+            }
             ToolbarItem(placement: .principal) {
                 Text("Charging Sessions")
             }
@@ -278,5 +290,42 @@ struct ChargingSessionsView: View {
                 }
             }
         )
+    }
+    
+    private func checkForMissingHomeConsumptions(_ sessions: [[ChargingSession]]) {
+        // Join all into one array
+        let sessions = sessions.flatMap(\.self)
+        var assignedHomeConsumptions: Int = 0
+        var assignedRefundingHomeConsumptions: Int = 0
+        
+        for session in sessions {
+            // Check for related home consumptions if necessary
+            if session.chargingCostPlan?.planType != .individual && session.relatedHomeConsumption == nil {
+                if let possibleHomeConsumptions = session.possibleHomeConsumptions(modelContext: modelContext) {
+                    if possibleHomeConsumptions.count == 1 {
+                        session.relatedHomeConsumption = possibleHomeConsumptions.first
+                        assignedHomeConsumptions += 1
+                    }
+                }
+            }
+            
+            // Check for related refunding home consumptions if necessary
+            if session.chargingCostPlan?.planType == .refunded && session.relatedRefundingHomeConsumption == nil {
+                if let possibleRefundingHomeConsumptions = session.possibleHomeConsumptionsRefunded(modelContext: modelContext, ignorePlan: false, ignoreDate: false) {
+                    if possibleRefundingHomeConsumptions.count == 1 {
+                        session.relatedRefundingHomeConsumption = possibleRefundingHomeConsumptions.first
+                        assignedRefundingHomeConsumptions += 1
+                    }
+                }
+            }
+        }
+        
+        // Save if necessary
+        if assignedHomeConsumptions > 0 || assignedRefundingHomeConsumptions > 0 {
+            try? modelContext.save()
+        }
+        
+        activeAlert = SimpleAlert(type: .notice(message: "\(assignedHomeConsumptions) home consumption\(assignedHomeConsumptions == 1 ? "" : "s") and \(assignedRefundingHomeConsumptions) refunded home consumption\(assignedRefundingHomeConsumptions == 1 ? "" : "s") have been linked to charging sessions."))
+        showingAlert = true
     }
 }
