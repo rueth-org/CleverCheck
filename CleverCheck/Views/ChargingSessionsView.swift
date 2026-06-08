@@ -153,10 +153,18 @@ struct ChargingSessionsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Menu {
+                    // Check for related home consumptions
                     Button(action: {
                         checkForMissingHomeConsumptions(Array(groupedSessions.values))
                     }) {
                         Text("Check for related home consumptions")
+                    }
+                    
+                    // Calculate missing estimated real cost
+                    Button(action: {
+                        calculateEstimatedRealCost(Array(groupedSessions.values))
+                    }) {
+                        Text("Calculate missing estimated real cost")
                     }
                 } label: {
                     Image(systemName: "ellipsis")
@@ -326,6 +334,35 @@ struct ChargingSessionsView: View {
         }
         
         activeAlert = SimpleAlert(type: .notice(message: "\(assignedHomeConsumptions) home consumption\(assignedHomeConsumptions == 1 ? "" : "s") and \(assignedRefundingHomeConsumptions) refunded home consumption\(assignedRefundingHomeConsumptions == 1 ? "" : "s") have been linked to charging sessions."))
+        showingAlert = true
+    }
+    
+    private func calculateEstimatedRealCost(_ sessions: [[ChargingSession]]) {
+        // Join all into one array
+        let sessions = sessions.flatMap(\.self)
+        var calculatedCost: Int = 0
+        
+        Task {
+            for session in sessions {
+                do {
+                    let estimation = try await session.estimateRealCost(modelContext: modelContext)
+                    session.estimatedRealCost = estimation.cost
+                    if session.relatedRefundingHomeConsumption == nil, let refundingHomeConsumption = estimation.refundingHomeConsumption {
+                        session.relatedRefundingHomeConsumption = refundingHomeConsumption
+                    }
+                    calculatedCost += 1
+                } catch {
+                    // Continue
+                }
+            }
+        }
+        
+        // Save if necessary
+        if calculatedCost > 0 {
+            try? modelContext.save()
+        }
+        
+        activeAlert = SimpleAlert(type: .notice(message: "Real cost for \(calculatedCost) charging session\(calculatedCost == 1 ? "" : "s") have been calculated."))
         showingAlert = true
     }
 }
