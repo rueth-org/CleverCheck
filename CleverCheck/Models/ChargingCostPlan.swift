@@ -114,10 +114,28 @@ public final class ChargingCostPlan {
         return filteredSessions.reduce(.init(value: 0.0, unit: .kilowattHours)) { $0 + ($1.chargedEnergy) }
     }
     
-    func totalChargingCost(in timeBox: TimeBox) -> Cost {
+    func totalChargingCost(in timeBox: TimeBox, modelContext: ModelContext) async -> (direct: Cost, indirect: Cost) {
         let filteredSessions = chargingSessions(in: timeBox)
-        guard !filteredSessions.isEmpty else { return .init(amount: 0.0) }
-        return filteredSessions.reduce(.init(amount: 0.0)) { $0 + ($1.totalChargingCost) }
+        guard !filteredSessions.isEmpty else { return (direct: .init(amount: 0.0), indirect: .init(amount: 0.0)) }
+        let directCost = filteredSessions.reduce(.init(amount: 0.0)) { $0 + ($1.totalChargingCost) }
+        var modCounter = 0
+        let indirectCost = await filteredSessions.asyncReduce(.init(amount: 0.0)) { partialResult, session in
+            if let estimatedRealCost = session.estimatedRealCost {
+                return partialResult + estimatedRealCost
+            } else if let estimatedRealCost = try? await session.estimateRealCost(modelContext: modelContext).cost {
+                session.estimatedRealCost = estimatedRealCost
+                modCounter += 1
+                return partialResult + estimatedRealCost
+            } else {
+                return partialResult
+            }
+        }
+        
+        if modCounter > 0 {
+            try? modelContext.save()
+        }
+        
+        return (direct: directCost, indirect: indirectCost)
     }
     
     class func classString() -> String {
@@ -125,3 +143,12 @@ public final class ChargingCostPlan {
     }
 }
 
+private extension Array {
+    func asyncReduce<Result>(_ initialResult: Result, _ nextPartialResult: (Result, Element) async throws -> Result) async rethrows -> Result {
+        var result = initialResult
+        for element in self {
+            result = try await nextPartialResult(result, element)
+        }
+        return result
+    }
+}

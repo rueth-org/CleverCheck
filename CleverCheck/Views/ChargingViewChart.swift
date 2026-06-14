@@ -18,6 +18,9 @@ struct ChargingViewChart: View {
     // State to receive tap locations from the UIViewRepresentable and process them
     @State private var pendingTapLocation: CGPoint? = nil
 
+    @State private var chargingCostData: [Car.CostData] = []
+    @State private var totalChargingCost: Cost = Cost(amount: 0.0)
+
     var chargedEnergyDataPerPeriod: [String: [Car.EnergyData]] {
         car.chargedEnergyPerPeriod(in: timeBox)
     }
@@ -32,14 +35,6 @@ struct ChargingViewChart: View {
 
     var totalChargedEnergy: Measurement<UnitEnergy> {
         chargedEnergyData.map{ $0.chargedEnergy }.reduce(.init(value: 0.0, unit: .kilowattHours), +)
-    }
-
-    var chargingCostData: [Car.CostData] {
-        car.chargingCost(in: timeBox)
-    }
-
-    var totalChargingCost: Cost {
-        chargingCostData.map{ $0.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? Cost(amount: 0.0) }.reduce(Cost(amount: 0.0), +)
     }
 
     // Compute the aggregated sum per x-axis key (timeKey) depending on selectedChart.
@@ -59,6 +54,11 @@ struct ChargingViewChart: View {
     var body: some View {
         let legendItems = legendData()
         let tabViews: [AnyView] = [
+            
+            //
+            // Charging amount bar chart
+            //
+            
             AnyView(
                 VStack(spacing: 0) {
                     Text("Charging data")
@@ -120,6 +120,10 @@ struct ChargingViewChart: View {
                 }
             ),
 
+            //
+            // Consumption bar chart
+            //
+            
             AnyView(
                 VStack(spacing: 0) {
                     Text("Consumption")
@@ -179,6 +183,10 @@ struct ChargingViewChart: View {
                 .frame(maxHeight: .infinity)
             ),
 
+            //
+            // Charged energy pie chart
+            //
+            
             AnyView(
                 VStack(spacing: 0) {
                     Text("Charged energy")
@@ -233,9 +241,13 @@ struct ChargingViewChart: View {
                 }
             ),
 
+            //
+            // Charging cost pie chart
+            //
+            
             AnyView(
                 VStack(spacing: 0) {
-                    Text("Direct charging cost")
+                    Text("Charging cost")
                         .font(.headline)
                         .padding(.top)
                         .padding(.horizontal)
@@ -289,6 +301,11 @@ struct ChargingViewChart: View {
         ]
 
         return DotIndicatorScrollView(tabViews: tabViews)
+            .task {
+                let result = await car.chargingCost(in: timeBox, modelContext: modelContext)
+                chargingCostData = result
+                totalChargingCost = result.map { $0.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? Cost(amount: 0.0) }.reduce(Cost(amount: 0.0), +)
+            }
     }
 
     fileprivate func readTappedPosition(_ proxy: ChartProxy) -> GeometryReader<some View> {
