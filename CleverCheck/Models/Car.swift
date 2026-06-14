@@ -102,15 +102,25 @@ final class Car {
         return result.mapValues { $0.sorted() }
     }
     
-    func chargingCost(in timeBox: TimeBox) -> [CostData] {
+    func chargingCost(in timeBox: TimeBox, modelContext: ModelContext) async -> [CostData] {
         guard let chargingCostPlans else { return [] }
         var result = [CostData]()
         for plan in chargingCostPlans {
-            result.append(CostData(
-                legendLabel: plan.descriptionShortNoCar,
-                cost: plan.totalChargingCost(in: timeBox),
-                displayColor: plan.displayColor
-            ))
+            let cost = await plan.totalChargingCost(in: timeBox, modelContext: modelContext)
+            if cost.direct.amount > 0 {
+                result.append(CostData(
+                    legendLabel: plan.descriptionShortNoCar,
+                    cost: cost.direct,
+                    displayColor: plan.displayColor
+                ))
+            }
+            if cost.indirect.amount > 0 {
+                result.append(CostData(
+                    legendLabel: plan.descriptionShortNoCar,
+                    cost: cost.indirect,
+                    displayColor: plan.displayColor
+                ))
+            }
         }
         return result.sorted()
     }
