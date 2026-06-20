@@ -87,6 +87,7 @@ public final class ChargingCostPlan {
         self.displayColorString = displayColor?.rawValue
     }
     
+    @MainActor
     func chargingSessions(in timeBox: TimeBox) -> [ChargingSession] {
         guard let chargingSessions else { return [] }
         return chargingSessions.filter { session in
@@ -94,6 +95,7 @@ public final class ChargingCostPlan {
         }
     }
     
+    @MainActor
     func chargedEnergy(in timeBox: TimeBox, groupingKey: Bool) -> [String: Measurement<UnitEnergy>] {
         let filteredSessions = chargingSessions(in: timeBox)
         guard !filteredSessions.isEmpty else { return [:] }
@@ -108,12 +110,14 @@ public final class ChargingCostPlan {
         return result
     }
     
+    @MainActor
     func totalChargedEnergy(in timeBox: TimeBox) -> Measurement<UnitEnergy> {
         let filteredSessions = chargingSessions(in: timeBox)
         guard !filteredSessions.isEmpty else { return .init(value: 0.0, unit: .kilowattHours) }
         return filteredSessions.reduce(.init(value: 0.0, unit: .kilowattHours)) { $0 + ($1.chargedEnergy) }
     }
     
+    @MainActor
     func totalChargingCost(in timeBox: TimeBox, modelContext: ModelContext) async -> (direct: Cost, indirect: Cost) {
         let filteredSessions = chargingSessions(in: timeBox)
         guard !filteredSessions.isEmpty else { return (direct: .init(amount: 0.0), indirect: .init(amount: 0.0)) }

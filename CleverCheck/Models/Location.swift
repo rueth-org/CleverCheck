@@ -55,6 +55,7 @@ final class Location: Identifiable {
     /// Returns all related home consumptions in the given time box, or all if no time box is given.
     /// - Parameter timeBox: The given time box.
     /// - Returns: The home consumptions in the given time box.
+    @MainActor
     func homeConsumptions(in timeBox: TimeBox?) -> [HomeConsumption] {
         guard let associatedHomeConsumptions else { return [] }
         if let timeBox {
@@ -64,6 +65,7 @@ final class Location: Identifiable {
         }
     }
     
+    @MainActor
     func data(in timeBox: TimeBox, useRelatedConsumption: Bool, modelContext: ModelContext) -> [Data] {
         // Build a cache key using essential inputs that influence the result
         let startTs = timeBox.timePeriod?.start.timeIntervalSince1970 ?? 0
@@ -462,6 +464,7 @@ final class Location: Identifiable {
     ///   - timeBox: The time box to limit the charging sessions to.
     ///   - modelContext: The model context to fetch data from.
     /// - Returns: A tuple containing the refunded consumption and refunded cost.
+    @MainActor
     private func refunded(in timeBox: TimeBox, modelContext: ModelContext) -> (consumption: Measurement<UnitEnergy>, cost: Cost) {
         // Load all charging cost plans
         let request = FetchDescriptor<ChargingCostPlan>(predicate: #Predicate<ChargingCostPlan> { _ in true })
@@ -502,6 +505,7 @@ final class Location: Identifiable {
     ///   - timeBox: The time box to limit the charging sessions to.
     ///   - modelContext: The model context to fetch data from.
     /// - Returns: An set of tuples with the month as key (formatted as string) and refunded consumption and refunded cost for each month in the time box as values.
+    @MainActor
     private func refundedChargingPerMonth(in timeBox: TimeBox, modelContext: ModelContext) -> [String: (consumption: Measurement<UnitEnergy>, cost: Cost)] {
         // Load all charging cost plans
         let request = FetchDescriptor<ChargingCostPlan>(predicate: #Predicate<ChargingCostPlan> { _ in true })
