@@ -57,6 +57,7 @@ final class Car {
     /// Returns all charging session in the given time box, sorted chronologically by end time.
     /// - Parameter timeBox: The time box to limit the charging sessions to. If nil, all available charging sessions are returned.
     /// - Returns: The charging sessions.
+    @MainActor
     func chargingSessions(in timeBox: TimeBox?) -> [ChargingSession] {
         guard let chargingCostPlans else { return [] }
         if let timeBox {
@@ -66,6 +67,7 @@ final class Car {
         }
     }
     
+    @MainActor
     func chargedEnergy(in timeBox: TimeBox) -> [EnergyData] {
         guard let chargingCostPlans else { return [] }
         var result = [EnergyData]()
@@ -79,6 +81,7 @@ final class Car {
         return result.sorted()
     }
     
+    @MainActor
     func chargedEnergyPerPeriod(in timeBox: TimeBox) -> [String: [EnergyData]] {
         guard let chargingCostPlans else { return [:] }
         var result = [String: [EnergyData]]()
@@ -125,6 +128,7 @@ final class Car {
         return result.sorted()
     }
     
+    @MainActor
     func consumptionData(in timeBox: TimeBox, modelContext: ModelContext) -> ConsumptionData? {
         guard let chargingCostPlans else { return nil }
         let chargingSessions = chargingSessions(in: timeBox)
@@ -133,6 +137,7 @@ final class Car {
         return try? ConsumptionData(modelContext: modelContext, timeBox: timeBox, relatedPlans: chargingCostPlans, sessions: chargingSessions)
     }
     
+    @MainActor
     func averageEnergyPerPercentPoint(in timeBox: TimeBox? = nil) -> Measurement<UnitEnergy>? {
         let chargingSessions = self.chargingSessions(in: timeBox)
         let sessionsWithPercentAndEnergy = chargingSessions.filter { session in

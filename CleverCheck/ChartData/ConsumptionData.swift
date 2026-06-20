@@ -83,7 +83,8 @@ struct ConsumptionData: Identifiable {
     let sessions: [ChargingSession]
     let timeBox: TimeBox
     let previousSessions: [ChargingSession]?
-    
+
+    @MainActor
     var consumptions: [String: Consumption] {
         var previousMileage: Double? = nil
         var previousDate: Date? = nil
@@ -137,6 +138,7 @@ struct ConsumptionData: Identifiable {
         return result
     }
     
+    @MainActor
     var totalConsumption: Consumption? {
         var result: Consumption? = nil
         for consumption in consumptions.values {
@@ -209,3 +211,4 @@ struct ConsumptionData: Identifiable {
         }
     }
 }
+
