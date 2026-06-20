@@ -202,6 +202,7 @@ struct TimeBoxPicker: View {
     }
 }
 
+@MainActor
 @Observable
 class TimeBox {
     enum Resolution {
