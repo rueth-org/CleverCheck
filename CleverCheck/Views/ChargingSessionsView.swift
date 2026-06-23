@@ -319,7 +319,7 @@ struct ChargingSessionsView: View {
             
             // Check for related refunding home consumptions if necessary
             if session.chargingCostPlan?.planType == .refunded && session.relatedRefundingHomeConsumption == nil {
-                if let possibleRefundingHomeConsumptions = session.possibleHomeConsumptionsRefunded(modelContext: modelContext, ignorePlan: false, ignoreDate: false) {
+                if let possibleRefundingHomeConsumptions = session.possibleHomeConsumptions(modelContext: modelContext) {
                     if possibleRefundingHomeConsumptions.count == 1 {
                         session.relatedRefundingHomeConsumption = possibleRefundingHomeConsumptions.first
                         assignedRefundingHomeConsumptions += 1
