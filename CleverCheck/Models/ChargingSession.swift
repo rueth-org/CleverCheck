@@ -306,6 +306,8 @@ final class ChargingSession: Comparable {
                     }
                 }
                 
+                debugPrint("Found \(candidates?.count ?? 0) candidate home consumptions for refunding plan: \(candidates?.map { $0.descriptionWithDate }.joined(separator: ", ") ?? "none")")
+                
                 return candidates?.sorted(by: { $0.descriptionWithDate < $1.descriptionWithDate })
             }
         } else {
