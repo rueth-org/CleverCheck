@@ -947,6 +947,28 @@
         }
       }
     },
+    "Average cost per %@: %@" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gennemsnitsomkostninger pr. %1$@: %2$@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durchschnittskosten pro %1$@: %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Average cost per %1$@: %2$@"
+          }
+        }
+      }
+    },
     "By consumption" : {
       "localizations" : {
         "da" : {
@@ -1707,6 +1729,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gefahrenzone"
+          }
+        }
+      }
+    },
+    "Data Summary" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversigt"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datenzusammenfassung"
           }
         }
       }
@@ -3831,6 +3870,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keine Daten"
+          }
+        }
+      }
+    },
+    "No data available for this period." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingen data tilgængelige for denne periode."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Daten verfügbar für diesen Zeitraum."
           }
         }
       }

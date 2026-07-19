@@ -129,6 +129,44 @@ final class Car {
     }
     
     @MainActor
+    func specificCost(in timeBox: TimeBox, modelContext: ModelContext) async -> Cost? {
+        guard let chargingCostPlans else { return nil }
+        let allSessions = chargingCostPlans.flatMap { $0.chargingSessions(in: timeBox) }
+        var totalChargedEnergyKWh: Double = 0
+        var totalChargingCost: Cost = Cost(amount: 0)
+        var saveModelContext = false
+        for session in allSessions {
+            if session.chargedEnergyKWh == 0 { continue }
+            var totalCost = session.totalChargingCost
+            if totalCost.amount == 0, let estimatedRealCost = session.estimatedRealCost {
+                totalCost += estimatedRealCost
+            } else {
+                // Try to estimate the cost based on the charging cost plan
+                do {
+                    session.estimatedRealCost = try await session.estimateRealCost(modelContext: modelContext).cost
+                    totalCost += session.estimatedRealCost ?? .init(amount: 0)
+                    saveModelContext = true
+                } catch {
+                    // Ignore estimation errors, as we ignore sessions with zero cost anyway
+                }
+            }
+            if totalCost.amount == 0 { continue }
+            
+            // Add the session energy and cost
+            totalChargedEnergyKWh += session.chargedEnergyKWh
+            totalChargingCost += totalCost
+        }
+        
+        // Save if necessary
+        if saveModelContext {
+            try? modelContext.save()
+        }
+        
+        if totalChargedEnergyKWh == 0 { return nil }
+        return Cost(amount: totalChargingCost.amount / totalChargedEnergyKWh)
+    }
+    
+    @MainActor
     func consumptionData(in timeBox: TimeBox, modelContext: ModelContext) -> ConsumptionData? {
         guard let chargingCostPlans else { return nil }
         let chargingSessions = chargingSessions(in: timeBox)
