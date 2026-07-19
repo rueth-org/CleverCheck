@@ -20,6 +20,7 @@ struct ChargingViewChart: View {
 
     @State private var chargingCostData: [Car.CostData] = []
     @State private var totalChargingCost: Cost = Cost(amount: 0.0)
+    @State private var specificCost: Cost = Cost(amount: 0.0)
 
     var chargedEnergyDataPerPeriod: [String: [Car.EnergyData]] {
         car.chargedEnergyPerPeriod(in: timeBox)
@@ -296,6 +297,9 @@ struct ChargingViewChart: View {
                         legend(legendItems)
                             .frame(minHeight: 0)
                     }
+                    Text("Average cost per \(UserSettings.shared.energyUnit.symbol): \(specificCost.converted(to: UserSettings.shared.currencyIdentifier)?.formatted() ?? "-")")
+                        .font(.subheadline)
+                        .padding(.top, 4)
                 }
             )
         ]
@@ -316,6 +320,7 @@ struct ChargingViewChart: View {
                 let result = await car.chargingCost(in: timeBox, modelContext: modelContext)
                 chargingCostData = result
                 totalChargingCost = result.map { $0.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? Cost(amount: 0.0) }.reduce(Cost(amount: 0.0), +)
+                specificCost = await car.specificCost(in: timeBox, modelContext: modelContext) ?? Cost(amount: 0.0)
             }
     }
 
