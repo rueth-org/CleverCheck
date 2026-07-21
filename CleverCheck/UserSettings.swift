@@ -68,6 +68,49 @@ final class UserSettings: ObservableObject {
         var symbol: String { rawValue }
     }
     
+    enum FuelConsumptionUnit: String, CaseIterable, Identifiable, Codable {
+        case litersPer100km
+        case milesPerGallonUS
+        case milesPerGallonImperial
+        case kilometersPerLiter
+        
+        var id: String { rawValue }
+        
+        var symbol: String {
+            switch self {
+            case .litersPer100km: return "l/100km"
+            case .milesPerGallonUS: return "mpg US"
+            case .milesPerGallonImperial: return "mpg Imp"
+            case .kilometersPerLiter: return "km/l"
+            }
+        }
+        
+        var fuelCostUnit: FuelCostUnit {
+            switch self {
+            case .litersPer100km: return .costPerLiter
+            case .milesPerGallonUS: return .costPerGallonUS
+            case .milesPerGallonImperial: return .costPerGallonImperial
+            case .kilometersPerLiter: return .costPerLiter
+            }
+        }
+    }
+    
+    enum FuelCostUnit: String, CaseIterable, Identifiable {
+        case costPerLiter
+        case costPerGallonUS
+        case costPerGallonImperial
+        
+        var id: String { rawValue }
+        
+        var unitExtension: String {
+            switch self {
+            case .costPerLiter: return "/l"
+            case .costPerGallonUS: return "/gal US"
+            case .costPerGallonImperial: return "/gal Imp"
+            }
+        }
+    }
+    
     @AppStorage("measurementSystem") var measurementSystemIdentifier: String = Locale.current.measurementSystem.identifier
     @AppStorage("currencyIdentifier") var currencyIdentifier: String = Locale.current.currency?.identifier ?? "EUR"
     @AppStorage("energyUnitSymbol") var energyUnitSymbol: String = "kWh"
@@ -113,6 +156,15 @@ final class UserSettings: ObservableObject {
         didSet {
             // Sync to AppStorage string when changed
             preferredCurrenciesRaw = preferredCurrencies.joined(separator: ",")
+        }
+    }
+    
+    @AppStorage("referenceFuelConsumption") var referenceFuelConsumption: Double = 7.0
+    @AppStorage("fuelConsumptionUnitRaw") private var fuelConsumptionUnitRaw: String = "l/100km"
+    @Published var fuelConsumptionUnit: FuelConsumptionUnit = .litersPer100km {
+        didSet {
+            // Sync to AppStorage string when changed
+            fuelConsumptionUnitRaw = fuelConsumptionUnit.symbol
         }
     }
     
