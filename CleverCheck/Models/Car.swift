@@ -76,17 +76,9 @@ final class Car {
             .sorted(by: { $0.endTime < $1.endTime })
     }
     
-    @MainActor
-    func chargedEnergy(in timeBox: TimeBox) -> [EnergyData] {
-        return aggregateFromPlans { [$0] }.map { plan in
-            EnergyData(
-                legendLabel: plan.descriptionShortNoCar,
-                chargedEnergy: plan.totalChargedEnergy(in: timeBox),
-                displayColor: plan.displayColor
-            )
-        }.sorted()
-    }
-    
+    /// Builds charged energy data grouped by time period.
+    /// - Parameter timeBox: The time box for filtering sessions.
+    /// - Returns: A dictionary of energy data grouped by period key.
     @MainActor
     func chargedEnergyPerPeriod(in timeBox: TimeBox) -> [String: [EnergyData]] {
         var result = [String: [EnergyData]]()
@@ -104,6 +96,27 @@ final class Car {
         }
         
         return result.mapValues { $0.sorted() }
+    }
+    
+    /// Returns charged energy data with optional grouping by time period.
+    /// - Parameters:
+    ///   - timeBox: The time box for filtering sessions.
+    ///   - grouped: If true, returns data grouped by period; otherwise returns a flat array.
+    /// - Returns: Either a flat array of EnergyData or a dictionary grouped by period.
+    @MainActor
+    func chargedEnergy(in timeBox: TimeBox, grouped: Bool = false) -> [EnergyData] {
+        guard !grouped else {
+            // For grouped access, use chargedEnergyPerPeriod instead
+            return chargedEnergyPerPeriod(in: timeBox).values.flatMap { $0 }.sorted()
+        }
+        
+        return aggregateFromPlans { [$0] }.map { plan in
+            EnergyData(
+                legendLabel: plan.descriptionShortNoCar,
+                chargedEnergy: plan.totalChargedEnergy(in: timeBox),
+                displayColor: plan.displayColor
+            )
+        }.sorted()
     }
     
     @MainActor
