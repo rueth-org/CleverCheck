@@ -330,6 +330,10 @@ struct ChargingViewChart: View {
                     Text("Comparable fuel price: \(comparableFuelPrice?.converted(to: UserSettings.shared.fuelConsumptionUnit.fuelCostUnit).formatted() ?? "-")")
                         .font(.subheadline)
                         .padding(.top, 2)
+                    Text("(based on reference consumption of \(UserSettings.shared.referenceFuelConsumption.formatted()) \(UserSettings.shared.fuelConsumptionUnit.symbol))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.bottom, 4)
                 }
             )
         ]
