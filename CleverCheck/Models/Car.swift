@@ -54,61 +54,63 @@ final class Car {
         self.defaultSOC = defaultSOC
     }
     
+    /// Aggregates values from all charging cost plans using the provided selector.
+    /// - Parameters:
+    ///   - selector: A closure that extracts an array of values from each plan.
+    /// - Returns: A flattened array of aggregated values.
+    @MainActor
+    private func aggregateFromPlans<T>(_ selector: (ChargingCostPlan) -> [T]) -> [T] {
+        guard let chargingCostPlans else { return [] }
+        return chargingCostPlans.flatMap(selector)
+    }
+    
     /// Returns all charging session in the given time box, sorted chronologically by end time.
     /// - Parameter timeBox: The time box to limit the charging sessions to. If nil, all available charging sessions are returned.
     /// - Returns: The charging sessions.
     @MainActor
     func chargingSessions(in timeBox: TimeBox?) -> [ChargingSession] {
-        guard let chargingCostPlans else { return [] }
-        if let timeBox {
-            return chargingCostPlans.flatMap { $0.chargingSessions ?? [] }.filter { timeBox.contains($0.endTime) }.sorted(by: { $0.endTime < $1.endTime })
-        } else {
-            return chargingCostPlans.flatMap { $0.chargingSessions ?? [] }.sorted(by: { $0.endTime < $1.endTime })
-        }
+        let allSessions = aggregateFromPlans { $0.chargingSessions ?? [] }
+        guard let timeBox else { return allSessions.sorted(by: { $0.endTime < $1.endTime }) }
+        return allSessions
+            .filter { timeBox.contains($0.endTime) }
+            .sorted(by: { $0.endTime < $1.endTime })
     }
     
     @MainActor
     func chargedEnergy(in timeBox: TimeBox) -> [EnergyData] {
-        guard let chargingCostPlans else { return [] }
-        var result = [EnergyData]()
-        for plan in chargingCostPlans {
-            result.append(EnergyData(
+        return aggregateFromPlans { [$0] }.map { plan in
+            EnergyData(
                 legendLabel: plan.descriptionShortNoCar,
                 chargedEnergy: plan.totalChargedEnergy(in: timeBox),
                 displayColor: plan.displayColor
-            ))
-        }
-        return result.sorted()
+            )
+        }.sorted()
     }
     
     @MainActor
     func chargedEnergyPerPeriod(in timeBox: TimeBox) -> [String: [EnergyData]] {
-        guard let chargingCostPlans else { return [:] }
         var result = [String: [EnergyData]]()
-        for plan in chargingCostPlans {
-            let chargedEnergyPerPeriod = plan.chargedEnergy(in: timeBox, groupingKey: false)
-            for key in chargedEnergyPerPeriod.keys {
-                let energyDataSet = EnergyData(
+        
+        for plan in aggregateFromPlans({ [$0] }) {
+            let chargedEnergyByPeriod = plan.chargedEnergy(in: timeBox, groupingKey: false)
+            for (key, energy) in chargedEnergyByPeriod {
+                let energyData = EnergyData(
                     legendLabel: plan.descriptionShortNoCar,
-                    chargedEnergy: chargedEnergyPerPeriod[key]!,
+                    chargedEnergy: energy,
                     displayColor: plan.displayColor
                 )
-                if result[key] == nil {
-                    result[key] = [energyDataSet]
-                } else {
-                    result[key]?.append(energyDataSet)
-                }
+                result[key, default: []].append(energyData)
             }
         }
         
-        // Sort the EnergyData arrays
         return result.mapValues { $0.sorted() }
     }
     
+    @MainActor
     func chargingCost(in timeBox: TimeBox, modelContext: ModelContext) async -> [CostData] {
-        guard let chargingCostPlans else { return [] }
+        let plans = aggregateFromPlans { [$0] }
         var result = [CostData]()
-        for plan in chargingCostPlans {
+        for plan in plans {
             let cost = await plan.totalChargingCost(in: timeBox, modelContext: modelContext)
             if cost.direct.amount > 0 {
                 result.append(CostData(
@@ -130,8 +132,7 @@ final class Car {
     
     @MainActor
     func specificCost(in timeBox: TimeBox, modelContext: ModelContext) async -> Cost? {
-        guard let chargingCostPlans else { return nil }
-        let allSessions = chargingCostPlans.flatMap { $0.chargingSessions(in: timeBox) }
+        let allSessions = aggregateFromPlans { $0.chargingSessions(in: timeBox) }
         var totalChargedEnergyKWh: Double = 0
         var totalChargingCost: Cost = Cost(amount: 0)
         var saveModelContext = false
@@ -168,11 +169,12 @@ final class Car {
     
     @MainActor
     func consumptionData(in timeBox: TimeBox, modelContext: ModelContext) -> ConsumptionData? {
-        guard let chargingCostPlans else { return nil }
+        let plans = aggregateFromPlans { [$0] }
+        guard !plans.isEmpty else { return nil }
         let chargingSessions = chargingSessions(in: timeBox)
-        if chargingSessions.isEmpty { return nil }
+        guard !chargingSessions.isEmpty else { return nil }
         
-        return try? ConsumptionData(modelContext: modelContext, timeBox: timeBox, relatedPlans: chargingCostPlans, sessions: chargingSessions)
+        return try? ConsumptionData(modelContext: modelContext, timeBox: timeBox, relatedPlans: plans, sessions: chargingSessions)
     }
     
     @MainActor
