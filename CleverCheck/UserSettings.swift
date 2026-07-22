@@ -93,6 +93,17 @@ final class UserSettings: ObservableObject {
             case .kilometersPerLiter: return .costPerLiter
             }
         }
+        
+        /// Failable initializer that accepts either the `symbol` (like "l/100km") or the enum `rawValue`
+        /// and returns the corresponding `FuelConsumptionUnit`.
+        init?(symbol: String) {
+            let normalized = symbol.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let match = Self.allCases.first(where: { $0.symbol == normalized || $0.rawValue == normalized }) {
+                self = match
+            } else {
+                return nil
+            }
+        }
     }
     
     enum FuelCostUnit: String, CaseIterable, Identifiable {
@@ -160,11 +171,22 @@ final class UserSettings: ObservableObject {
     }
     
     @AppStorage("referenceFuelConsumption") var referenceFuelConsumption: Double = 7.0
-    @AppStorage("fuelConsumptionUnitRaw") private var fuelConsumptionUnitRaw: String = "l/100km"
+    
+    @AppStorage("fuelConsumptionUnitRaw") private var fuelConsumptionUnitRaw: String = "l/100km" {
+        didSet {
+            // If AppStorage (UserDefaults) changed externally, reflect the change to the published property
+            if let newValue = FuelConsumptionUnit(symbol: fuelConsumptionUnitRaw), newValue != fuelConsumptionUnit {
+                fuelConsumptionUnit = newValue
+            }
+        }
+    }
+
     @Published var fuelConsumptionUnit: FuelConsumptionUnit = .litersPer100km {
         didSet {
-            // Sync to AppStorage string when changed
-            fuelConsumptionUnitRaw = fuelConsumptionUnit.symbol
+            // Sync to AppStorage string when changed from code
+            if fuelConsumptionUnitRaw != fuelConsumptionUnit.symbol {
+                fuelConsumptionUnitRaw = fuelConsumptionUnit.symbol
+            }
         }
     }
     
@@ -244,8 +266,14 @@ final class UserSettings: ObservableObject {
     private init() {
         // Initialize published property from stored string
         preferredCurrencies = preferredCurrenciesRaw.split(separator: ",").map { String($0) }
+
         // Initialize published property from AppStorage backing value
         useRelatedConsumptions = useRelatedConsumptionsRaw
+
+        // Initialize fuelConsumptionUnit from stored AppStorage string
+        if let stored = FuelConsumptionUnit(symbol: fuelConsumptionUnitRaw) {
+            fuelConsumptionUnit = stored
+        }
     }
     
     func format(_ value: Double, withSignificantDigits: Int) -> String {
