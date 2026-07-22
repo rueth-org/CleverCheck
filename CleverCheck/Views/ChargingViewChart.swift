@@ -37,6 +37,29 @@ struct ChargingViewChart: View {
     var totalChargedEnergy: Measurement<UnitEnergy> {
         chargedEnergyData.map{ $0.chargedEnergy }.reduce(.init(value: 0.0, unit: .kilowattHours), +)
     }
+    
+    var comparableFuelPrice: FuelCost? {
+        // Total consumption in kWh per 100km
+        guard let totalConsumption = consumptionData?.totalConsumption?.consumption(energyUnit: .kilowattHours, distanceUnit: .kilometers, distanceMultiplier: 100, energyOverDistance: true) else {
+            return nil
+        }
+        
+        // Specific cost
+        guard let specificCost = specificCost.converted(to: UserSettings.shared.currencyIdentifier) else {
+            return nil
+        }
+        
+        // Absolute cost per 100km
+        let absoluteCostPer100km = specificCost.amount * totalConsumption.value
+        
+        // Reference fuel consumption in liters per 100km
+        let referenceFuelConsumption = FuelConsumption(amount: UserSettings.shared.referenceFuelConsumption, unit: UserSettings.shared.fuelConsumptionUnit).converted(to: .litersPer100km)
+        
+        // Compute the comparable fuel price per liter
+        let comparableFuelPricePerLiter = absoluteCostPer100km / referenceFuelConsumption.amount
+        
+        return FuelCost(amount: Cost(amount: comparableFuelPricePerLiter), unit: .costPerLiter)
+    }
 
     // Compute the aggregated sum per x-axis key (timeKey) depending on selectedChart.
     private var aggregatedEnergySums: [(timeKey: String, sum: Double)] {
@@ -297,9 +320,20 @@ struct ChargingViewChart: View {
                         legend(legendItems)
                             .frame(minHeight: 0)
                     }
+                    
+                    // Average cost per energy unit text below the chart
                     Text("Average cost per \(UserSettings.shared.energyUnit.symbol): \(specificCost.converted(to: UserSettings.shared.currencyIdentifier)?.formatted() ?? "-")")
                         .font(.subheadline)
                         .padding(.top, 4)
+                    
+                    // Comparable fuel price text below the chart
+                    Text("Comparable fuel price: \(comparableFuelPrice?.converted(to: UserSettings.shared.fuelConsumptionUnit.fuelCostUnit).formatted() ?? "-")")
+                        .font(.subheadline)
+                        .padding(.top, 2)
+                    Text("(based on reference consumption of \(UserSettings.shared.referenceFuelConsumption.formatted()) \(UserSettings.shared.fuelConsumptionUnit.symbol))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.bottom, 4)
                 }
             )
         ]

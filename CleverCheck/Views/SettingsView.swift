@@ -182,6 +182,21 @@ struct SettingsView: View {
                     }
                 }
                 
+                Section(header: Text("Reference fuel data")) {
+                    HStack {
+                        Text("Reference fuel consumption")
+                        Spacer()
+                        TextField("Reference fuel consumption", value: $userSettings.referenceFuelConsumption, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                        Picker("Fuel consumption unit", selection: $userSettings.fuelConsumptionUnit) {
+                            ForEach(UserSettings.FuelConsumptionUnit.allCases, id: \.self) { unit in
+                                Text(unit.symbol).tag(unit)
+                            }
+                        }.labelsHidden()
+                    }
+                }
+                
                 Section(header: Text("Maintenance")) {
                     Button("Check for missing refunding home consumptions") {
                         checkForMissingHomeConsumptions()

@@ -68,6 +68,60 @@ final class UserSettings: ObservableObject {
         var symbol: String { rawValue }
     }
     
+    enum FuelConsumptionUnit: String, CaseIterable, Identifiable, Codable {
+        case litersPer100km
+        case milesPerGallonUS
+        case milesPerGallonImperial
+        case kilometersPerLiter
+        
+        var id: String { rawValue }
+        
+        var symbol: String {
+            switch self {
+            case .litersPer100km: return "l/100km"
+            case .milesPerGallonUS: return "mpg US"
+            case .milesPerGallonImperial: return "mpg Imp"
+            case .kilometersPerLiter: return "km/l"
+            }
+        }
+        
+        var fuelCostUnit: FuelCostUnit {
+            switch self {
+            case .litersPer100km: return .costPerLiter
+            case .milesPerGallonUS: return .costPerGallonUS
+            case .milesPerGallonImperial: return .costPerGallonImperial
+            case .kilometersPerLiter: return .costPerLiter
+            }
+        }
+        
+        /// Failable initializer that accepts either the `symbol` (like "l/100km") or the enum `rawValue`
+        /// and returns the corresponding `FuelConsumptionUnit`.
+        init?(symbol: String) {
+            let normalized = symbol.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let match = Self.allCases.first(where: { $0.symbol == normalized || $0.rawValue == normalized }) {
+                self = match
+            } else {
+                return nil
+            }
+        }
+    }
+    
+    enum FuelCostUnit: String, CaseIterable, Identifiable {
+        case costPerLiter
+        case costPerGallonUS
+        case costPerGallonImperial
+        
+        var id: String { rawValue }
+        
+        var unitExtension: String {
+            switch self {
+            case .costPerLiter: return "/l"
+            case .costPerGallonUS: return "/gal US"
+            case .costPerGallonImperial: return "/gal Imp"
+            }
+        }
+    }
+    
     @AppStorage("measurementSystem") var measurementSystemIdentifier: String = Locale.current.measurementSystem.identifier
     @AppStorage("currencyIdentifier") var currencyIdentifier: String = Locale.current.currency?.identifier ?? "EUR"
     @AppStorage("energyUnitSymbol") var energyUnitSymbol: String = "kWh"
@@ -113,6 +167,26 @@ final class UserSettings: ObservableObject {
         didSet {
             // Sync to AppStorage string when changed
             preferredCurrenciesRaw = preferredCurrencies.joined(separator: ",")
+        }
+    }
+    
+    @AppStorage("referenceFuelConsumption") var referenceFuelConsumption: Double = 7.0
+    
+    @AppStorage("fuelConsumptionUnitRaw") private var fuelConsumptionUnitRaw: String = "l/100km" {
+        didSet {
+            // If AppStorage (UserDefaults) changed externally, reflect the change to the published property
+            if let newValue = FuelConsumptionUnit(symbol: fuelConsumptionUnitRaw), newValue != fuelConsumptionUnit {
+                fuelConsumptionUnit = newValue
+            }
+        }
+    }
+
+    @Published var fuelConsumptionUnit: FuelConsumptionUnit = .litersPer100km {
+        didSet {
+            // Sync to AppStorage string when changed from code
+            if fuelConsumptionUnitRaw != fuelConsumptionUnit.symbol {
+                fuelConsumptionUnitRaw = fuelConsumptionUnit.symbol
+            }
         }
     }
     
@@ -192,8 +266,14 @@ final class UserSettings: ObservableObject {
     private init() {
         // Initialize published property from stored string
         preferredCurrencies = preferredCurrenciesRaw.split(separator: ",").map { String($0) }
+
         // Initialize published property from AppStorage backing value
         useRelatedConsumptions = useRelatedConsumptionsRaw
+
+        // Initialize fuelConsumptionUnit from stored AppStorage string
+        if let stored = FuelConsumptionUnit(symbol: fuelConsumptionUnitRaw) {
+            fuelConsumptionUnit = stored
+        }
     }
     
     func format(_ value: Double, withSignificantDigits: Int) -> String {

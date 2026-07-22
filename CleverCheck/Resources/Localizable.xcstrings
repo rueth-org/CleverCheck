@@ -507,6 +507,28 @@
         }
       }
     },
+    "(based on reference consumption of %@ %@)" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(ved referenceforbrug på %1$@ %2$@)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(bei Referenzverbrauch von %1$@ %2$@)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(at reference consumption of %1$@ %2$@)"
+          }
+        }
+      }
+    },
     "/day" : {
       "localizations" : {
         "da" : {
@@ -1418,6 +1440,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kommentare"
+          }
+        }
+      }
+    },
+    "Comparable fuel price: %@" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sammenlignelig brændstofpris: %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergleichbarer Brennstoffpreis: %@"
           }
         }
       }
@@ -2612,6 +2650,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Flatrate"
+          }
+        }
+      }
+    },
+    "Fuel consumption unit" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enhed brændstofforbrug"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einheit Kraftstoffverbrauch"
           }
         }
       }
@@ -4712,6 +4766,44 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ungültige Serverantwort."
+          }
+        }
+      }
+    },
+    "Reference fuel consumption" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forbrug"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbrauch"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consumption"
+          }
+        }
+      }
+    },
+    "Reference fuel data" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Referencedata for brændstof"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Referenzkraftstoffdaten"
           }
         }
       }
