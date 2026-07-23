@@ -339,13 +339,13 @@ struct ChargingViewChart: View {
         ]
 
         return DotIndicatorScrollView(tabViews: tabViews)
-            // Re-run the async task whenever the selected time box changes so
-            // the charging cost data updates correctly when the parent updates
-            // `timeBox`. We use a tuple of the resolution and selectedDate as
-            // the task id because `TimeBox` is an observable reference type;
-            // reading these value properties makes the id change when the
-            // user selects a different period.
-            .task(id: "\(timeBox.selectedResolution)-\(timeBox.selectedDate.timeIntervalSince1970)") {
+            // Re-run the async task whenever the selected time box OR the
+            // selected car changes so the charging cost data updates correctly
+            // when the parent updates either `timeBox` or the `car`.
+            // We include the car's id in the task id so switching cars triggers
+            // the task to re-run and refresh `chargingCostData` and
+            // `specificCost` state.
+            .task(id: "\(timeBox.selectedResolution)-\(timeBox.selectedDate.timeIntervalSince1970)-\(car.id.uuidString)") {
                 // Clear previous results while loading the new ones so the UI
                 // shows the "no data" state or a loading state if desired.
                 chargingCostData = []
