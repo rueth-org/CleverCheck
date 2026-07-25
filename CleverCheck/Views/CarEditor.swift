@@ -151,6 +151,7 @@ struct CarEditor: View {
                         Image(systemName: "xmark.circle.fill")
                     }
                     .buttonStyle(.plain)
+                    .foregroundStyle(.blue)
                 }
             } else {
                 // Offer to enter average reference fuel consumption
