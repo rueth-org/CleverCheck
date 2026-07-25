@@ -39,6 +39,7 @@ final class Car {
     var defaultSOC: Double = 0.8
     var netBatteryCapacityKWh: Double?
     var maxChargingPowerkW: Double?
+    var averageReferenceFuelConsumption: FuelConsumption?
     var isArchived: Bool = false
     
     @Relationship(deleteRule: .nullify, inverse: \ChargingCostPlan.car)
@@ -46,6 +47,17 @@ final class Car {
     
     var description: String {
         return "\(make) \(model)"
+    }
+    
+    var referenceFuelConsumption: FuelConsumption {
+        if let averageReferenceFuelConsumption {
+            return averageReferenceFuelConsumption
+        } else {
+            return FuelConsumption(
+                amount: UserSettings.shared.referenceFuelConsumption,
+                unit: UserSettings.shared.fuelConsumptionUnit
+            )
+        }
     }
     
     init(make: String, model: String, defaultSOC: Double = 0.8) {

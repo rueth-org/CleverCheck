@@ -53,7 +53,7 @@ struct ChargingViewChart: View {
         let absoluteCostPer100km = specificCost.amount * totalConsumption.value
         
         // Reference fuel consumption in liters per 100km
-        let referenceFuelConsumption = FuelConsumption(amount: UserSettings.shared.referenceFuelConsumption, unit: UserSettings.shared.fuelConsumptionUnit).converted(to: .litersPer100km)
+        let referenceFuelConsumption = car.referenceFuelConsumption.converted(to: .litersPer100km)
         
         // Compute the comparable fuel price per liter
         let comparableFuelPricePerLiter = absoluteCostPer100km / referenceFuelConsumption.amount
@@ -330,7 +330,8 @@ struct ChargingViewChart: View {
                     Text("Comparable fuel price: \(comparableFuelPrice?.converted(to: UserSettings.shared.fuelConsumptionUnit.fuelCostUnit).formatted() ?? "-")")
                         .font(.subheadline)
                         .padding(.top, 2)
-                    Text("(based on reference consumption of \(UserSettings.shared.referenceFuelConsumption.formatted()) \(UserSettings.shared.fuelConsumptionUnit.symbol))")
+                    let referenceFuelConsumption = car.referenceFuelConsumption
+                    Text("(based on reference consumption of \(referenceFuelConsumption.amount.formatted()) \(referenceFuelConsumption.unit.symbol))")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.bottom, 4)

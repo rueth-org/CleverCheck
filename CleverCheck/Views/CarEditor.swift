@@ -9,7 +9,7 @@ import SwiftUI
 
 struct CarEditor: View {
     private enum Field: Int, Hashable {
-        case netBatteryCapacity, maxChargingPower
+        case netBatteryCapacity, maxChargingPower, averageReferenceFuelConsumption
     }
     
     @Environment(\.modelContext) private var modelContext
@@ -22,6 +22,9 @@ struct CarEditor: View {
     @State private var enterNetBatteryCapacity: Bool = false
     @State private var maxChargingPowerKW: Double = 200
     @State private var enterMaxChargingPower: Bool = false
+    @State private var averageReferenceFuelConsumptionValue: Double = UserSettings.shared.referenceFuelConsumption
+    @State private var averageReferenceFuelConsumptionUnit: UserSettings.FuelConsumptionUnit = UserSettings.shared.fuelConsumptionUnit
+    @State private var enterReferenceFuelConsumption: Bool = false
     @State private var isArchived: Bool = false
     
     @State private var isEditingSOC: Bool = false
@@ -114,13 +117,49 @@ struct CarEditor: View {
                     }
                 }
             } else {
-                // Offer to enter capacity
+                // Offer to enter max charging power
                 HStack {
                     Text("Maximum charging power")
                     Spacer()
                     Button {
                         focusedField = .maxChargingPower
                         enterMaxChargingPower = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                    }
+                }
+            }
+            
+            // Average reference fuel consumption (optional)
+            if enterReferenceFuelConsumption {
+                HStack {
+                    Text("Average reference fuel consumption")
+                    Spacer()
+                    TextField("", value: $averageReferenceFuelConsumptionValue, format: .number)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .focused($focusedField, equals: .averageReferenceFuelConsumption)
+                    Picker("", selection: $averageReferenceFuelConsumptionUnit) {
+                        ForEach(UserSettings.FuelConsumptionUnit.allCases, id: \.self) { unit in
+                            Text(unit.symbol).tag(unit)
+                        }
+                    }
+                    .labelsHidden()
+                    Button {
+                        deleteAverageReferenceFuelConsumption()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else {
+                // Offer to enter average reference fuel consumption
+                HStack {
+                    Text("Average reference fuel consumption")
+                    Spacer()
+                    Button {
+                        focusedField = .averageReferenceFuelConsumption
+                        enterReferenceFuelConsumption = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
                     }
@@ -162,6 +201,11 @@ struct CarEditor: View {
                     enterMaxChargingPower = true
                     self.maxChargingPowerKW = maxChargingPowerKW
                 }
+                if let averageReferenceFuelConsumption = car.averageReferenceFuelConsumption {
+                    enterReferenceFuelConsumption = true
+                    self.averageReferenceFuelConsumptionValue = averageReferenceFuelConsumption.amount
+                    self.averageReferenceFuelConsumptionUnit = averageReferenceFuelConsumption.unit
+                }
                 isArchived = car.isArchived
             }
         }
@@ -184,6 +228,10 @@ struct CarEditor: View {
         enterMaxChargingPower = false
     }
     
+    private func deleteAverageReferenceFuelConsumption() {
+        enterReferenceFuelConsumption = false
+    }
+    
     private func cancelAndExit() {
         navigationPath.removeLast()
     }
@@ -202,9 +250,18 @@ struct CarEditor: View {
                 car.defaultSOC = defaultSOC
                 if enterNetBatteryCapacity {
                     car.netBatteryCapacityKWh = netBatteryCapacityKWh
+                } else {
+                    car.netBatteryCapacityKWh = nil
                 }
                 if enterMaxChargingPower {
                     car.maxChargingPowerkW = maxChargingPowerKW
+                } else {
+                    car.maxChargingPowerkW = nil
+                }
+                if enterReferenceFuelConsumption {
+                    car.averageReferenceFuelConsumption = FuelConsumption(amount: averageReferenceFuelConsumptionValue, unit: averageReferenceFuelConsumptionUnit)
+                } else {
+                    car.averageReferenceFuelConsumption = nil
                 }
                 car.isArchived = isArchived
             } else {
@@ -214,6 +271,9 @@ struct CarEditor: View {
                 }
                 if enterMaxChargingPower {
                     newCar.maxChargingPowerkW = maxChargingPowerKW
+                }
+                if enterReferenceFuelConsumption {
+                    newCar.averageReferenceFuelConsumption = FuelConsumption(amount: averageReferenceFuelConsumptionValue, unit: averageReferenceFuelConsumptionUnit)
                 }
                 newCar.isArchived = isArchived
                 modelContext.insert(newCar)
