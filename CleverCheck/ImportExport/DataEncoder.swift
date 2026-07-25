@@ -39,6 +39,7 @@ struct DataEncoder {
         var defaultSOC: Double
         var netBatteryCapacityKWh: Double?
         var maxChargingPowerKW: Double?
+        var averageReferenceFuelConsumption: FuelConsumption?
         var isArchived: Bool
         var chargingCostPlanIds: [UUID]
     }
@@ -55,6 +56,8 @@ struct DataEncoder {
     struct LocationDTO: Codable {
         var id: UUID
         var name: String
+        var powerPriceServiceName: String?
+        var powerPriceRegion: String?
         var isArchived: Bool
         var associatedHomeConsumptionIds: [UUID]
         var chargerIds: [UUID]
@@ -92,7 +95,9 @@ struct DataEncoder {
         var chargingCost: Cost?
         var specificChargingCost: Cost?
         var costCalculationMethod: CostCalculationMethodDTO
+        var estimatedRealCost: Cost?
         var relatedHomeConsumptionId: UUID?
+        var relatedRefundingHomeConsumptionId: UUID?
         var mileageKilometer: Double?
         var initialSOC: Double?
         var finalSOC: Double?
@@ -101,8 +106,9 @@ struct DataEncoder {
     }
     
     struct ChargingSessionTemplateDTO: Codable {
+        var id: UUID
         var name: String
-        var chargingSessionId: UUID
+        var chargingSessionId: UUID?
     }
 
     struct HomeConsumptionDTO: Codable {
@@ -117,9 +123,11 @@ struct DataEncoder {
         var consumptionKWh: Double
         var consumptionType: ConsumptionTypeDTO
         var associatedLocationId: UUID?
+        var defaultToEnteredConsumption: Bool
         var comment: String
         var priceElementIds: [UUID]
         var chargingSessionIds: [UUID]
+        var refundedChargingSessionIds: [UUID]
     }
 
     struct PriceElementDTO: Codable {
@@ -162,6 +170,7 @@ struct DataEncoder {
         var isGross: Bool
         var type: PriceElementTypeDTO
         var vatRate: Double
+        var excludeFromSimulation: Bool
     }
 
     struct UserSettingsDTO: Codable {
@@ -198,6 +207,7 @@ struct DataEncoder {
                 defaultSOC: car.defaultSOC,
                 netBatteryCapacityKWh: car.netBatteryCapacityKWh,
                 maxChargingPowerKW: car.maxChargingPowerkW,
+                averageReferenceFuelConsumption: car.averageReferenceFuelConsumption,
                 isArchived: car.isArchived,
                 chargingCostPlanIds: car.chargingCostPlans?.map { $0.id } ?? []
             )
@@ -218,6 +228,8 @@ struct DataEncoder {
             LocationDTO(
                 id: location.id,
                 name: location.name,
+                powerPriceServiceName: location.powerPriceServiceName,
+                powerPriceRegion: location.powerPriceRegion,
                 isArchived: location.isArchived,
                 associatedHomeConsumptionIds: location.associatedHomeConsumptions?.map { $0.id } ?? [],
                 chargerIds: location.chargers?.map { $0.id } ?? []
@@ -280,7 +292,9 @@ struct DataEncoder {
                 chargingCost: session.chargingCost,
                 specificChargingCost: session.specificChargingCost,
                 costCalculationMethod: calcMethod,
+                estimatedRealCost: session.estimatedRealCost,
                 relatedHomeConsumptionId: session.relatedHomeConsumption?.id,
+                relatedRefundingHomeConsumptionId: session.relatedRefundingHomeConsumption?.id,
                 mileageKilometer: session.mileageKilometer,
                 initialSOC: session.initialSOC,
                 finalSOC: session.finalSOC,
@@ -291,8 +305,9 @@ struct DataEncoder {
         
         let chargingSessionsTemplateDTOs = chargingSessionTemplates.map { session in
             ChargingSessionTemplateDTO(
+                id: session.id,
                 name: session.name,
-                chargingSessionId: session.id
+                chargingSessionId: session.chargingSession?.id
             )
         }
 
@@ -318,9 +333,11 @@ struct DataEncoder {
                 consumptionKWh: home.consumptionKWh,
                 consumptionType: consumptionTypeDTO,
                 associatedLocationId: home.associatedLocation?.id,
+                defaultToEnteredConsumption: home.defaultToEnteredConsumption,
                 comment: home.comment,
                 priceElementIds: home.priceElements?.map { $0.id } ?? [],
-                chargingSessionIds: home.chargingSessions?.map { $0.id } ?? []
+                chargingSessionIds: home.chargingSessions?.map { $0.id } ?? [],
+                refundedChargingSessionIds: home.refundedChargingSessions?.map { $0.id } ?? []
             )
         }
 
@@ -343,7 +360,8 @@ struct DataEncoder {
                 amount: p.amount,
                 isGross: p.isGross,
                 type: typeDTO,
-                vatRate: p.vatRate
+                vatRate: p.vatRate,
+                excludeFromSimulation: p.excludeFromSimulation
             )
         }
 

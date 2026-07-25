@@ -76,6 +76,7 @@ public struct DataImporter {
                 car.id = dto.id
                 car.netBatteryCapacityKWh = dto.netBatteryCapacityKWh
                 car.maxChargingPowerkW = dto.maxChargingPowerKW
+                car.averageReferenceFuelConsumption = dto.averageReferenceFuelConsumption
                 car.isArchived = dto.isArchived
                 modelContext.insert(car)
                 carsById[dto.id] = car
@@ -90,6 +91,8 @@ public struct DataImporter {
 
                 let location = Location(name: dto.name)
                 location.id = dto.id
+                location.powerPriceServiceName = dto.powerPriceServiceName
+                location.powerPriceRegion = dto.powerPriceRegion
                 location.isArchived = dto.isArchived
                 modelContext.insert(location)
                 locationsById[dto.id] = location
@@ -205,6 +208,7 @@ public struct DataImporter {
                     comment: dto.comment
                 )
                 home.id = dto.id
+                home.defaultToEnteredConsumption = dto.defaultToEnteredConsumption
                 modelContext.insert(home)
                 homeConsumptionsById[dto.id] = home
                 report.homeConsumptions += 1
@@ -230,6 +234,7 @@ public struct DataImporter {
 
                 let pe = PriceElement(label: dto.label, amount: dto.amount, inclVAT: dto.isGross, type: type, vatRate: dto.vatRate)
                 pe.id = dto.id
+                pe.excludeFromSimulation = dto.excludeFromSimulation
 
                 if let homeId = dto.homeConsumptionId, let home = homeConsumptionsById[homeId] {
                     pe.homeConsumption = home
@@ -298,9 +303,17 @@ public struct DataImporter {
                     comment: dto.comment
                 )
                 session.id = dto.id
+                session.estimatedRealCost = dto.estimatedRealCost
 
                 if let related = relatedHome {
                     session.relatedHomeConsumption = related
+                }
+                
+                if let refundingId = dto.relatedRefundingHomeConsumptionId {
+                    let refundingHome = homeConsumptionsById[refundingId] ?? existingHomeConsumptionsById[refundingId]
+                    if let refundingHome = refundingHome {
+                        session.relatedRefundingHomeConsumption = refundingHome
+                    }
                 }
 
                 modelContext.insert(session)
@@ -308,17 +321,35 @@ public struct DataImporter {
                 report.chargingSessions += 1
             }
 
+            // After creating all objects, wire refunded charging session relationships
+            for dto in backup.homeConsumptions {
+                if let homeConsumption = homeConsumptionsById[dto.id] {
+                    // Wire refunded charging sessions
+                    for refundedSessionId in dto.refundedChargingSessionIds {
+                        if let refundedSession = sessionsById[refundedSessionId] {
+                            if homeConsumption.refundedChargingSessions == nil {
+                                homeConsumption.refundedChargingSessions = []
+                            }
+                            homeConsumption.refundedChargingSessions?.append(refundedSession)
+                            refundedSession.relatedRefundingHomeConsumption = homeConsumption
+                        }
+                    }
+                }
+            }
+
             // Insert charging session templates
             for dto in backup.chargingSessionTemplates {
-                // chargingSessionId is a PersistentIdentifier (same as UUID in our export)
+                // chargingSessionId is the UUID of the ChargingSession this template is associated with
                 // Try to resolve session
-                if let session = sessionsById[dto.chargingSessionId] {
+                if let chargingSessionId = dto.chargingSessionId, let session = sessionsById[chargingSessionId] {
                     let template = ChargingSessionTemplate(name: dto.name, chargingSession: session)
+                    template.id = dto.id
                     modelContext.insert(template)
                     report.chargingSessionTemplates += 1
                 } else {
                     // If session not found, still create template without session
                     let template = ChargingSessionTemplate(name: dto.name, chargingSession: nil)
+                    template.id = dto.id
                     modelContext.insert(template)
                     report.chargingSessionTemplates += 1
                 }
