@@ -65,7 +65,7 @@ struct ChargerEditor: View {
                     }
                 }
             } else {
-                // Offer to enter mileage
+                // Offer to enter max power
                 HStack {
                     Text("Maximum Power")
                     Spacer()
@@ -138,7 +138,7 @@ struct ChargerEditor: View {
             showingAlert = true
         } else {
             if let charger {
-                // Edit the location
+                // Edit the charger
                 charger.name = name
                 charger.location = location
                 if !checkMaxPower(charger: charger) { return }
