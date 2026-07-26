@@ -22,6 +22,12 @@ struct ChargingViewChart: View {
     @State private var totalChargingCost: Cost = Cost(amount: 0.0)
     @State private var specificCost: Cost = Cost(amount: 0.0)
 
+    // Cached sorted data to avoid repeated sorting on every render
+    @State private var cachedSortedEnergyPerPeriod: [(key: String, values: [Car.EnergyData])] = []
+    @State private var cachedSortedConsumptions: [(key: String, value: ConsumptionData.Consumption)] = []
+    @State private var cachedAggregatedEnergySums: [(timeKey: String, sum: Double)] = []
+    @State private var cachedLegendItems: [(String, Color)] = []
+
     var chargedEnergyDataPerPeriod: [String: [Car.EnergyData]] {
         car.chargedEnergyPerPeriod(in: timeBox)
     }
@@ -63,20 +69,14 @@ struct ChargingViewChart: View {
 
     // Compute the aggregated sum per x-axis key (timeKey) depending on selectedChart.
     private var aggregatedEnergySums: [(timeKey: String, sum: Double)] {
-        // Group data by timeKey (x-axis key) and sum the relevant metric
-        return chargedEnergyDataPerPeriod.map { (key, values) in
-            let total = values.reduce(0.0) { $0 + $1.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value }
-            return (timeKey: key, sum: total)
-        }
-        // Keep a stable order by sorting on the key which matches how bars are laid out
-        .sorted { $0.timeKey < $1.timeKey }
+        cachedAggregatedEnergySums
     }
 
     // Optional callback invoked when a bar is tapped; receives the x-axis key (End Time) as String
     var onBarTap: ((String) -> Void)? = nil
 
     var body: some View {
-        let legendItems = legendData()
+        let legendItems = cachedLegendItems
         let tabViews: [AnyView] = [
             
             //
@@ -90,16 +90,15 @@ struct ChargingViewChart: View {
                         .padding(.top)
                         .padding(.horizontal)
 
-                    let chargedEnergyDataPerPeriod = chargedEnergyDataPerPeriod
-                    if chargedEnergyDataPerPeriod.isEmpty {
+                    if cachedSortedEnergyPerPeriod.isEmpty {
                         Text("No charging data available for this period.")
                             .italic()
                             .padding()
                         Spacer()
                     } else {
                         Chart {
-                            ForEach(chargedEnergyDataPerPeriod.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
-                                ForEach(pair.value.sorted(by: { $0.legendLabel < $1.legendLabel }), id: \.id) { dataSet in
+                            ForEach(cachedSortedEnergyPerPeriod, id: \.key) { pair in
+                                ForEach(pair.values.sorted(by: { $0.legendLabel < $1.legendLabel }), id: \.id) { dataSet in
                                     BarMark(
                                         x: .value("End Time", pair.key),
                                         y: .value("Charged Energy", dataSet.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value)
@@ -154,9 +153,9 @@ struct ChargingViewChart: View {
                         .font(.headline)
                         .padding(.top)
                         .padding(.horizontal)
-                    if let consumptionData, !consumptionData.consumptions.isEmpty {
+                    if let consumptionData, !cachedSortedConsumptions.isEmpty {
                         Chart {
-                            ForEach(consumptionData.consumptions.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
+                            ForEach(cachedSortedConsumptions, id: \.key) { pair in
                                 let consumption = pair.value.consumption(
                                     energyUnit: UserSettings.shared.energyUnit,
                                     distanceUnit: UserSettings.shared.distanceUnit,
@@ -351,7 +350,34 @@ struct ChargingViewChart: View {
                 // shows the "no data" state or a loading state if desired.
                 chargingCostData = []
                 totalChargingCost = Cost(amount: 0.0)
+                cachedSortedEnergyPerPeriod = []
+                cachedSortedConsumptions = []
+                cachedAggregatedEnergySums = []
+                cachedLegendItems = []
 
+                // Fetch and cache sorted energy data
+                let energyPerPeriod = chargedEnergyDataPerPeriod
+                cachedSortedEnergyPerPeriod = energyPerPeriod
+                    .sorted(by: { $0.key < $1.key })
+                    .map { (key: $0.key, values: $0.value.sorted(by: { $0.legendLabel < $1.legendLabel })) }
+
+                // Compute and cache aggregated energy sums
+                cachedAggregatedEnergySums = cachedSortedEnergyPerPeriod.map { pair in
+                    let total = pair.values.reduce(0.0) { $0 + $1.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value }
+                    return (timeKey: pair.key, sum: total)
+                }
+
+                // Fetch and cache sorted consumption data
+                if let consumptionData = consumptionData {
+                    cachedSortedConsumptions = consumptionData.consumptions
+                        .sorted(by: { $0.key < $1.key })
+                        .map { (key: $0.key, value: $0.value) }
+                }
+
+                // Fetch and cache legend items
+                cachedLegendItems = computeLegendData()
+
+                // Fetch charging cost data
                 let result = await car.chargingCost(in: timeBox, modelContext: modelContext)
                 chargingCostData = result
                 totalChargingCost = result.map { $0.cost.converted(to: UserSettings.shared.currencyIdentifier) ?? Cost(amount: 0.0) }.reduce(Cost(amount: 0.0), +)
@@ -366,15 +392,7 @@ struct ChargingViewChart: View {
                     let plotFrame = geometry[plotFrameAnchor]
 
                     // Create an id based on current x-axis keys so the UIView gets recreated
-                    let chartKeyId: String = {
-                        if !chargedEnergyDataPerPeriod.isEmpty {
-                            return chargedEnergyDataPerPeriod.keys.sorted().joined(separator: "|")
-                        } else if let consumptionData = consumptionData, !consumptionData.consumptions.isEmpty {
-                            return consumptionData.consumptions.keys.sorted().joined(separator: "|")
-                        } else {
-                            return aggregatedEnergySums.map{ $0.timeKey }.joined(separator: "|")
-                        }
-                    }()
+                    let chartKeyId: String = generateChartKeyId()
 
                     // TapLocationView only writes the tap point into state. We process it below
                     // in an onChange handler that runs with the current `proxy` and `geometry`.
@@ -405,6 +423,16 @@ struct ChargingViewChart: View {
         }
     }
 
+    private func generateChartKeyId() -> String {
+        if !cachedSortedEnergyPerPeriod.isEmpty {
+            return cachedSortedEnergyPerPeriod.map { $0.key }.joined(separator: "|")
+        } else if !cachedSortedConsumptions.isEmpty {
+            return cachedSortedConsumptions.map { $0.key }.joined(separator: "|")
+        } else {
+            return aggregatedEnergySums.map { $0.timeKey }.joined(separator: "|")
+        }
+    }
+    
     // Called when a bar is tapped. String is the "End Time" key from the x-axis.
     func barTapped(_ key: String) {
         // Debug print for development to verify taps
@@ -413,7 +441,7 @@ struct ChargingViewChart: View {
         onBarTap?(key)
     }
     
-    private func legendData() -> [(String, Color)] {
+    private func computeLegendData() -> [(String, Color)] {
         var seen = Set<String>()
         var items: [(String, Color)] = []
         for d in chargedEnergyData {
