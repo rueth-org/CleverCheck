@@ -152,6 +152,13 @@ struct ChargingSessionEditor: View {
                     .onChange(of: chargingCostPlan) { _oldValue, newValue in
                         // Update selectedCar to the plan's car (or nil) without force-unwrapping
                         self.selectedCar = newValue?.car
+                        
+                        // If no cost has been entered so far and the cost plan has a default energy price, set enterCost to specific, costType to specificCost, and set specificCost to the plan's default energy price
+                        if enterCost == .none, let defaultEnergyPrice = newValue?.defaultEnergyPrice {
+                            enterCost = .specific
+                            costType = .specificCost
+                            specificCost = defaultEnergyPrice
+                        }
                     }
                 }
             }
