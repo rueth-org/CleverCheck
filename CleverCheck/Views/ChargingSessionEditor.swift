@@ -662,6 +662,13 @@ struct ChargingSessionEditor: View {
                 let sessionsWithMileage = car.chargingSessions(in: nil).filter { $0.mileage != nil }
                 
                 if !sessionsWithMileage.isEmpty {
+                    // Check if we have a session with same mileage and same charging end state, as this cannot be
+                    if enterMileage, enterFinalSOC, sessionsWithMileage.first(where: { $0.mileage?.converted(to: .kilometers) == mileageKilometer && $0.finalSOC == finalSOC }) != nil {
+                        activeAlert = SimpleAlert(type: .error(message: "A session with the same mileage and final SOC already exists."))
+                        showingAlert = true
+                        return
+                    }
+                    
                     // Nearest previous (<= endTime) and nearest next (> endTime)
                     let prevSession = sessionsWithMileage.last(where: { $0.endTime <= endTime })
                     let nextSession = sessionsWithMileage.first(where: { $0.endTime > endTime })
