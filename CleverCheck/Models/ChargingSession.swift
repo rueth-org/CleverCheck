@@ -251,24 +251,22 @@ final class ChargingSession: Comparable {
                 return nil
             } else {
                 // Get all home consumptions related to the same location as the charging session's plan, if available
-                var candidates: [HomeConsumption]?
+                var candidates: [HomeConsumption] = homeConsumptions
+                
                 if let chargingCostPlan, let location = chargingCostPlan.charger?.location {
-                    candidates = homeConsumptions.filter { consumption in
+                    candidates = candidates.filter { consumption in
                         consumption.associatedLocation != nil && consumption.associatedLocation!.id == location.id
                     }
                 }
                 
-                // If we have candidates, try applying time filter to them, otherwise to all home consumptions
-                if candidates == nil || candidates!.isEmpty {
-                    candidates = homeConsumptions
-                }
+                // Apply time filter if needed
                 if !ignoreDate {
-                    candidates = candidates!.filter { consumption in
+                    candidates = candidates.filter { consumption in
                         consumption.validFrom <= endTime && endTime <= consumption.validUntil
                     }
                 }
-                    
-                return candidates?.sorted(by: { $0.descriptionWithDate < $1.descriptionWithDate })
+                
+                return candidates.isEmpty ? nil : candidates.sorted(by: { $0.descriptionWithDate < $1.descriptionWithDate })
             }
         } else {
             return nil
@@ -280,7 +278,7 @@ final class ChargingSession: Comparable {
             if homeConsumptions.isEmpty {
                 return nil
             } else {
-                var candidates: [HomeConsumption]? = nil
+                var candidates: [HomeConsumption] = homeConsumptions
                 
                 // First try to identify matching plans
                 if let chargingCostPlan, !ignorePlan {
@@ -289,26 +287,23 @@ final class ChargingSession: Comparable {
                         // Now locate the charger
                         if let location = refundingPlan.charger?.location {
                             // This location should match the location of home consumption
-                            candidates = homeConsumptions.filter { consumption in
+                            candidates = candidates.filter { consumption in
                                 consumption.associatedLocation != nil && consumption.associatedLocation!.id == location.id
                             }
                         }
                     }
                 }
                 
-                // If we have candidates, try applying time filter to them, otherwise to all home consumptions
-                if candidates == nil || candidates!.isEmpty {
-                    candidates = homeConsumptions
-                }
+                // Apply time filter if needed
                 if !ignoreDate {
-                    candidates = candidates!.filter { consumption in
+                    candidates = candidates.filter { consumption in
                         consumption.validFrom <= endTime && endTime <= consumption.validUntil
                     }
                 }
                 
-                debugPrint("Found \(candidates?.count ?? 0) candidate home consumptions for refunding plan: \(candidates?.map { $0.descriptionWithDate }.joined(separator: ", ") ?? "none")")
+                debugPrint("Found \(candidates.count) candidate home consumptions for refunding plan: \(candidates.map { $0.descriptionWithDate }.joined(separator: ", "))")
                 
-                return candidates?.sorted(by: { $0.descriptionWithDate < $1.descriptionWithDate })
+                return candidates.isEmpty ? nil : candidates.sorted(by: { $0.descriptionWithDate < $1.descriptionWithDate })
             }
         } else {
             return nil
