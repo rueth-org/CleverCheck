@@ -741,19 +741,6 @@ struct ChargingSessionEditor: View {
         // Save data
         try? modelContext.save()
         
-        // Try to calculate the estimated real cost
-        if estimatedRealCost == nil {
-            Task {
-                do {
-                    try await estimateRealCost()
-                    chargingSession?.estimatedRealCost = estimatedRealCost
-                    try? modelContext.save() // Save the estimated real cost
-                } catch {
-                    // Ignore estimation errors at this stage, as the session is already saved. The user can trigger estimation again manually.
-                }
-            }
-        }
-        
         // Reset missing related home consumptions
         missingRelatedHomeConsumptions = []
         
@@ -801,6 +788,20 @@ struct ChargingSessionEditor: View {
     }
     
     private func andExit() {
+        // Try to calculate the estimated real cost
+        if estimatedRealCost == nil {
+            Task {
+                do {
+                    try await estimateRealCost()
+                    chargingSession?.estimatedRealCost = estimatedRealCost
+                    try? modelContext.save() // Save the estimated real cost
+                } catch {
+                    // Ignore estimation errors at this stage, as the session is already saved. The user can trigger estimation again manually.
+                }
+            }
+        }
+        
+        // Exit the editor and return to the previous view
         navigationPath.removeLast()
     }
     
@@ -860,7 +861,7 @@ struct ChargingSessionEditor: View {
         return nil
     }
     
-    private func estimateRealCost() async throws {
+    @MainActor private func estimateRealCost() async throws {
         if let chargingSession = chargingSession {
             let estimation = try await chargingSession.estimateRealCost(modelContext: modelContext)
             self.estimatedRealCost = estimation.cost

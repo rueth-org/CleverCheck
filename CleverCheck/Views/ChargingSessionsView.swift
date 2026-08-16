@@ -342,7 +342,7 @@ struct ChargingSessionsView: View {
         let sessions = sessions.flatMap(\.self)
         var calculatedCost: Int = 0
         
-        Task {
+        Task { @MainActor in
             for session in sessions {
                 do {
                     let estimation = try await session.estimateRealCost(modelContext: modelContext)
@@ -355,14 +355,14 @@ struct ChargingSessionsView: View {
                     // Continue
                 }
             }
+            
+            // Save if necessary
+            if calculatedCost > 0 {
+                try? modelContext.save()
+            }
+            
+            activeAlert = SimpleAlert(type: .notice(message: "Real cost for \(calculatedCost) charging session\(calculatedCost == 1 ? "" : "s") have been calculated."))
+            showingAlert = true
         }
-        
-        // Save if necessary
-        if calculatedCost > 0 {
-            try? modelContext.save()
-        }
-        
-        activeAlert = SimpleAlert(type: .notice(message: "Real cost for \(calculatedCost) charging session\(calculatedCost == 1 ? "" : "s") have been calculated."))
-        showingAlert = true
     }
 }
