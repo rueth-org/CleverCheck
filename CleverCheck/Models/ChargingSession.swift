@@ -153,30 +153,33 @@ final class ChargingSession: Comparable {
             throw EnergyDataService.EnergyDataError.noRelatedHomeConsumption
         }
         
-        var returnRefundingHomeConsumption = false
+        var returnRefundingHomeConsumption: HomeConsumption? = nil
         if relatedHomeConsumption.consumptionType == .refundingOtherPlan {
-            // If the type is refundingOtherPlan, we need to find the home consumption of related to this other plan
-            returnRefundingHomeConsumption = true
+            // If the type is refundingOtherPlan, we need to find the home consumption related to this other plan
             if let relatedRefundingHomeConsumption {
                 relatedHomeConsumption = relatedRefundingHomeConsumption
+                returnRefundingHomeConsumption = relatedRefundingHomeConsumption
             } else {
                 if let candidates = possibleHomeConsumptions(modelContext: modelContext), candidates.count > 0 {
                     debugPrint("Found \(candidates.count) candidate home consumptions for refunding plan")
                     debugPrint(candidates.map { $0.description }.joined(separator: "\n"))
+                    let selectedCandidate: HomeConsumption
                     if candidates.count == 1 {
-                        relatedHomeConsumption = candidates[0]
+                        selectedCandidate = candidates[0]
                     } else {
                         // Filter further by home consumption type .total or .home
                         let filteredCandidates = candidates.filter { consumption in
                             consumption.consumptionType == .total || consumption.consumptionType == .home
                         }
                         if filteredCandidates.count == 1 {
-                            relatedHomeConsumption = filteredCandidates[0]
+                            selectedCandidate = filteredCandidates[0]
                         } else {
                             // There are too many candidates, we can't determine which one is the right one, so we throw an error
                             throw EnergyDataService.EnergyDataError.multipleRelatedHomeConsumptions(filteredCandidates.map { $0.description })
                         }
                     }
+                    relatedHomeConsumption = selectedCandidate
+                    returnRefundingHomeConsumption = selectedCandidate
                 } else {
                     throw EnergyDataService.EnergyDataError.noRelatedRefundingHomeConsumption
                 }
@@ -241,7 +244,7 @@ final class ChargingSession: Comparable {
             currentTime = currentTime.addingTimeInterval(60) // Move to the next minute
         }
         
-        return (cost: totalCost, refundingHomeConsumption: returnRefundingHomeConsumption ? relatedHomeConsumption : nil)
+        return (cost: totalCost, refundingHomeConsumption: returnRefundingHomeConsumption)
     }
 
     
