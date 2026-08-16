@@ -119,6 +119,15 @@ struct ChargingSessionsView: View {
                             }
                         }
                         .swipeActions(edge: .leading) {
+                            // Duplicate button
+                            Button {
+                                Task { await duplicate(chargingSession) }
+                            } label: {
+                                Label("Duplicate", systemImage: "doc.on.doc")
+                            }
+                            .tint(.yellow)
+                            
+                            // Template button
                             Button {
                                 if let tmpl = chargingSession.template {
                                     // remove existing template
@@ -137,7 +146,7 @@ struct ChargingSessionsView: View {
                                     Label("Add template", systemImage: "star.fill")
                                 }
                             }
-                            .tint(.yellow)
+                            .tint(.gray)
                         }
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) {
@@ -251,6 +260,57 @@ struct ChargingSessionsView: View {
             modelContext.delete(session)
         }
         try? modelContext.save()
+    }
+    
+    private func duplicate(_ chargingSession: ChargingSession) async {
+        if let chargingCostPlan = chargingSession.chargingCostPlan {
+            // Guess the best new end time - if existing end time is in the night, set the same time of tomorrow, otherwise set it to the same time of today
+            let calendar = Calendar.current
+            var newEndTime: Date
+            let hour = calendar.component(.hour, from: chargingSession.endTime)
+            if hour >= 0 && hour <= 6 {
+                // Night time, set to same hour of tomorrow
+                newEndTime = calendar.date(byAdding: .day, value: 1, to: calendar.date(bySettingHour: hour, minute: calendar.component(.minute, from: chargingSession.endTime), second: 0, of: Date())!)!
+            } else {
+                // Day time, set to today
+                newEndTime = calendar.date(bySettingHour: hour, minute: calendar.component(.minute, from: chargingSession.endTime), second: 0, of: Date())!
+            }
+            
+            // If there was a start time, set the new start time to the same duration before the new end time
+            var newStartTime: Date? = nil
+            if let startTime = chargingSession.startTime {
+                let duration = chargingSession.endTime.timeIntervalSince(startTime)
+                newStartTime = newEndTime.addingTimeInterval(-duration)
+            }
+            
+            // Create new charging session
+            let newSession = ChargingSession(
+                endTime: newEndTime,
+                chargedEnergy: chargingSession.chargedEnergy,
+                chargingCostPlan: chargingCostPlan
+            )
+            newSession.startTime = newStartTime
+            newSession.costCalculationMethod = chargingSession.costCalculationMethod
+            newSession.chargingCost = chargingSession.chargingCost
+            newSession.specificChargingCost = chargingSession.specificChargingCost
+            newSession.initialSOC = chargingSession.initialSOC
+            newSession.finalSOC = chargingSession.finalSOC
+            newSession.relatedHomeConsumption = chargingSession.relatedHomeConsumption
+            newSession.relatedRefundingHomeConsumption = chargingSession.relatedRefundingHomeConsumption
+            newSession.comment = NSLocalizedString("Duplicate of", comment: "") + " " + chargingSession.description
+            
+            // Estimate real cost
+            let estimatedRealCost = try? await newSession.estimateRealCost(modelContext: modelContext)
+            newSession.estimatedRealCost = estimatedRealCost?.cost
+            if newSession.relatedRefundingHomeConsumption == nil, let refundingHomeConsumption = estimatedRealCost?.refundingHomeConsumption {
+                newSession.relatedRefundingHomeConsumption = refundingHomeConsumption
+            }
+            
+            // Insert and save
+            modelContext.insert(newSession)
+            try? modelContext.save()
+        }
+        
     }
 
     private func saveAsTemplateForSelectedSession() {
@@ -366,3 +426,4 @@ struct ChargingSessionsView: View {
         }
     }
 }
+
