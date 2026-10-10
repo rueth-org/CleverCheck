@@ -48,31 +48,17 @@ final class PriceElement: Identifiable, Equatable {
     var label: String = ""
     var amount: Cost = Cost(amount: 0.0)
     var isGross: Bool = true
+    var isSeasonal: Bool = false
     var type: PriceElementType = PriceElementType.byConsumption(energyUnitSymbol: UserSettings.shared.energyUnitSymbol)
     var vatRate: Double = 0.25
     var excludeFromSimulation: Bool = false
     
+    @Relationship(deleteRule: .cascade, inverse: \SeasonalPrice.priceElement)
+    var seasonalPrices: [SeasonalPrice]?
+    
     /// Returns the amount converted to the user's selected currency. If conversion fails, returns the original amount.
     var converted: Cost {
         amount.converted(to: UserSettings.shared.currencyIdentifier) ?? amount
-    }
-    
-    /// Returns the net amount based on the converted gross amount and VAT rate. If the original amount is already net, it simply returns the converted amount.
-    var exclVAT: Cost {
-        if isGross {
-            return Cost(amount: converted.amount / (1 + vatRate), currency: converted.currency)
-        } else {
-            return converted
-        }
-    }
-    
-    /// Returns the gross amount based on the converted net amount and VAT rate. If the original amount is already gross, it simply returns the converted amount.
-    var inclVAT: Cost {
-        if isGross {
-            return converted
-        } else {
-            return Cost(amount: converted.amount * (1 + vatRate), currency: converted.currency)
-        }
     }
     
     var unitDescription: String {
@@ -87,13 +73,32 @@ final class PriceElement: Identifiable, Equatable {
         isGross ? "Gross" : "Net"
     }
     
-    init(label: String, amount: Cost, inclVAT: Bool, type: PriceElementType, vatRate: Double? = nil, excludeFromSimulation: Bool = false) {
+    init(label: String, amount: Cost, inclVAT: Bool, isSeasonal: Bool, type: PriceElementType, vatRate: Double? = nil, excludeFromSimulation: Bool = false) {
         self.label = label
         self.amount = amount
         self.type = type
         self.vatRate = vatRate ?? UserSettings.shared.vatRate
         self.isGross = inclVAT
+        self.isSeasonal = isSeasonal
         self.excludeFromSimulation = excludeFromSimulation
+    }
+    
+    /// Returns the net amount based on the converted gross amount and VAT rate. If the original amount is already net, it simply returns the converted amount.
+    private func exclVAT(_ cost: Cost) -> Cost {
+        if isGross {
+            return Cost(amount: cost.amount / (1 + vatRate), currency: cost.currency)
+        } else {
+            return cost
+        }
+    }
+    
+    /// Returns the gross amount based on the converted net amount and VAT rate. If the original amount is already gross, it simply returns the converted amount.
+    private func inclVAT(_ cost: Cost) -> Cost {
+        if isGross {
+            return cost
+        } else {
+            return Cost(amount: cost.amount * (1 + vatRate), currency: cost.currency)
+        }
     }
     
     /// Returns the converted cost in the user's selected currency, either gross or net based on the isGross parameter.
@@ -101,9 +106,25 @@ final class PriceElement: Identifiable, Equatable {
     /// - Returns: The converted cost. If conversion fails, returns the original cost.
     func getConvertedCost(includingVAT: Bool) -> Cost {
         if includingVAT {
-            return inclVAT
+            return inclVAT(converted)
         } else {
-            return exclVAT
+            return exclVAT(converted)
+        }
+    }
+    
+    func getConvertedSeasonalCost(hour: Int, minute: Int, includingVAT: Bool) throws -> Cost {
+        guard let homeConsumption else { throw SeasonalPrice.SeasonalPriceError.noDates }
+        let periodStart = homeConsumption.validFrom
+        let periodEnd = homeConsumption.validUntil
+        
+        guard let seasonalPrices else { throw SeasonalPrice.SeasonalPriceError.noSeasonalPrices }
+        guard let seasonalPrice = seasonalPrices.first(where: { periodStart >= $0.startDate && periodEnd <= $0.endDate }) else { throw SeasonalPrice.SeasonalPriceError.noMatchingSeason(startDate: periodStart, endDate: periodEnd) }
+        guard let convertedCost = seasonalPrice.getConvertedPrice(hour: hour, minute: minute) else { throw SeasonalPrice.SeasonalPriceError.noMatchingTime(startHour: hour, startMinute: minute, endHour: hour, endMinute: minute) }
+        
+        if includingVAT {
+            return inclVAT(convertedCost)
+        } else {
+            return exclVAT(convertedCost)
         }
     }
     

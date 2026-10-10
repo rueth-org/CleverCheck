@@ -20,6 +20,7 @@ struct PriceElementEditor: View {
     @State private var label: String = ""
     @State private var amount: Cost = .init(amount: 0)
     @State private var includesVAT: Bool = true
+    @State private var isSeasonal: Bool = false
     @State private var vatRate: Double = UserSettings.shared.vatRate
     @State private var elementType: PriceElement.PriceElementType = .byConsumption(energyUnitSymbol: UserSettings.shared.energyUnit.symbol)
     @State private var excludeFromSimulation: Bool = false
@@ -77,6 +78,9 @@ struct PriceElementEditor: View {
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
             }
+            
+            // Whether the amount is seasonal
+            Toggle("Amount is seasonal", isOn: $isSeasonal)
             
             // Whether to exclude the price element from simulations
             Toggle("Exclude from simulation", isOn: $excludeFromSimulation)
@@ -163,6 +167,7 @@ struct PriceElementEditor: View {
                 label: priceElementLabel,
                 amount: amount,
                 inclVAT: includesVAT,
+                isSeasonal: isSeasonal,
                 type: elementType,
                 vatRate: vatRate,
                 excludeFromSimulation: excludeFromSimulation
@@ -178,6 +183,7 @@ struct PriceElementEditor: View {
                 priceElements[index].label = priceElementLabel
                 priceElements[index].amount = amount
                 priceElements[index].isGross = includesVAT
+                priceElements[index].isSeasonal = isSeasonal
                 priceElements[index].type = elementType
                 priceElements[index].vatRate = vatRate
                 priceElements[index].excludeFromSimulation = excludeFromSimulation

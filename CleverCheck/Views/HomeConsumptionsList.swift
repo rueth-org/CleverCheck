@@ -131,6 +131,7 @@ struct HomeConsumptionsList: View {
                     label: priceElement.label,
                     amount: priceElement.amount,
                     inclVAT: priceElement.isGross,
+                    isSeasonal: priceElement.isSeasonal,
                     type: priceElement.type,
                     vatRate: priceElement.vatRate
                 )

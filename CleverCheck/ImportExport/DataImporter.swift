@@ -232,7 +232,7 @@ public struct DataImporter {
                     type = .byConsumption(energyUnitSymbol: energyUnitSymbol)
                 }
 
-                let pe = PriceElement(label: dto.label, amount: dto.amount, inclVAT: dto.isGross, type: type, vatRate: dto.vatRate)
+                let pe = PriceElement(label: dto.label, amount: dto.amount, inclVAT: dto.isGross, isSeasonal: dto.isSeasonal, type: type, vatRate: dto.vatRate)
                 pe.id = dto.id
                 pe.excludeFromSimulation = dto.excludeFromSimulation
 

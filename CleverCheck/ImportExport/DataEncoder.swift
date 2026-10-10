@@ -168,6 +168,7 @@ struct DataEncoder {
         var label: String
         var amount: Cost
         var isGross: Bool
+        var isSeasonal: Bool
         var type: PriceElementTypeDTO
         var vatRate: Double
         var excludeFromSimulation: Bool
@@ -359,6 +360,7 @@ struct DataEncoder {
                 label: p.label,
                 amount: p.amount,
                 isGross: p.isGross,
+                isSeasonal: p.isSeasonal,
                 type: typeDTO,
                 vatRate: p.vatRate,
                 excludeFromSimulation: p.excludeFromSimulation
