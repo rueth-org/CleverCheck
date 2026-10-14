@@ -10,8 +10,8 @@ import SwiftUI
 struct SeasonalPriceEditor: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
-    let seasonalPrice: SeasonalPrice?
     let parentPriceElement: PriceElement
+    let seasonalPrice: SeasonalPrice?
     
     @State var startDate: Date = Date()
     @State var endDate: Date = Date()
@@ -166,8 +166,8 @@ struct SeasonalPriceEditor: View {
     
     init(
         navigationPath: Binding<NavigationPath>,
-        seasonalPrice: SeasonalPrice? = nil,
-        parentPriceElement: PriceElement
+        parentPriceElement: PriceElement,
+        seasonalPrice: SeasonalPrice? = nil
     ) {
         self._navigationPath = navigationPath
         self.seasonalPrice = seasonalPrice

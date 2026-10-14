@@ -102,7 +102,9 @@ struct PriceElementEditor: View {
             if isSeasonal {
                 let label = seasonalPrice != nil ? "\(seasonalPrice!.startDate.formatted())-\(seasonalPrice!.endDate.formatted())" : "Select seasonal price"
                 NavigationLink(label) {
-                    SeasonalPricesView(navigationPath: $navigationPath, selectedSeasonalPrice: $seasonalPrice)
+                    if let priceElement {
+                        SeasonalPricesView(navigationPath: $navigationPath, parentPriceElement: priceElement, selectedSeasonalPrice: $seasonalPrice)
+                    }
                 }
             }
             

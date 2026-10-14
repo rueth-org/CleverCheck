@@ -6,15 +6,17 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct SeasonalPricesView: View {
     enum NavigationDestination: Hashable {
-        case NewPrice(seasonalPrice: SeasonalPrice?)
-        case EditPrice(seasonalPrice: SeasonalPrice)
+        case NewPrice(parentPriceElement: PriceElement)
+        case EditPrice(seasonalPrice: SeasonalPrice, parentPriceElement: PriceElement)
     }
     
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
+    let parentPriceElement: PriceElement
     @Binding var selectedSeasonalPrice: SeasonalPrice?
     
     var predicate: Predicate<SeasonalPrice> {
@@ -29,7 +31,7 @@ struct SeasonalPricesView: View {
                 emptyStateMessage: "No seasonal prices found.",
                 emptyStateSystemImage: "banknote"
             ) { seasonalPrice in
-                NavigationLink(value: NavigationDestination.EditPrice(seasonalPrice: seasonalPrice)) {
+                NavigationLink(value: NavigationDestination.EditPrice(seasonalPrice: seasonalPrice, parentPriceElement: parentPriceElement)) {
                     HStack {
                         Button(action: {
                             if seasonalPrice == selectedSeasonalPrice {
@@ -79,7 +81,7 @@ struct SeasonalPricesView: View {
     }
     
     private func newSeasonalPrice() {
-        navigationPath.append(NavigationDestination.NewPrice(seasonalPrice: nil))
+        navigationPath.append(NavigationDestination.NewPrice(parentPriceElement: parentPriceElement))
     }
     
     private func deleteSeasonalPrice(_ seasonalPrice: SeasonalPrice) {
