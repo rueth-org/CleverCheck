@@ -16,7 +16,6 @@ final class SeasonalPrice: Identifiable, Equatable, Comparable {
         case noDates
         case noSeasonalPrices
         case noMatchingSeason(startDate: Date, endDate: Date)
-        case noMatchingTime(startHour: Int, startMinute: Int, endHour: Int, endMinute: Int)
         
         // Provide localized error descriptions by conforming to LocalizedError and returning
         // NSLocalizedString keys. Add translations in your Localizable.strings / .xcstrings files.
@@ -28,8 +27,6 @@ final class SeasonalPrice: Identifiable, Equatable, Comparable {
                 return NSLocalizedString("No seasonal prices available.", comment: "")
             case .noMatchingSeason(let startDate, let endDate):
                 return NSLocalizedString("No matching seasonal price found for period from \(startDate.formatted()) to \(endDate.formatted())", comment: "")
-            case .noMatchingTime(let startHour, let startMinute, let endHour, let endMinute):
-                return NSLocalizedString("No matching time-dependent price found for period from \(startHour):\(startMinute) to \(endHour):\(endMinute)", comment: "")
             }
         }
     }
@@ -37,28 +34,44 @@ final class SeasonalPrice: Identifiable, Equatable, Comparable {
     var id: UUID = UUID()
     var startDate: Date = Calendar.current.date(from: Calendar.current.dateComponents([.year], from: Date()))!
     var endDate: Date = Calendar.current.date(byAdding: DateComponents(year: 1, day: -1), to: Calendar.current.date(from: Calendar.current.dateComponents([.year], from: Date()))!)!
-    var priceElement: PriceElement?
     
-    @Relationship(deleteRule: .cascade, inverse: \TimeDependentPrice.seasonalPrice)
-    var prices: [TimeDependentPrice]?
+    @Relationship(deleteRule: .nullify, inverse: \PriceElement.seasonalPrice)
+    var priceElements: [PriceElement]?
+    
+    // The prices dictionary maps a double key (0.0-23.75) representing the hour of the day (in quarter hour steps) to a Cost object. The default price for hour 0 is set to 0.0.
+    var prices: Dictionary<Double, Cost> = [0.0: Cost(amount: 0.0)]
     
     init(startDate: Date, endDate: Date) {
         self.startDate = startDate
         self.endDate = endDate
     }
     
-    func getConvertedPrice(hour: Int, minute: Int) -> Cost? {
-        guard let prices = prices else { return nil }
-        for price in prices {
-            if price.startHour < hour, hour < price.endHour {
-                return price.converted
-            } else if hour == price.endHour, minute <= price.endMinute {
-                return price.converted
-            } else if hour == price.startHour, price.startMinute <= minute {
-                return price.converted
+    /// Inserts a price for a given hour and minute.
+    /// - Parameters:
+    ///   - price: The price to insert.
+    ///   - hour: The hour of the day (0-23).
+    ///   - minute: The minute of the hour (0-59).
+    func insertPrice(_ price: Cost, at hour: Int, minute: Int) {
+        let hourDouble = Double(hour) + Double(minute) / 60.0
+        prices[hourDouble] = price
+    }
+    
+    /// Returns the price for a given hour and minute, converted to the user's selected currency. If no matching price is found, returns the default price for hour 0.
+    /// - Parameters:
+    ///   - hour: The hour of the day (0-23).
+    ///   - minute: The minute of the hour (0-59).
+    /// - Returns: The price for the given time, converted to the user's selected currency.
+    func getConvertedPrice(hour: Int, minute: Int) -> Cost {
+        // Convert hour and minute into a double
+        let hourDouble = Double(hour) + Double(minute) / 60.0
+        
+        let sortedTimes = prices.keys.sorted()
+        for time in sortedTimes.reversed() {
+            if hourDouble >= time {
+                return prices[time]!.converted(to: UserSettings.shared.currencyIdentifier) ?? prices[time]!
             }
         }
-        return nil
+        return prices[0.0]!.converted(to: UserSettings.shared.currencyIdentifier) ?? prices[0.0]!
     }
     
     static func == (lhs: SeasonalPrice, rhs: SeasonalPrice) -> Bool {

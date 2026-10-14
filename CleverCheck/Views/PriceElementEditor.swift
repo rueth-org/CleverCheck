@@ -16,11 +16,13 @@ struct PriceElementEditor: View {
     let energyUnitSymbol: String
     
     @Query private var priceElements: [PriceElement]
+    @Query private var seasonalPrices: [SeasonalPrice]
     
     @State private var label: String = ""
     @State private var amount: Cost = .init(amount: 0)
     @State private var includesVAT: Bool = true
     @State private var isSeasonal: Bool = false
+    @State private var seasonalPrice: SeasonalPrice? = nil
     @State private var vatRate: Double = UserSettings.shared.vatRate
     @State private var elementType: PriceElement.PriceElementType = .byConsumption(energyUnitSymbol: UserSettings.shared.energyUnit.symbol)
     @State private var excludeFromSimulation: Bool = false
@@ -81,6 +83,28 @@ struct PriceElementEditor: View {
             
             // Whether the amount is seasonal
             Toggle("Amount is seasonal", isOn: $isSeasonal)
+                .onChange(of: isSeasonal) { oldValue, newValue in
+                    // If user toggles on, we try to find a seasonal value
+                    if newValue {
+                        do {
+                            try priceElement?.setSeasonalPrice(seasonalPrices: seasonalPrices)
+                        } catch let error as SeasonalPrice.SeasonalPriceError {
+                            activeAlert = SimpleAlert(type: .warning(message: "Could not find seasonal price: \(error.errorDescription) Please add a seasonal price."))
+                            showingAlert = true
+                        } catch {
+                            activeAlert = SimpleAlert(type: .error(message: "Failed to find seasonal price: \(error.localizedDescription)"))
+                            showingAlert = true
+                        }
+                    } else {
+                        seasonalPrice = nil
+                    }
+                }
+            if isSeasonal {
+                let label = seasonalPrice != nil ? "\(seasonalPrice!.startDate.formatted())-\(seasonalPrice!.endDate.formatted())" : "Select seasonal price"
+                NavigationLink(label) {
+                    SeasonalPricesView(navigationPath: $navigationPath, selectedSeasonalPrice: $seasonalPrice)
+                }
+            }
             
             // Whether to exclude the price element from simulations
             Toggle("Exclude from simulation", isOn: $excludeFromSimulation)
@@ -109,6 +133,8 @@ struct PriceElementEditor: View {
                 includesVAT = priceElement.isGross
                 elementType = priceElement.type
                 vatRate = priceElement.vatRate
+                isSeasonal = priceElement.seasonalPrice != nil
+                seasonalPrice = priceElement.seasonalPrice
                 excludeFromSimulation = priceElement.excludeFromSimulation
             }
         }
@@ -162,16 +188,24 @@ struct PriceElementEditor: View {
             return
         }
         
+        if isSeasonal && seasonalPrice == nil {
+            activeAlert = SimpleAlert(type: .error(message: "Please select a seasonal price."))
+            showingAlert = true
+            return
+        }
+        
         if isNewPriceElement {
             let newPriceElement = PriceElement(
                 label: priceElementLabel,
                 amount: amount,
                 inclVAT: includesVAT,
-                isSeasonal: isSeasonal,
                 type: elementType,
                 vatRate: vatRate,
                 excludeFromSimulation: excludeFromSimulation
             )
+            
+            // Relate to seasonal price
+            newPriceElement.seasonalPrice = isSeasonal ? seasonalPrice : nil
             
             // Relate to home consumption
             newPriceElement.homeConsumption = homeConsumption
@@ -183,7 +217,7 @@ struct PriceElementEditor: View {
                 priceElements[index].label = priceElementLabel
                 priceElements[index].amount = amount
                 priceElements[index].isGross = includesVAT
-                priceElements[index].isSeasonal = isSeasonal
+                priceElements[index].seasonalPrice = isSeasonal ? seasonalPrice : nil
                 priceElements[index].type = elementType
                 priceElements[index].vatRate = vatRate
                 priceElements[index].excludeFromSimulation = excludeFromSimulation
@@ -198,6 +232,4 @@ struct PriceElementEditor: View {
         try? modelContext.save()
         navigationPath.removeLast()
     }
-    
-    
 }

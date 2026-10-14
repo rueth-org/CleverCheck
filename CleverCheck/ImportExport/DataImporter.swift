@@ -14,6 +14,7 @@ public struct DataImportReport {
     public var chargingSessions: Int = 0
     public var chargingSessionTemplates: Int = 0
     public var homeConsumptions: Int = 0
+    public var seasonalPrices: Int = 0
     public var priceElements: Int = 0
     public var userSettingsApplied: Bool = false
     public var errors: [String] = []
@@ -42,6 +43,7 @@ public struct DataImporter {
             var plansById: [UUID: ChargingCostPlan] = [:]
             var homeConsumptionsById: [UUID: HomeConsumption] = [:]
             var priceElementsById: [UUID: PriceElement] = [:]
+            var seasonalPricesById: [UUID: SeasonalPrice] = [:]
             var sessionsById: [UUID: ChargingSession] = [:]
 
             // Prefetch existing objects once to avoid repeated fetches and actor issues
@@ -64,6 +66,10 @@ public struct DataImporter {
             let existingHomeConsumptions: [HomeConsumption] = (try? modelContext.fetch(FetchDescriptor<HomeConsumption>())) ?? []
             let existingHomeConsumptionsById = Dictionary(uniqueKeysWithValues: existingHomeConsumptions.map { ($0.id, $0) })
             let existingHomeConsumptionIds = Set(existingHomeConsumptionsById.keys)
+            
+            let existingSeasonalPrices: [SeasonalPrice] = (try? modelContext.fetch(FetchDescriptor<SeasonalPrice>())) ?? []
+            let existingSeasonalPricesById = Dictionary(uniqueKeysWithValues: existingSeasonalPrices.map { ($0.id, $0) })
+            let existingSeasonalPriceIds = Set(existingSeasonalPricesById.keys)
 
             // Insert cars
             for dto in backup.cars {
@@ -213,6 +219,23 @@ public struct DataImporter {
                 homeConsumptionsById[dto.id] = home
                 report.homeConsumptions += 1
             }
+            
+            // Insert seasonal prices
+            for dto in backup.seasonalPrices {
+                if existingSeasonalPrices.contains(where: { $0.id == dto.id }) {
+                    continue
+                }
+                
+                let seasonalPrice = SeasonalPrice(
+                    startDate: dto.startDate,
+                    endDate: dto.endDate
+                )
+                seasonalPrice.id = dto.id
+                seasonalPrice.prices = dto.prices
+                modelContext.insert(seasonalPrice)
+                seasonalPricesById[dto.id] = seasonalPrice
+                report.seasonalPrices += 1
+            }
 
             // Insert price elements
             for dto in backup.priceElements {
@@ -232,7 +255,7 @@ public struct DataImporter {
                     type = .byConsumption(energyUnitSymbol: energyUnitSymbol)
                 }
 
-                let pe = PriceElement(label: dto.label, amount: dto.amount, inclVAT: dto.isGross, isSeasonal: dto.isSeasonal, type: type, vatRate: dto.vatRate)
+                let pe = PriceElement(label: dto.label, amount: dto.amount, inclVAT: dto.isGross, type: type, vatRate: dto.vatRate)
                 pe.id = dto.id
                 pe.excludeFromSimulation = dto.excludeFromSimulation
 
@@ -242,6 +265,15 @@ public struct DataImporter {
                     // try to resolve from prefetched existing ones
                     if let existingHome = existingHomeConsumptionsById[homeId] {
                         pe.homeConsumption = existingHome
+                    }
+                }
+                
+                if let seasonalPriceId = dto.seasonalPriceID, let seasonalPrice = seasonalPricesById[seasonalPriceId] {
+                    pe.seasonalPrice = seasonalPrice
+                } else if let seasonalPriceId = dto.seasonalPriceID {
+                    // try to resolve from prefetched existing ones
+                    if let existingSeasonalPrice = existingSeasonalPricesById[seasonalPriceId] {
+                        pe.seasonalPrice = existingSeasonalPrice
                     }
                 }
 

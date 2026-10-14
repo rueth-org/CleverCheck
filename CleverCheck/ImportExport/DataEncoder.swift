@@ -28,6 +28,7 @@ struct DataEncoder {
         var chargingSessions: [ChargingSessionDTO]
         var chargingSessionTemplates: [ChargingSessionTemplateDTO]
         var homeConsumptions: [HomeConsumptionDTO]
+        var seasonalPrices: [SeasonalPriceDTO]
         var priceElements: [PriceElementDTO]
         var userSettings: UserSettingsDTO?
     }
@@ -129,6 +130,13 @@ struct DataEncoder {
         var chargingSessionIds: [UUID]
         var refundedChargingSessionIds: [UUID]
     }
+    
+    struct SeasonalPriceDTO: Codable {
+        var id: UUID
+        var startDate: Date
+        var endDate: Date
+        var prices: Dictionary<Double, Cost>
+    }
 
     struct PriceElementDTO: Codable {
         enum PriceElementTypeDTO: Codable {
@@ -168,7 +176,7 @@ struct DataEncoder {
         var label: String
         var amount: Cost
         var isGross: Bool
-        var isSeasonal: Bool
+        var seasonalPriceID: UUID?
         var type: PriceElementTypeDTO
         var vatRate: Double
         var excludeFromSimulation: Bool
@@ -197,6 +205,7 @@ struct DataEncoder {
         let chargingSessions: [ChargingSession] = try context.fetch(FetchDescriptor<ChargingSession>())
         let chargingSessionTemplates: [ChargingSessionTemplate] = try context.fetch(FetchDescriptor<ChargingSessionTemplate>())
         let homeConsumptions: [HomeConsumption] = try context.fetch(FetchDescriptor<HomeConsumption>())
+        let seasonalPrices: [SeasonalPrice] = try context.fetch(FetchDescriptor<SeasonalPrice>())
         let priceElements: [PriceElement] = try context.fetch(FetchDescriptor<PriceElement>())
 
         // Map to DTOs
@@ -341,6 +350,15 @@ struct DataEncoder {
                 refundedChargingSessionIds: home.refundedChargingSessions?.map { $0.id } ?? []
             )
         }
+        
+        let seasonalPriceDTOs = seasonalPrices.map { seasonalPrice in
+            return SeasonalPriceDTO(
+                id: seasonalPrice.id,
+                startDate: seasonalPrice.startDate,
+                endDate: seasonalPrice.endDate,
+                prices: seasonalPrice.prices
+            )
+        }
 
         let priceElementDTOs = priceElements.map { p in
             // Map PriceElementType
@@ -360,7 +378,7 @@ struct DataEncoder {
                 label: p.label,
                 amount: p.amount,
                 isGross: p.isGross,
-                isSeasonal: p.isSeasonal,
+                seasonalPriceID: p.seasonalPrice?.id,
                 type: typeDTO,
                 vatRate: p.vatRate,
                 excludeFromSimulation: p.excludeFromSimulation
@@ -386,6 +404,7 @@ struct DataEncoder {
             chargingSessions: chargingSessionDTOs,
             chargingSessionTemplates: chargingSessionsTemplateDTOs,
             homeConsumptions: homeConsumptionDTOs,
+            seasonalPrices: seasonalPriceDTOs,
             priceElements: priceElementDTOs,
             userSettings: settingsDTO
         )

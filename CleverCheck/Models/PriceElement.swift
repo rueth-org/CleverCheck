@@ -48,13 +48,10 @@ final class PriceElement: Identifiable, Equatable {
     var label: String = ""
     var amount: Cost = Cost(amount: 0.0)
     var isGross: Bool = true
-    var isSeasonal: Bool = false
+    var seasonalPrice: SeasonalPrice?
     var type: PriceElementType = PriceElementType.byConsumption(energyUnitSymbol: UserSettings.shared.energyUnitSymbol)
     var vatRate: Double = 0.25
     var excludeFromSimulation: Bool = false
-    
-    @Relationship(deleteRule: .cascade, inverse: \SeasonalPrice.priceElement)
-    var seasonalPrices: [SeasonalPrice]?
     
     /// Returns the amount converted to the user's selected currency. If conversion fails, returns the original amount.
     var converted: Cost {
@@ -73,13 +70,12 @@ final class PriceElement: Identifiable, Equatable {
         isGross ? "Gross" : "Net"
     }
     
-    init(label: String, amount: Cost, inclVAT: Bool, isSeasonal: Bool, type: PriceElementType, vatRate: Double? = nil, excludeFromSimulation: Bool = false) {
+    init(label: String, amount: Cost, inclVAT: Bool, type: PriceElementType, vatRate: Double? = nil, excludeFromSimulation: Bool = false) {
         self.label = label
         self.amount = amount
         self.type = type
         self.vatRate = vatRate ?? UserSettings.shared.vatRate
         self.isGross = inclVAT
-        self.isSeasonal = isSeasonal
         self.excludeFromSimulation = excludeFromSimulation
     }
     
@@ -112,14 +108,18 @@ final class PriceElement: Identifiable, Equatable {
         }
     }
     
-    func getConvertedSeasonalCost(hour: Int, minute: Int, includingVAT: Bool) throws -> Cost {
+    func setSeasonalPrice(seasonalPrices: [SeasonalPrice]) throws {
         guard let homeConsumption else { throw SeasonalPrice.SeasonalPriceError.noDates }
         let periodStart = homeConsumption.validFrom
         let periodEnd = homeConsumption.validUntil
         
-        guard let seasonalPrices else { throw SeasonalPrice.SeasonalPriceError.noSeasonalPrices }
+        guard seasonalPrices.count > 0 else { throw SeasonalPrice.SeasonalPriceError.noSeasonalPrices }
         guard let seasonalPrice = seasonalPrices.first(where: { periodStart >= $0.startDate && periodEnd <= $0.endDate }) else { throw SeasonalPrice.SeasonalPriceError.noMatchingSeason(startDate: periodStart, endDate: periodEnd) }
-        guard let convertedCost = seasonalPrice.getConvertedPrice(hour: hour, minute: minute) else { throw SeasonalPrice.SeasonalPriceError.noMatchingTime(startHour: hour, startMinute: minute, endHour: hour, endMinute: minute) }
+        self.seasonalPrice = seasonalPrice
+    }
+    
+    func getConvertedSeasonalCost(hour: Int, minute: Int, includingVAT: Bool) -> Cost? {
+        guard let convertedCost = seasonalPrice?.getConvertedPrice(hour: hour, minute: minute) else { return nil }
         
         if includingVAT {
             return inclVAT(convertedCost)
