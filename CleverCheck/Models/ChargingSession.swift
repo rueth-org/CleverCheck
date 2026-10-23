@@ -223,19 +223,11 @@ final class ChargingSession: Comparable {
         var totalCost: Cost = .init(amount: 0.0)
         var currentTime = startTime
         
-        // Caching variables
-        var pricePerKWh: Cost = .init(amount: 0.0)
-        var cost: Cost = .init(amount: 0.0)
-        
         while currentTime < endTime {
             // Find the energy price for the current time
             if let price = energyPrices.first(where: { $0.timeUTC <= currentTime && currentTime < $0.timeUTC.addingTimeInterval(Double($0.resolutionMinutes) * 60) }) {
                 // Add the cost for this minute to the total cost
-                if pricePerKWh != price.pricePerKWh {
-                    // Only recalculate cost if price has changed, otherwise we can reuse the previous cost calculation, which is more efficient
-                    pricePerKWh = price.pricePerKWh
-                    cost = relatedHomeConsumption.simulateCost(of: energyPerMinute, with: price.pricePerKWh, durationInMinutes: 1)
-                }
+                let cost = relatedHomeConsumption.simulateCost(of: energyPerMinute, with: price.pricePerKWh, startTime: currentTime, endTime: currentTime.addingTimeInterval(60))
                     
                 totalCost += cost
             } else {

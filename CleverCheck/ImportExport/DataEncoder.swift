@@ -133,6 +133,7 @@ struct DataEncoder {
     
     struct SeasonalPriceDTO: Codable {
         var id: UUID
+        var name: String
         var startDate: Date
         var endDate: Date
         var prices: Dictionary<Double, Cost>
@@ -354,6 +355,7 @@ struct DataEncoder {
         let seasonalPriceDTOs = seasonalPrices.map { seasonalPrice in
             return SeasonalPriceDTO(
                 id: seasonalPrice.id,
+                name: seasonalPrice.name,
                 startDate: seasonalPrice.startDate,
                 endDate: seasonalPrice.endDate,
                 prices: seasonalPrice.prices

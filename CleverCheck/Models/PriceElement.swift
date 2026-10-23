@@ -53,6 +53,10 @@ final class PriceElement: Identifiable, Equatable {
     var vatRate: Double = 0.25
     var excludeFromSimulation: Bool = false
     
+    var isSeasonal: Bool {
+        seasonalPrice != nil
+    }
+    
     /// Returns the amount converted to the user's selected currency. If conversion fails, returns the original amount.
     var converted: Cost {
         amount.converted(to: UserSettings.shared.currencyIdentifier) ?? amount
@@ -108,23 +112,47 @@ final class PriceElement: Identifiable, Equatable {
         }
     }
     
-    func setSeasonalPrice(seasonalPrices: [SeasonalPrice]) throws {
-        guard let homeConsumption else { throw SeasonalPrice.SeasonalPriceError.noDates }
-        let periodStart = homeConsumption.validFrom
-        let periodEnd = homeConsumption.validUntil
+    /// Calculates the average seasonal cost from the given start to the given end time.
+    /// - Parameters:
+    ///   - startTime: The start time.
+    ///   - endTime: The end time.
+    ///   - includingVAT: If true, VAT is included.
+    /// - Returns: The average seasonal cost.
+    func getConvertedSeasonalCost(startTime: Date, endTime: Date, includingVAT: Bool) -> Cost? {
+        guard let seasonalPrice else { return nil }
+        let durationInMinutes = endTime.timeIntervalSince(startTime) / 60.0
+        guard durationInMinutes > 0.0 else { return nil }
+        let calendar = Calendar.current
         
-        guard seasonalPrices.count > 0 else { throw SeasonalPrice.SeasonalPriceError.noSeasonalPrices }
-        guard let seasonalPrice = seasonalPrices.first(where: { periodStart >= $0.startDate && periodEnd <= $0.endDate }) else { throw SeasonalPrice.SeasonalPriceError.noMatchingSeason(startDate: periodStart, endDate: periodEnd) }
-        self.seasonalPrice = seasonalPrice
-    }
-    
-    func getConvertedSeasonalCost(hour: Int, minute: Int, includingVAT: Bool) -> Cost? {
-        guard let convertedCost = seasonalPrice?.getConvertedPrice(hour: hour, minute: minute) else { return nil }
+        // Get the hour and minute of start time as integer
+        let startHour = calendar.component(.hour, from: startTime)
+        let startMinute = calendar.component(.minute, from: startTime)
+        
+        // Get the hour and minute of end time as integer
+        let endHour = calendar.component(.hour, from: endTime)
+        let endMinute = calendar.component(.minute, from: endTime)
+        
+        // Iterate from start hour and start minute to end hour and end minute and sum up seasonal price for each minute
+        var hour = startHour
+        var minute = startMinute
+        var summedPrice = 0.0
+        while hour < endHour || (hour == endHour && minute < endMinute) {
+            let price = seasonalPrice.getConvertedPrice(hour: hour, minute: minute).amount
+            summedPrice += price
+            minute += 1
+            if minute == 60 {
+                hour += 1
+                minute = 0
+            }
+        }
+        
+        // Calculate the average price
+        let averagePrice = Cost(amount: summedPrice / durationInMinutes)
         
         if includingVAT {
-            return inclVAT(convertedCost)
+            return inclVAT(averagePrice)
         } else {
-            return exclVAT(convertedCost)
+            return exclVAT(averagePrice)
         }
     }
     

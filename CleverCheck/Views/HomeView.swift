@@ -129,10 +129,10 @@ struct HomeView: View {
             }
             .navigationDestination(for: SeasonalPricesView.NavigationDestination.self) { destination in
                 switch destination {
-                case .NewPrice(let parentPriceElement):
-                    SeasonalPriceEditor(navigationPath: $navigationPath, parentPriceElement: parentPriceElement)
-                case .EditPrice(let seasonalPrice, let parentPriceElement):
-                    SeasonalPriceEditor(navigationPath: $navigationPath, parentPriceElement: parentPriceElement, seasonalPrice: seasonalPrice)
+                case .NewPrice:
+                    SeasonalPriceEditor(navigationPath: $navigationPath)
+                case .EditPrice(let seasonalPrice):
+                    SeasonalPriceEditor(navigationPath: $navigationPath, seasonalPrice: seasonalPrice)
                 }
             }
         }

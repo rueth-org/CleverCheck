@@ -222,11 +222,12 @@ public struct DataImporter {
             
             // Insert seasonal prices
             for dto in backup.seasonalPrices {
-                if existingSeasonalPrices.contains(where: { $0.id == dto.id }) {
+                if existingSeasonalPriceIds.contains(dto.id) {
                     continue
                 }
                 
                 let seasonalPrice = SeasonalPrice(
+                    name: dto.name,
                     startDate: dto.startDate,
                     endDate: dto.endDate
                 )

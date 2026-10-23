@@ -428,9 +428,9 @@ final class HomeConsumption: Comparable {
     ///   - start: The start date of the simulation period.
     ///   - end: The end date of the simulation period.
     /// - Returns: The simulated cost for the given consumption and time range.
-    func simulateCost(of consumptionKWh: Double, with pricePerKWh: Cost, durationInMinutes: Double) -> Cost {
+    func simulateCost(of consumptionKWh: Double, with pricePerKWh: Cost, startTime: Date, endTime: Date) -> Cost {
         // Calculate the proportion of the time range (start to end) within the validFrom to validUntil range
-        let duration = durationInMinutes * 60 // Convert minutes to seconds
+        let duration: Double = endTime.timeIntervalSince(startTime) / 60
         let totalDuration = validUntil.timeIntervalSince(validFrom)
         guard totalDuration > 0 else {
             return .init(amount: 0.0)
@@ -446,10 +446,10 @@ final class HomeConsumption: Comparable {
         // Filter the included price elements by those with types .once and .daily
         let sumOfPriceElementsOnce = sumOfPriceElements(includedPriceElements.filter {
             if case .once = $0.type { return true } else { return false }
-        })
+        }, startTime: startTime, endTime: endTime)
         let sumOfPriceElementsDaily = sumOfPriceElements(includedPriceElements.filter {
             if case .daily = $0.type { return true } else { return false }
-        })
+        }, startTime: startTime, endTime: endTime)
         
         // Calculate the fixed costs (once + daily * number of days)
         let fixedCosts = sumOfPriceElementsOnce.amount + sumOfPriceElementsDaily.amount * Double(numberOfDays)
@@ -457,7 +457,7 @@ final class HomeConsumption: Comparable {
         // Calculate the variable cost
         let sumOfPriceElementsSpecific = sumOfPriceElements(includedPriceElements.filter {
             if case .byConsumption(_) = $0.type { return true } else { return false }
-        })
+        }, startTime: startTime, endTime: endTime)
         
         // Add the given price per kWh
         let sumOfPriceElementsByConsumption = sumOfPriceElementsSpecific + pricePerKWh
@@ -467,10 +467,16 @@ final class HomeConsumption: Comparable {
         return .init(amount: simulatedCost)
     }
     
-    private func sumOfPriceElements(_ priceElements: [PriceElement]) -> Cost {
-        .init(
-            amount: priceElements.reduce(0.0) { $0 + $1.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices).amount }
-        )
+    private func sumOfPriceElements(_ priceElements: [PriceElement], startTime: Date? = nil, endTime: Date? = nil) -> Cost {
+        if let startTime, let endTime {
+            return .init(
+                amount: priceElements.reduce(0.0) { $0 + ($1.isSeasonal ? $1.getConvertedSeasonalCost(startTime: startTime, endTime: endTime, includingVAT: UserSettings.shared.displayGrossPrices)?.amount ?? 0.0 : $1.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices).amount) }
+            )
+        } else {
+            return .init(
+                amount: priceElements.reduce(0.0) { $0 + $1.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices).amount }
+            )
+        }
     }
     
     static func < (lhs: HomeConsumption, rhs: HomeConsumption) -> Bool {
