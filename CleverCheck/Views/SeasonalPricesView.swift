@@ -52,7 +52,9 @@ struct SeasonalPricesView: View {
                 }
                 .swipeActions(edge: .leading) {
                     Button {
-                        navigationPath.append(NavigationDestination.EditPrice(seasonalPrice: seasonalPrice))
+                        withAnimation {
+                            navigationPath.append(NavigationDestination.EditPrice(seasonalPrice: seasonalPrice))
+                        }
                     } label: {
                         Label("Edit", systemImage: "pencil")
                     }.tint(.blue)

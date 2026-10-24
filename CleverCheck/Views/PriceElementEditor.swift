@@ -9,6 +9,10 @@ import SwiftUI
 import SwiftData
 
 struct PriceElementEditor: View {
+    enum NavigationDestination: Hashable {
+        case SelectSeasonalPrice
+    }
+
     @Environment(\.modelContext) private var modelContext
     @Binding var navigationPath: NavigationPath
     let priceElement: PriceElement?
@@ -92,9 +96,7 @@ struct PriceElementEditor: View {
                     }
                 }
             if isSeasonal {
-                NavigationLink {
-                    SeasonalPricesView(navigationPath: $navigationPath, selectedSeasonalPrice: $selectedSeasonalPrice)
-                } label: {
+                NavigationLink(value: NavigationDestination.SelectSeasonalPrice) {
                     if let selectedSeasonalPrice {
                         VStack(alignment: .leading) {
                             Text("\(selectedSeasonalPrice.name)")
@@ -112,6 +114,12 @@ struct PriceElementEditor: View {
             Toggle("Exclude from simulation", isOn: $excludeFromSimulation)
         }
         .navigationBarBackButtonHidden(true)
+        .navigationDestination(for: NavigationDestination.self) { destination in
+            switch destination {
+            case .SelectSeasonalPrice:
+                SeasonalPricesView(navigationPath: $navigationPath, selectedSeasonalPrice: $selectedSeasonalPrice)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(editorTitle)
@@ -135,7 +143,7 @@ struct PriceElementEditor: View {
                 includesVAT = priceElement.isGross
                 elementType = priceElement.type
                 vatRate = priceElement.vatRate
-                isSeasonal = priceElement.seasonalPrice != nil
+                isSeasonal = priceElement.seasonalPrice != nil || selectedSeasonalPrice != nil
                 seasonalPrice = priceElement.seasonalPrice
                 excludeFromSimulation = priceElement.excludeFromSimulation
             }

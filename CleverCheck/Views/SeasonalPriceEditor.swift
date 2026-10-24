@@ -43,67 +43,72 @@ struct SeasonalPriceEditor: View {
                     let cost = prices[time]!
                     HStack {
                         if editedTime == time {
-                            VStack {
-                                Text("\(editingHour ?? 0, specifier: "%02d")")
-                                Stepper("", value: Binding(
-                                    get: { self.editingHour ?? 0 },
-                                    set: { self.editingHour = $0 }
-                                ), in: 0...23).labelsHidden()
-                            }
-                            Text(":")
-                            VStack {
-                                Text("\(editingMinute ?? 0, specifier: "%02d")")
-                                Stepper("", value: Binding(
-                                    get: { self.editingMinute ?? 0 },
-                                    set: { self.editingMinute = $0 }
-                                ), in: 0...45, step: 15).labelsHidden()
-                            }
-                            Spacer()
-                            TextField("Cost", value: Binding(get: {
-                                cost.amount
-                            }, set: { newValue in
-                                prices[time]?.amount = newValue
-                            }), format: .number)
-                            .keyboardType(.decimalPad)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .frame(width: 100)
-                            Button {
-                                // Save the edited time and cost
-                                let newTime = Double(editingHour ?? 0) + Double(editingMinute ?? 0) / 60.0
-                                let newCost = prices[time]!
-                                prices.removeValue(forKey: time)
-                                prices[newTime] = newCost
-                                editedTime = nil
-                                editingHour = nil
-                                editingMinute = nil
-                            } label: {
-                                Image(systemName: "checkmark.circle")
-                            }
-                            Button {
-                                // Cancel the edit
-                                editedTime = nil
-                                editingHour = nil
-                                editingMinute = nil
-                            } label: {
-                                Image(systemName: "xmark.circle")
+                            HStack {
+                                VStack {
+                                    Text("\(editingHour ?? 0, specifier: "%02d")")
+                                    Stepper("", value: Binding(
+                                        get: { self.editingHour ?? 0 },
+                                        set: { self.editingHour = $0 }
+                                    ), in: 0...23).labelsHidden()
+                                }
+                                Text(":")
+                                VStack {
+                                    Text("\(editingMinute ?? 0, specifier: "%02d")")
+                                    Stepper("", value: Binding(
+                                        get: { self.editingMinute ?? 0 },
+                                        set: { self.editingMinute = $0 }
+                                    ), in: 0...45, step: 15).labelsHidden()
+                                }
+                                Spacer()
+                                TextField("Cost", value: Binding(get: {
+                                    cost.amount
+                                }, set: { newValue in
+                                    prices[time]?.amount = newValue
+                                }), format: .number)
+                                .keyboardType(.decimalPad)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .frame(width: 100)
+                                Button {
+                                    withAnimation {
+                                        // Save the edited time and cost
+                                        let newTime = Double(editingHour ?? 0) + Double(editingMinute ?? 0) / 60.0
+                                        let newCost = prices[time]!
+                                        prices.removeValue(forKey: time)
+                                        prices[newTime] = newCost
+                                        editedTime = nil
+                                        editingHour = nil
+                                        editingMinute = nil
+                                    }
+                                } label: {
+                                    Image(systemName: "checkmark.circle")
+                                }
+                                Button {
+                                    withAnimation {
+                                        // Cancel the edit
+                                        editedTime = nil
+                                        editingHour = nil
+                                        editingMinute = nil
+                                    }
+                                } label: {
+                                    Image(systemName: "xmark.circle")
+                                }
                             }
                         } else {
                             let hour = Int(time)
                             let minute = Int((time - Double(hour)) * 60)
-                            Text("\(hour, specifier: "%02d"):\(minute, specifier: "%02d")")
-                            Spacer()
-                            Text(cost.formatted())
+                            HStack {
+                                Text("\(hour, specifier: "%02d"):\(minute, specifier: "%02d")")
+                                Spacer()
+                                Text(cost.formatted())
+                            }
+                            .onTapGesture {
+                                editedTime = time
+                                editingHour = hour
+                                editingMinute = minute
+                            }
                         }
                     }
                     .swipeActions(edge: .leading) {
-                        Button {
-                            editedTime = time
-                            editingHour = Int(time)
-                            editingMinute = Int((time - Double(editingHour ?? 0)) * 60)
-                        } label: {
-                            Label("Edit", systemImage: "pencil")
-                        }.tint(.blue)
-                        
                         Button {
                             // Add a new price entry for this time
                             let newCost = Cost(amount: 0.0)
