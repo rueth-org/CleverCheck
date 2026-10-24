@@ -30,30 +30,34 @@ struct SeasonalPricesView: View {
                 emptyStateMessage: "No seasonal prices found.",
                 emptyStateSystemImage: "banknote"
             ) { seasonalPrice in
-                NavigationLink(value: NavigationDestination.EditPrice(seasonalPrice: seasonalPrice)) {
-                    HStack {
-                        Button(action: {
-                            if seasonalPrice == selectedSeasonalPrice {
-                                // Unselect seasonal price
-                                selectedSeasonalPrice = nil
-                            } else {
-                                // Select seasonal price
-                                selectedSeasonalPrice = seasonalPrice
-                            }
-                        }) {
-                            Image(systemName: seasonalPrice == selectedSeasonalPrice ? "checkmark.circle.fill" : "circle")
-                                .imageScale(.large)
-                                .foregroundStyle(seasonalPrice == selectedSeasonalPrice ? .green : .gray)
-                        }.buttonStyle(.plain)
-                        VStack(alignment: .leading) {
-                            Text("\(seasonalPrice.name)")
-                            Text("\(seasonalPrice.startDate, format: UserSettings.shared.displayDateFormat) - \(seasonalPrice.endDate, format: UserSettings.shared.displayDateFormat)")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
+                HStack {
+                    Image(systemName: seasonalPrice == selectedSeasonalPrice ? "checkmark.circle.fill" : "circle")
+                            .imageScale(.large)
+                            .foregroundStyle(seasonalPrice == selectedSeasonalPrice ? .green : .gray)
+                    VStack(alignment: .leading) {
+                        Text("\(seasonalPrice.name)")
+                        Text("\(seasonalPrice.startDate, format: UserSettings.shared.displayDateFormat) - \(seasonalPrice.endDate, format: UserSettings.shared.displayDateFormat)")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
                 }
-                .swipeActions {
+                .onTapGesture {
+                    if seasonalPrice == selectedSeasonalPrice {
+                        // Unselect seasonal price
+                        selectedSeasonalPrice = nil
+                    } else {
+                        // Select seasonal price
+                        selectedSeasonalPrice = seasonalPrice
+                    }
+                }
+                .swipeActions(edge: .leading) {
+                    Button {
+                        navigationPath.append(NavigationDestination.EditPrice(seasonalPrice: seasonalPrice))
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }.tint(.blue)
+                }
+                .swipeActions(edge: .trailing) {
                     if canDelete(seasonalPrice) {
                         Button(role: .destructive) {
                             deleteSeasonalPrice(seasonalPrice)
