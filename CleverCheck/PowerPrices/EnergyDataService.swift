@@ -105,7 +105,7 @@ final class EnergyDataService {
                 collected.append(contentsOf: prices)
             } else {
                 // If remote file is missing, try local cache first before asking the provider
-                if let cached = try? loadPricesFromLocalCache(filename) {
+                if let cached = try? loadPricesFromLocalCache(filename, region: region) {
                     collected.append(contentsOf: cached)
                 } else {
                     // Need to fetch from provider for this month
@@ -149,6 +149,9 @@ final class EnergyDataService {
     // MARK: - Helpers
 
     private func fetchPricesFromURL(_ url: URL) async throws -> [PowerPrice]? {
+        // TODO: This does not work, as energydata.rueth.info is no server - need to find another solution - meanwhile we return nil
+        return nil
+        
         var req = URLRequest(url: url)
         req.httpMethod = "GET"
         let (data, response) = try await URLSession.shared.data(for: req)
@@ -214,6 +217,9 @@ final class EnergyDataService {
     }
 
     private func writePrices(_ prices: [PowerPrice], toRemoteURL url: URL) async throws {
+        // TODO: This does not work, as energydata.rueth.info is no server - need to find another solution - meanwhile we thruow
+        throw EnergyDataError.notFound("Cannot write to \(url.absoluteString)")
+        
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted]
         encoder.dateEncodingStrategy = .iso8601
@@ -247,7 +253,7 @@ final class EnergyDataService {
         try data.write(to: fileURL, options: .atomic)
     }
 
-    private func loadPricesFromLocalCache(_ filename: String) throws -> [PowerPrice]? {
+    private func loadPricesFromLocalCache(_ filename: String, region: String?) throws -> [PowerPrice]? {
         let fm = FileManager.default
         let cacheDir = try fm.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         let dir = cacheDir.appendingPathComponent("EnergyData", isDirectory: true)
@@ -261,7 +267,25 @@ final class EnergyDataService {
         let data = try Data(contentsOf: fileURL)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode([PowerPrice].self, from: data)
+        let powerPrices = try decoder.decode([PowerPrice].self, from: data)
+        
+        // Check if this is an older file, where power prices of today are not yet included
+        let sortedPowerPrices = region != nil ? powerPrices.filter { $0.region == region! }.sorted(by: { $0.timeUTC > $1.timeUTC }) : powerPrices.sorted(by: { $0.timeUTC > $1.timeUTC })
+        
+        // Power prices are expected to be published day ahead, so there should be prices to at least the end of the current day
+        if let lastPrice = sortedPowerPrices.last {
+            // We need to add the resolution in minutes to the last price depending on its granularity
+            let lastPriceTime = Calendar.current.date(byAdding: .minute, value: lastPrice.resolutionMinutes, to: lastPrice.timeUTC)!
+            
+            // The time of the last price needs to be later than the current time
+            if lastPriceTime > Date() {
+                return powerPrices
+            } else {
+                return nil
+            }
+        } else {
+            return nil
+        }
     }
 }
 
