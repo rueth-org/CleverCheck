@@ -127,6 +127,14 @@ struct HomeView: View {
                     )
                 }
             }
+            .navigationDestination(for: SeasonalPricesView.NavigationDestination.self) { destination in
+                switch destination {
+                case .NewPrice:
+                    SeasonalPriceEditor(navigationPath: $navigationPath)
+                case .EditPrice(let seasonalPrice):
+                    SeasonalPriceEditor(navigationPath: $navigationPath, seasonalPrice: seasonalPrice)
+                }
+            }
         }
         .onAppear {
             if !locations.isEmpty {

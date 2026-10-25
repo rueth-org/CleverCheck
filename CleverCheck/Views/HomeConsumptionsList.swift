@@ -134,6 +134,7 @@ struct HomeConsumptionsList: View {
                     type: priceElement.type,
                     vatRate: priceElement.vatRate
                 )
+                newPriceElement.seasonalPrice = priceElement.seasonalPrice
                 newConsumption.priceElements!.append(newPriceElement)
             }
         }
