@@ -17,10 +17,12 @@ final class EnergyDataService {
         case invalidRelatedHomeConsumptionType
         case multipleRelatedHomeConsumptions([String])
         case serviceClassNotFound(String)
+        case invalidURL(String)
         case invalidResponse
         case notFound(String)
         case cannotDetermineDuration
         case noLocation
+        case cannotDetermineTime(String)
         
         // Provide localized error descriptions by conforming to LocalizedError and returning
         // NSLocalizedString keys. Add translations in your Localizable.strings / .xcstrings files.
@@ -40,6 +42,9 @@ final class EnergyDataService {
             case .serviceClassNotFound(let name):
                 let format = NSLocalizedString("No PowerPriceAPI class found with name '%@'.", comment: "")
                 return String(format: format, name)
+            case .invalidURL(let url):
+                let format = NSLocalizedString("Invalid URL: '%@'.", comment: "")
+                return String(format: format, url)
             case .invalidResponse:
                 return NSLocalizedString("Received an invalid response from the server.", comment: "")
             case .notFound(let item):
@@ -49,21 +54,49 @@ final class EnergyDataService {
                 return NSLocalizedString("Cannot determine duration from the provided data.", comment: "")
             case .noLocation:
                 return NSLocalizedString("No location information available.", comment: "")
+            case .cannotDetermineTime(let timeString):
+                let format = NSLocalizedString("Cannot determine time from '%@'.", comment: "")
+                return String(format: format, timeString)
             }
+        }
+    }
+    
+    private struct PowerPriceDBRecords: Codable {
+        let records: [PowerPriceDBEntry]
+    }
+    
+    private struct PowerPriceDBEntry: Codable {
+        let id: Int
+        let serviceName: String
+        let region: String
+        let timeUTC: String
+        let resolutionMinutes: Int
+        let priceKwh: Double
+        let currency: String
+        
+        enum CodingKeys: String, CodingKey {
+            case id
+            case serviceName = "servicename"
+            case region
+            case timeUTC = "time_utc"
+            case resolutionMinutes = "resolution_minutes"
+            case priceKwh = "price_kwh"
+            case currency
         }
     }
 
     /// Shared singleton instance
     static let shared = EnergyDataService()
 
-    // Prevent external instantiation
-    private init() {}
-
-    private let host = "https://energydata.rueth.info"
+    private let getURL = "https://energydata.rueth.info/api.php/records/powerprice"
+    private let putURL = ""
     
     // List of all available energy data providers (classes conforming to PowerPriceAPIProtocol)
     let availableProviders: [PowerPriceAPIProtocol] = [Energinet()]
     
+    // Prevent external instantiation
+    private init() {}
+
     /// Returns the power prices for the given location and time range. Tries to read month JSON files
     /// from the configured webserver first. For any month file that is missing or does not contain
     /// data for the requested range, the corresponding PowerPrice provider's `fetchPowerPrices` is
@@ -96,15 +129,20 @@ final class EnergyDataService {
             guard let year = comps.year, let month = comps.month else { break }
             let monthString = String(format: "%04d-%02d", year, month)
             let filename = "\(serviceName)_\(monthString).json"
-            guard let fileURL = URL(string: "\(host)/\(filename)") else {
-                throw EnergyDataError.invalidResponse
+            
+            // Try to load the prices from server
+            var success = false
+            do {
+                if let prices = try await fetchPrices(from: getURL) {
+                    collected.append(contentsOf: prices)
+                    success = true
+                }
+            } catch {
+                debugPrint("Failed to load from \(getURL): \(error)")
             }
-
-            // Try to load the JSON file from server
-            if let prices = try? await fetchPricesFromURL(fileURL) {
-                collected.append(contentsOf: prices)
-            } else {
-                // If remote file is missing, try local cache first before asking the provider
+            
+            // If not successful, try to load from local cache before asking the provider
+            if !success {
                 if let cached = try? loadPricesFromLocalCache(filename, region: region) {
                     collected.append(contentsOf: cached)
                 } else {
@@ -129,8 +167,9 @@ final class EnergyDataService {
                     
                     // Try to write back to remote; if it fails, write local cache
                     do {
-                        try await writePrices(fetchedPrices, toRemoteURL: fileURL)
+                        try await writePrices(fetchedPrices, toRemoteURL: putURL)
                     } catch {
+                        debugPrint("Failed to write prices to remote, error: \(error)")
                         try writePricesToLocalCache(fetchedPrices, filename: filename)
                     }
                 }
@@ -148,9 +187,10 @@ final class EnergyDataService {
 
     // MARK: - Helpers
 
-    private func fetchPricesFromURL(_ url: URL) async throws -> [PowerPrice]? {
-        // TODO: This does not work, as energydata.rueth.info is no server - need to find another solution - meanwhile we return nil
-        return nil
+    private func fetchPrices(from url: String) async throws -> [PowerPrice]? {
+        guard let url = URL(string: url) else {
+            throw EnergyDataError.invalidURL(url)
+        }
         
         var req = URLRequest(url: url)
         req.httpMethod = "GET"
@@ -161,7 +201,23 @@ final class EnergyDataService {
         }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode([PowerPrice].self, from: data)
+        let powerPriceDBRecords = try decoder.decode(PowerPriceDBRecords.self, from: data)
+        
+        // Map PowerPriceDBEntry to PowerPrice
+        var powerPrices = [PowerPrice]()
+        for entry in powerPriceDBRecords.records {
+            guard let timeUTC = mysqlDatetimeToDate(entry.timeUTC) else {
+                throw EnergyDataError.cannotDetermineTime(entry.timeUTC)
+            }
+            powerPrices.append(.init(
+                serviceName: entry.serviceName,
+                region: entry.region,
+                timeUTC: timeUTC,
+                resolutionMinutes: entry.resolutionMinutes,
+                pricePerKWh: Cost(amount: entry.priceKwh, currency: entry.currency)
+            ))
+        }
+        return powerPrices
     }
 
     private func findMatchingPrice(in prices: [PowerPrice], for time: Date, region: String?) -> PowerPrice? {
@@ -216,9 +272,13 @@ final class EnergyDataService {
         return result
     }
 
-    private func writePrices(_ prices: [PowerPrice], toRemoteURL url: URL) async throws {
+    private func writePrices(_ prices: [PowerPrice], toRemoteURL url: String) async throws {
         // TODO: This does not work, as energydata.rueth.info is no server - need to find another solution - meanwhile we thruow
-        throw EnergyDataError.notFound("Cannot write to \(url.absoluteString)")
+        throw EnergyDataError.notFound("Cannot write to \(url)")
+        
+        guard let url = URL(string: url) else {
+            throw EnergyDataError.invalidURL(url)
+        }
         
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted]
@@ -286,6 +346,28 @@ final class EnergyDataService {
         } else {
             return nil
         }
+    }
+    
+    // Function to convert MySQL DATETIME string to Swift Date
+    private func mysqlDatetimeToDate(_ datetimeString: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss" // MySQL DATETIME format
+        formatter.locale = Locale(identifier: "en_US_POSIX") // Ensures consistent parsing
+        formatter.timeZone = TimeZone(secondsFromGMT: 0) // Adjust if needed
+        
+        return formatter.date(from: datetimeString)
+    }
+    
+    /// Appends filters to the base URL according to https://github.com/mevdschee/php-crud-api
+    /// - Parameters:
+    ///   - baseUrl: The base URL to apply filters on
+    ///   - provider: The provider
+    ///   - region: The region
+    ///   - from: Start date and time
+    ///   - to: End date and time
+    /// - Returns: A URL string with appended filters
+    private func filterRecords(baseUrl: String, provider: String, region: String, from: Date, to: Date) -> String {
+        return ""
     }
 }
 
