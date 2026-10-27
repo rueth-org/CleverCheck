@@ -45,12 +45,13 @@ struct SettingsView: View {
     @State private var showingDeleteAllAlert = false
     @State private var confirmDeletion = ""
     
-    @State private var showingUpdateChargingSessionsAlert: Bool = false
+    @State private var showingAlert: Bool = false
+    @State private var activeAlert: SimpleAlert?
+    
     @State private var updatedChargingSessions: [String] = []
     
     // Import states
     @State private var importMessage: String = ""
-    @State private var showImportResult: Bool = false
     @State private var showingCarPicker: Bool = false
     @State private var selectedImportCarIndex: Int? = nil
     @State private var selectedImportCar: Car? = nil
@@ -201,14 +202,12 @@ struct SettingsView: View {
                     Button("Check for missing refunding home consumptions") {
                         checkForMissingHomeConsumptions()
                     }
-                    .alert("Notice", isPresented: $showingUpdateChargingSessionsAlert) {
-                        Button("OK", role: .cancel) { }
-                    } message: {
-                        let message = "The following sessions have been assigned a home consumption:\n\(updatedChargingSessions.joined(separator: "\n"))"
-                        Text(message)
-                    }
                     
                     Toggle("Disable cache (not recommended)", isOn: UserSettings.shared.$disableCache)
+                    
+                    Button("Clear cache") {
+                        clearCache()
+                    }
                 }
                 
                 Section(header: Text("Import/Export")) {
@@ -229,7 +228,8 @@ struct SettingsView: View {
                                 isSharing = true
                             } catch {
                                 importMessage = "Export failed: \(error)"
-                                showImportResult = true
+                                activeAlert = SimpleAlert(type: .error(message: LocalizedStringKey(importMessage)))
+                                showingAlert = true
                             }
                         }
                     }
@@ -246,7 +246,8 @@ struct SettingsView: View {
                                 } else {
                                     importMessage = "Share cancelled."
                                 }
-                                showImportResult = true
+                                activeAlert = SimpleAlert(type: .notice(message: LocalizedStringKey(importMessage)))
+                                showingAlert = true
                                 isSharing = false
                             }
                         } else {
@@ -319,10 +320,14 @@ struct SettingsView: View {
                 }
             }
         }
-        .alert("Import", isPresented: $showImportResult) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(importMessage)
+        .alert(
+            activeAlert?.title() ?? "Notice",
+            isPresented: $showingAlert,
+            presenting: activeAlert
+        ) { activeAlert in
+            activeAlert.actionButtons()
+        } message: { activeAlert in
+            activeAlert.message()
         }
     }
     
@@ -339,10 +344,36 @@ struct SettingsView: View {
         
         if !updatedChargingSessions.isEmpty {
             try? modelContext.save()
-            showingUpdateChargingSessionsAlert = true
+            let message = "The following sessions have been assigned a home consumption:\n\(updatedChargingSessions.joined(separator: "\n"))"
+            activeAlert = SimpleAlert(type: .error(message: LocalizedStringKey(message)))
+            showingAlert = true
         } else {
             
         }
+    }
+    
+    private func clearCache() {
+        let fm = FileManager.default
+        guard let cacheDir = try? fm.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true) else {
+            activeAlert = SimpleAlert(type: .error(message: "Failed to access cache directory"))
+            showingAlert = true
+            return
+        }
+        let dir = cacheDir.appending(path: "EnergyData", directoryHint: .isDirectory)
+        
+        // Delete files
+        if fm.fileExists(atPath: dir.path) {
+            do {
+                try fm.removeItem(at: dir)
+            } catch {
+                activeAlert = SimpleAlert(type: .error(message: "Failed to remove cache directory: \(error.localizedDescription)"))
+                showingAlert = true
+                return
+            }
+        }
+        
+        activeAlert = SimpleAlert(type: .success(message: "Successfully cleared cache"))
+        showingAlert = true
     }
     
     private func deleteAllData() {
@@ -379,7 +410,6 @@ struct SettingsView: View {
                                 Text(verbatim: code)
                             }
                         }
-                        
                     }
                 }
             }

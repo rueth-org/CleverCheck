@@ -303,7 +303,7 @@ final class EnergyDataService {
 
         let fm = FileManager.default
         let cacheDir = try fm.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-        let dir = cacheDir.appendingPathComponent("EnergyData", isDirectory: true)
+        let dir = cacheDir.appending(path: "EnergyData", directoryHint: .isDirectory)
         if !fm.fileExists(atPath: dir.path) {
             try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         }
