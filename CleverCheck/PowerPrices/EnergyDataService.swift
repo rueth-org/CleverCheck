@@ -253,6 +253,10 @@ final class EnergyDataService {
             throw EnergyDataError.invalidURL(url)
         }
         
+        // Ignore if records are already in database
+        let queryItem = URLQueryItem(name: "ignore", value: nil)
+        let urlInsertIgnore = url.appending(queryItems: [queryItem])
+        
         // Convert PowerPrice array to PowerPriceDBEntry array
         let entries = prices.map({ PowerPriceDBEntry(from: $0) })
         let encoder = JSONEncoder()
@@ -260,7 +264,7 @@ final class EnergyDataService {
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(entries)
 
-        var req = URLRequest(url: url)
+        var req = URLRequest(url: urlInsertIgnore)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = data
@@ -382,7 +386,7 @@ final class EnergyDataService {
     ///   - timeZone: The time zone the dates are in
     /// - Returns: A URL string with appended filters
     private func filterRecords(baseUrl: String, provider: String, region: String? = nil, from: Date? = nil, to: Date? = nil) throws -> URL {
-        guard var url = URL(string: baseUrl) else {
+        guard let url = URL(string: baseUrl) else {
             throw EnergyDataService.EnergyDataError.invalidURL(baseUrl)
         }
         
