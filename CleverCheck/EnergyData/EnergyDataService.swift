@@ -66,6 +66,30 @@ final class EnergyDataService {
         }
     }
     
+    /// Shared singleton instance
+    static let shared = EnergyDataService()
+
+    private let dbUrl = "https://energydata.rueth.info/api.php/records"
+    private let mysqlDatetimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss" // MySQL DATETIME format
+        formatter.locale = Locale(identifier: "en_US_POSIX") // Ensures consistent parsing
+        formatter.timeZone = TimeZone(secondsFromGMT: 0) // Adjust if needed
+        return formatter
+    }()
+    
+    // List of all available energy data providers (classes conforming to PowerPriceAPIProtocol)
+    let availableProviders: [PowerPriceAPIProtocol] = [Energinet()]
+    
+    // Prevent external instantiation
+    private init() {}
+
+    //
+    // MARK: PowerPrice
+    //
+    
+    private let powerPriceTableName = "powerprice"
+    
     private struct PowerPriceDBRecords: Codable {
         let records: [PowerPriceDBEntry]
     }
@@ -87,24 +111,6 @@ final class EnergyDataService {
             case currency
         }
     }
-
-    /// Shared singleton instance
-    static let shared = EnergyDataService()
-
-    private let powerPriceDBUrl = "https://energydata.rueth.info/api.php/records/powerprice"
-    private let mysqlDatetimeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss" // MySQL DATETIME format
-        formatter.locale = Locale(identifier: "en_US_POSIX") // Ensures consistent parsing
-        formatter.timeZone = TimeZone(secondsFromGMT: 0) // Adjust if needed
-        return formatter
-    }()
-    
-    // List of all available energy data providers (classes conforming to PowerPriceAPIProtocol)
-    let availableProviders: [PowerPriceAPIProtocol] = [Energinet()]
-    
-    // Prevent external instantiation
-    private init() {}
 
     /// Returns the power prices for the given location and time range. Tries to read month JSON files
     /// from the configured webserver first. For any month file that is missing or does not contain
@@ -141,6 +147,7 @@ final class EnergyDataService {
             
             // Try to load the prices from server
             var success = false
+            let powerPriceDBUrl = "\(dbUrl)/\(powerPriceTableName)"
             do {
                 if let prices = try await fetchPrices(from: powerPriceDBUrl, provider: serviceName, region: region, from: start, to: end) {
                     collected.append(contentsOf: prices)
@@ -193,8 +200,6 @@ final class EnergyDataService {
         let filtered = filterPrices(collected, from: start, to: end, region: region)
         return filtered
     }
-
-    // MARK: - Helpers
 
     private func findMatchingPrice(in prices: [PowerPrice], for time: Date, region: String?) -> PowerPrice? {
         let calendar = Calendar.current
@@ -365,6 +370,10 @@ final class EnergyDataService {
             return false
         }
     }
+    
+    //
+    // Mark: - Helper functions
+    //
     
     // Function to convert MySQL DATETIME string to Swift Date
     fileprivate func mysqlDatetimeToDate(_ datetimeString: String) -> Date? {
