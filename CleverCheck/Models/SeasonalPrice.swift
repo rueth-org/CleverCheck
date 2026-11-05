@@ -14,6 +14,7 @@ import SwiftData
 final class SeasonalPrice: Identifiable, Equatable, Comparable {
     var id: UUID = UUID()
     var name: String = ""
+    var group: SeasonalPriceGroup?
     var startDate: Date = Calendar.current.date(from: Calendar.current.dateComponents([.year], from: Date()))!
     var endDate: Date = Calendar.current.date(byAdding: DateComponents(year: 1, day: -1), to: Calendar.current.date(from: Calendar.current.dateComponents([.year], from: Date()))!)!
     
@@ -23,7 +24,9 @@ final class SeasonalPrice: Identifiable, Equatable, Comparable {
     // The prices dictionary maps a double key (0.0-23.75) representing the hour of the day (in quarter hour steps) to a Cost object. The default price for hour 0 is set to 0.0.
     var prices: Dictionary<Double, Cost> = [0.0: Cost(amount: 0.0)]
     
-    init(name: String, startDate: Date, endDate: Date) {
+    init(name: String, group: SeasonalPriceGroup?, startDate: Date, endDate: Date) {
+        self.name = name
+        self.group = group
         self.startDate = startDate
         self.endDate = endDate
     }

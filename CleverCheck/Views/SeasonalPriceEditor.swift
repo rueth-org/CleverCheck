@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct SeasonalPriceEditor: View {
     @Environment(\.modelContext) private var modelContext
@@ -13,6 +14,7 @@ struct SeasonalPriceEditor: View {
     let seasonalPrice: SeasonalPrice?
     
     @State var name: String = ""
+    @State var group: SeasonalPriceGroup? = nil
     @State var startDate: Date = Date()
     @State var endDate: Date = Date()
     @State var prices: Dictionary<Double, Cost> = [0.0: Cost(amount: 0.0)]
@@ -23,6 +25,8 @@ struct SeasonalPriceEditor: View {
     @State private var editedTime: Double? = nil
     @State private var editingHour: Int? = nil
     @State private var editingMinute: Int? = nil
+    
+    @Query var seasonalPriceGroups: [SeasonalPriceGroup]
     
     private var isNewSeasonalPrice: Bool {
         seasonalPrice == nil
@@ -35,6 +39,12 @@ struct SeasonalPriceEditor: View {
     var body: some View {
         Form {
             TextField("Name", text: $name)
+            Picker("Group", selection: $group) {
+                Text("- none -").tag(nil as SeasonalPriceGroup?)
+                ForEach(seasonalPriceGroups, id: \.self) { group in
+                    Text(group.name).tag(group)
+                }
+            }
             DatePicker("Start date", selection: $startDate, displayedComponents: .date)
             DatePicker("End date", selection: $endDate, displayedComponents: .date)
             
@@ -164,6 +174,7 @@ struct SeasonalPriceEditor: View {
             if let seasonalPrice {
                 // Edit the incoming seasonal price
                 name = seasonalPrice.name
+                group = seasonalPrice.group
                 startDate = seasonalPrice.startDate
                 endDate = seasonalPrice.endDate
                 prices = seasonalPrice.prices
@@ -203,6 +214,7 @@ struct SeasonalPriceEditor: View {
         if isNewSeasonalPrice {
             let newSeasonalPrice = SeasonalPrice(
                 name: name,
+                group: group,
                 startDate: startDate,
                 endDate: endDate
             )
@@ -214,6 +226,7 @@ struct SeasonalPriceEditor: View {
         } else {
             if let seasonalPrice {
                 seasonalPrice.name = name
+                seasonalPrice.group = group
                 seasonalPrice.startDate = startDate
                 seasonalPrice.endDate = endDate
                 seasonalPrice.prices = prices

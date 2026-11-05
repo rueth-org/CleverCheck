@@ -28,6 +28,7 @@ struct DataEncoder {
         var chargingSessions: [ChargingSessionDTO]
         var chargingSessionTemplates: [ChargingSessionTemplateDTO]
         var homeConsumptions: [HomeConsumptionDTO]
+        var seasonalPriceGroups: [SeasonalPriceGroupDTO]
         var seasonalPrices: [SeasonalPriceDTO]
         var priceElements: [PriceElementDTO]
         var userSettings: UserSettingsDTO?
@@ -131,9 +132,16 @@ struct DataEncoder {
         var refundedChargingSessionIds: [UUID]
     }
     
+    struct SeasonalPriceGroupDTO: Codable {
+        var id: UUID
+        var name: String
+        var countryCode: String
+    }
+    
     struct SeasonalPriceDTO: Codable {
         var id: UUID
         var name: String
+        var group: String?
         var startDate: Date
         var endDate: Date
         var prices: Dictionary<Double, Cost>
@@ -206,6 +214,7 @@ struct DataEncoder {
         let chargingSessions: [ChargingSession] = try context.fetch(FetchDescriptor<ChargingSession>())
         let chargingSessionTemplates: [ChargingSessionTemplate] = try context.fetch(FetchDescriptor<ChargingSessionTemplate>())
         let homeConsumptions: [HomeConsumption] = try context.fetch(FetchDescriptor<HomeConsumption>())
+        let seasonalPriceGroups: [SeasonalPriceGroup] = try context.fetch(FetchDescriptor<SeasonalPriceGroup>())
         let seasonalPrices: [SeasonalPrice] = try context.fetch(FetchDescriptor<SeasonalPrice>())
         let priceElements: [PriceElement] = try context.fetch(FetchDescriptor<PriceElement>())
 
@@ -352,10 +361,19 @@ struct DataEncoder {
             )
         }
         
+        let seasonalPriceGroupDTOs = seasonalPriceGroups.map { group in
+            SeasonalPriceGroupDTO(
+                id: group.id,
+                name: group.name,
+                countryCode: group.countryCode
+            )
+        }
+        
         let seasonalPriceDTOs = seasonalPrices.map { seasonalPrice in
             return SeasonalPriceDTO(
                 id: seasonalPrice.id,
                 name: seasonalPrice.name,
+                group: seasonalPrice.group?.name,
                 startDate: seasonalPrice.startDate,
                 endDate: seasonalPrice.endDate,
                 prices: seasonalPrice.prices
@@ -406,6 +424,7 @@ struct DataEncoder {
             chargingSessions: chargingSessionDTOs,
             chargingSessionTemplates: chargingSessionsTemplateDTOs,
             homeConsumptions: homeConsumptionDTOs,
+            seasonalPriceGroups: seasonalPriceGroupDTOs,
             seasonalPrices: seasonalPriceDTOs,
             priceElements: priceElementDTOs,
             userSettings: settingsDTO

@@ -85,7 +85,7 @@ final class EnergyDataService {
     private init() {}
 
     //
-    // MARK: PowerPrice
+    // MARK: - PowerPrice
     //
     
     private let powerPriceTableName = "powerprice"
@@ -372,6 +372,121 @@ final class EnergyDataService {
     }
     
     //
+    // MARK: - Seasonal Price
+    //
+    
+    private let seasonalPriceGroupTableName = "seasonalpricegroup"
+    private let seasonalPriceTableName = "seasonalprice"
+    private let dayPriceTableName = "dayprice"
+    
+    private struct SeasonalPriceGroupDBRecords: Codable {
+        let records: [SeasonalPriceGroupDBEntry]
+    }
+    
+    fileprivate struct SeasonalPriceGroupDBEntry: Codable {
+        let id: Int
+        let name: String
+        let countrycode: String
+    }
+    
+    private struct SeasonalPriceDBRecords: Codable {
+        let records: [SeasonalPriceDBEntry]
+    }
+    
+    fileprivate struct SeasonalPriceDBEntry: Codable {
+        let id: Int
+        let seasonalPriceGroup: SeasonalPriceGroupDBEntry
+        let name: String
+        let validFrom: String
+        let validTo: String
+        let dayPrices: [DayPriceDBEntry]
+        
+        enum CodingKeys: String, CodingKey {
+            case id
+            case seasonalPriceGroup = "seasonalpricegroup"
+            case name
+            case validFrom = "valid_from"
+            case validTo = "valid_to"
+            case dayPrices = "dayprice"
+        }
+    }
+    
+    fileprivate struct DayPriceDBEntry: Codable {
+        let seasonalPriceId: Int
+        let validFrom: Double
+        let amount: Double
+        let currency: String
+        
+        enum CodingKeys: String, CodingKey {
+            case seasonalPriceId = "seasonalprice_id"
+            case validFrom = "valid_from"
+            case amount
+            case currency
+        }
+    }
+    
+    func seasonalPriceGroups() async throws -> [String: Int] {
+        let url = "\(dbUrl)/\(seasonalPriceGroupTableName)"
+        guard let url = URL(string: url) else {
+            throw EnergyDataError.invalidURL(url)
+        }
+        
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        let (data, response) = try await URLSession.shared.data(for: req)
+        if let http = response as? HTTPURLResponse {
+            guard (200...299).contains(http.statusCode) else { throw EnergyDataError.invalidResponse(String(http.statusCode)) }
+        }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let seasonalPriceGroupDBRecords = try decoder.decode(SeasonalPriceGroupDBRecords.self, from: data)
+        
+        var result: [String: Int] = [:]
+        for entry in seasonalPriceGroupDBRecords.records {
+            result[entry.name] = entry.id
+        }
+        
+        return result
+    }
+    
+    func seasonalPrices(for group: SeasonalPriceGroup, at date: Date? = nil) async throws -> [PublicSeasonalPrice] {
+        let url = "\(dbUrl)/\(seasonalPriceTableName)"
+        guard let url = URL(string: url) else {
+            throw EnergyDataError.invalidURL(url)
+        }
+        
+        // Filter by date if provided
+        var queryItems: [URLQueryItem] = []
+        if let date = date {
+            let dateString = dateToMysqlDatetime(date)
+            queryItems.append(URLQueryItem(name: "filter", value: "valid_from,le,\(dateString)"))
+            queryItems.append(URLQueryItem(name: "filter", value: "valid_to,ge,\(dateString)"))
+        }
+        
+        // Join with dayprices
+        queryItems.append(URLQueryItem(name: "join", value: "dayprice"))
+        
+        // Join with seasonalpricegroup
+        queryItems.append(URLQueryItem(name: "join", value: "seasonalpricegroup"))
+        
+        // Add query items to url
+        let urlWithItems = url.appending(queryItems: queryItems)
+        
+        var req = URLRequest(url: urlWithItems)
+        req.httpMethod = "GET"
+        let (data, response) = try await URLSession.shared.data(for: req)
+        if let http = response as? HTTPURLResponse {
+            guard (200...299).contains(http.statusCode) else { throw EnergyDataError.invalidResponse(String(http.statusCode)) }
+        }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let seasonalPriceDBRecords = try decoder.decode(SeasonalPriceDBRecords.self, from: data)
+        
+        // Create the SeasonalPrice array
+        return try seasonalPriceDBRecords.records.map { try PublicSeasonalPrice(from: $0) }
+    }
+
+    //
     // Mark: - Helper functions
     //
     
@@ -448,3 +563,21 @@ extension PowerPrice {
     }
 }
 
+extension PublicSeasonalPrice {
+    fileprivate init(from seasonalPrice: EnergyDataService.SeasonalPriceDBEntry) throws {
+        guard let validFrom = EnergyDataService.shared.mysqlDatetimeToDate(seasonalPrice.validFrom) else {
+            throw EnergyDataService.EnergyDataError.cannotDetermineTime(seasonalPrice.validFrom)
+        }
+        
+        guard let validTo = EnergyDataService.shared.mysqlDatetimeToDate(seasonalPrice.validTo) else {
+            throw EnergyDataService.EnergyDataError.cannotDetermineTime(seasonalPrice.validTo)
+        }
+        
+        self.name = seasonalPrice.name
+        self.groupName = seasonalPrice.seasonalPriceGroup.name
+        self.groupCountryCode = seasonalPrice.seasonalPriceGroup.countrycode
+        self.startDate = validFrom
+        self.endDate = validTo
+        self.prices = Dictionary(uniqueKeysWithValues: seasonalPrice.dayPrices.map { ($0.validFrom, Cost(amount: $0.amount, currency: $0.currency)) })
+    }
+}

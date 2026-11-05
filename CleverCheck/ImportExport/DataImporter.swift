@@ -43,6 +43,7 @@ public struct DataImporter {
             var plansById: [UUID: ChargingCostPlan] = [:]
             var homeConsumptionsById: [UUID: HomeConsumption] = [:]
             var priceElementsById: [UUID: PriceElement] = [:]
+            var seasonalPriceGroupsById: [UUID: SeasonalPriceGroup] = [:]
             var seasonalPricesById: [UUID: SeasonalPrice] = [:]
             var sessionsById: [UUID: ChargingSession] = [:]
 
@@ -66,6 +67,10 @@ public struct DataImporter {
             let existingHomeConsumptions: [HomeConsumption] = (try? modelContext.fetch(FetchDescriptor<HomeConsumption>())) ?? []
             let existingHomeConsumptionsById = Dictionary(uniqueKeysWithValues: existingHomeConsumptions.map { ($0.id, $0) })
             let existingHomeConsumptionIds = Set(existingHomeConsumptionsById.keys)
+            
+            let existingSeasonalPriceGroups: [SeasonalPriceGroup] = (try? modelContext.fetch(FetchDescriptor<SeasonalPriceGroup>())) ?? []
+            let existingSeasonalPriceGroupsById = Dictionary(uniqueKeysWithValues: existingSeasonalPriceGroups.map { ($0.id, $0) })
+            let existingSeasonalPriceGroupIds = Set(existingSeasonalPriceGroupsById.keys)
             
             let existingSeasonalPrices: [SeasonalPrice] = (try? modelContext.fetch(FetchDescriptor<SeasonalPrice>())) ?? []
             let existingSeasonalPricesById = Dictionary(uniqueKeysWithValues: existingSeasonalPrices.map { ($0.id, $0) })
@@ -220,14 +225,35 @@ public struct DataImporter {
                 report.homeConsumptions += 1
             }
             
+            // Insert seasonal price groups
+            for dto in backup.seasonalPriceGroups {
+                if existingSeasonalPriceGroupIds.contains(dto.id) {
+                    continue
+                }
+                
+                let seasonalPriceGroup = SeasonalPriceGroup(
+                    name: dto.name,
+                    countryCode: dto.countryCode
+                )
+                seasonalPriceGroup.id = dto.id
+                modelContext.insert(seasonalPriceGroup)
+                seasonalPriceGroupsById[dto.id] = seasonalPriceGroup
+            }
+            
             // Insert seasonal prices
             for dto in backup.seasonalPrices {
                 if existingSeasonalPriceIds.contains(dto.id) {
                     continue
                 }
                 
+                let seasonalPriceGroup = dto.group.flatMap { groupName in
+                    seasonalPriceGroupsById.values.first(where: { $0.name == groupName }) ??
+                    existingSeasonalPriceGroupsById.values.first(where: { $0.name == groupName })
+                }
+                
                 let seasonalPrice = SeasonalPrice(
                     name: dto.name,
+                    group: seasonalPriceGroup,
                     startDate: dto.startDate,
                     endDate: dto.endDate
                 )
