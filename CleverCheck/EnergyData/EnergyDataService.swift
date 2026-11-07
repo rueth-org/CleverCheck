@@ -68,8 +68,10 @@ final class EnergyDataService {
     
     /// Shared singleton instance
     static let shared = EnergyDataService()
+    
+    // The API client
+    private let apiClient: EnergyDataAPIClient = EnergyDataAPIClient()
 
-    private let dbUrl = "https://energydata.rueth.info/api.php/records"
     private let mysqlDatetimeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss" // MySQL DATETIME format
@@ -147,14 +149,13 @@ final class EnergyDataService {
             
             // Try to load the prices from server
             var success = false
-            let powerPriceDBUrl = "\(dbUrl)/\(powerPriceTableName)"
             do {
-                if let prices = try await fetchPrices(from: powerPriceDBUrl, provider: serviceName, region: region, from: start, to: end) {
+                if let prices = try await fetchPrices(path: powerPriceTableName, provider: serviceName, region: region, from: start, to: end) {
                     collected.append(contentsOf: prices)
                     success = true
                 }
             } catch {
-                debugPrint("Failed to load from \(powerPriceDBUrl): \(error)")
+                debugPrint("Failed to load from \(powerPriceTableName): \(error)")
             }
             
             // If not successful, try to load from local cache before asking the provider
@@ -183,7 +184,7 @@ final class EnergyDataService {
                     
                     // Try to write back to remote; if it fails, write local cache
                     do {
-                        try await writePrices(fetchedPrices, toRemoteURL: powerPriceDBUrl)
+                        try await writePrices(fetchedPrices, path: powerPriceTableName)
                     } catch {
                         debugPrint("Failed to write prices to remote, error: \(error)")
                         try writePricesToLocalCache(fetchedPrices, filename: filename)
@@ -253,14 +254,9 @@ final class EnergyDataService {
         return result
     }
 
-    private func writePrices(_ prices: [PowerPrice], toRemoteURL url: String) async throws {
-        guard let url = URL(string: url) else {
-            throw EnergyDataError.invalidURL(url)
-        }
-        
+    private func writePrices(_ prices: [PowerPrice], path: String) async throws {
         // Ignore if records are already in database
         let queryItem = URLQueryItem(name: "ignore", value: nil)
-        let urlInsertIgnore = url.appending(queryItems: [queryItem])
         
         // Convert PowerPrice array to PowerPriceDBEntry array
         let entries = prices.map({ PowerPriceDBEntry(from: $0) })
@@ -268,28 +264,15 @@ final class EnergyDataService {
         encoder.outputFormatting = [.prettyPrinted]
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(entries)
-
-        var req = URLRequest(url: urlInsertIgnore)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = data
-
-        let (_, response) = try await URLSession.shared.data(for: req)
-        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-            throw EnergyDataError.invalidResponse(String(http.statusCode))
-        }
+        
+        // Post data
+        let _ = try await apiClient.request(path: path, method: "POST", queryItems: [queryItem], body: data)
     }
 
-    private func fetchPrices(from url: String, provider: String, region: String?, from: Date, to: Date) async throws -> [PowerPrice]? {
-        let url = try filterRecords(baseUrl: url, provider: provider, region: region, from: from, to: to)
+    private func fetchPrices(path: String, provider: String, region: String?, from: Date, to: Date) async throws -> [PowerPrice]? {
+        let queryItems = filterRecords(provider: provider, region: region, from: from, to: to)
+        let data = try await apiClient.request(path: path, method: "GET", queryItems: queryItems)
         
-        var req = URLRequest(url: url)
-        req.httpMethod = "GET"
-        let (data, response) = try await URLSession.shared.data(for: req)
-        if let http = response as? HTTPURLResponse {
-            if http.statusCode == 404 { return nil }
-            guard (200...299).contains(http.statusCode) else { throw EnergyDataError.invalidResponse(String(http.statusCode)) }
-        }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let powerPriceDBRecords = try decoder.decode(PowerPriceDBRecords.self, from: data)
@@ -371,6 +354,39 @@ final class EnergyDataService {
         }
     }
     
+    /// Appends filters to the base URL according to https://github.com/mevdschee/php-crud-api
+    /// - Parameters:
+    ///   - baseUrl: The base URL to apply filters on
+    ///   - provider: The provider
+    ///   - region: The region
+    ///   - from: Start date and time
+    ///   - to: End date and time
+    ///   - timeZone: The time zone the dates are in
+    /// - Returns: A URL string with appended filters
+    private func filterRecords(provider: String, region: String? = nil, from: Date? = nil, to: Date? = nil) -> [URLQueryItem] {
+        var queryItems = [URLQueryItem]()
+        
+        // Filter servicename by provider
+        queryItems.append(URLQueryItem(name: "filter", value: "servicename,eq,\(provider)"))
+        
+        // Filter by region
+        if let region = region {
+            queryItems.append(URLQueryItem(name: "filter", value: "region,eq,\(region)"))
+        }
+        
+        // Filter entries later or equal than from
+        if let from = from {
+            queryItems.append(URLQueryItem(name: "filter", value: "time_utc,ge,\(EnergyDataService.shared.dateToMysqlDatetime(from))"))
+        }
+        
+        // Filter entries earlier or equal than to
+        if let to = to {
+            queryItems.append(URLQueryItem(name: "filter", value: "time_utc,le,\(EnergyDataService.shared.dateToMysqlDatetime(to))"))
+        }
+        
+        return queryItems
+    }
+    
     //
     // MARK: - Seasonal Price
     //
@@ -426,17 +442,8 @@ final class EnergyDataService {
     }
     
     func seasonalPriceGroups() async throws -> [String: Int] {
-        let url = "\(dbUrl)/\(seasonalPriceGroupTableName)"
-        guard let url = URL(string: url) else {
-            throw EnergyDataError.invalidURL(url)
-        }
+        let data = try await apiClient.request(path: seasonalPriceGroupTableName, method: "GET")
         
-        var req = URLRequest(url: url)
-        req.httpMethod = "GET"
-        let (data, response) = try await URLSession.shared.data(for: req)
-        if let http = response as? HTTPURLResponse {
-            guard (200...299).contains(http.statusCode) else { throw EnergyDataError.invalidResponse(String(http.statusCode)) }
-        }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let seasonalPriceGroupDBRecords = try decoder.decode(SeasonalPriceGroupDBRecords.self, from: data)
@@ -450,11 +457,6 @@ final class EnergyDataService {
     }
     
     func seasonalPrices(for group: SeasonalPriceGroup, at date: Date? = nil) async throws -> [PublicSeasonalPrice] {
-        let url = "\(dbUrl)/\(seasonalPriceTableName)"
-        guard let url = URL(string: url) else {
-            throw EnergyDataError.invalidURL(url)
-        }
-        
         // Filter by date if provided
         var queryItems: [URLQueryItem] = []
         if let date = date {
@@ -469,15 +471,8 @@ final class EnergyDataService {
         // Join with seasonalpricegroup
         queryItems.append(URLQueryItem(name: "join", value: "seasonalpricegroup"))
         
-        // Add query items to url
-        let urlWithItems = url.appending(queryItems: queryItems)
-        
-        var req = URLRequest(url: urlWithItems)
-        req.httpMethod = "GET"
-        let (data, response) = try await URLSession.shared.data(for: req)
-        if let http = response as? HTTPURLResponse {
-            guard (200...299).contains(http.statusCode) else { throw EnergyDataError.invalidResponse(String(http.statusCode)) }
-        }
+        // Get data and decode
+        let data = try await apiClient.request(path: seasonalPriceTableName, method: "GET", queryItems: queryItems)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let seasonalPriceDBRecords = try decoder.decode(SeasonalPriceDBRecords.self, from: data)
@@ -498,42 +493,6 @@ final class EnergyDataService {
     // Function to convert Swift Date to MySQL DATETIME string
     fileprivate func dateToMysqlDatetime(_ dateUTC: Date) -> String {
         mysqlDatetimeFormatter.string(from: dateUTC)
-    }
-    
-    /// Appends filters to the base URL according to https://github.com/mevdschee/php-crud-api
-    /// - Parameters:
-    ///   - baseUrl: The base URL to apply filters on
-    ///   - provider: The provider
-    ///   - region: The region
-    ///   - from: Start date and time
-    ///   - to: End date and time
-    ///   - timeZone: The time zone the dates are in
-    /// - Returns: A URL string with appended filters
-    private func filterRecords(baseUrl: String, provider: String, region: String? = nil, from: Date? = nil, to: Date? = nil) throws -> URL {
-        guard let url = URL(string: baseUrl) else {
-            throw EnergyDataService.EnergyDataError.invalidURL(baseUrl)
-        }
-        
-        var queryItems = [URLQueryItem]()
-        // Filter servicename by provider
-        queryItems.append(URLQueryItem(name: "filter", value: "servicename,eq,\(provider)"))
-        
-        // Filter by region
-        if let region = region {
-            queryItems.append(URLQueryItem(name: "filter", value: "region,eq,\(region)"))
-        }
-        
-        // Filter entries later or equal than from
-        if let from = from {
-            queryItems.append(URLQueryItem(name: "filter", value: "time_utc,ge,\(EnergyDataService.shared.dateToMysqlDatetime(from))"))
-        }
-        
-        // Filter entries earlier or equal than to
-        if let to = to {
-            queryItems.append(URLQueryItem(name: "filter", value: "time_utc,le,\(EnergyDataService.shared.dateToMysqlDatetime(to))"))
-        }
-        
-        return url.appending(queryItems: queryItems)
     }
 }
 
