@@ -7,10 +7,16 @@
 
 import Foundation
 
-final class EnergyDataAPIClient {
-    private let baseUrlString = "https://energydata.rueth.info/api.php/records"
-    private let apiKey = Secrets.energyDataApiKey
-    private let session = URLSession.shared
+final class APIClient {
+    private var baseUrlString: String
+    private let apiKey: String
+    private let session: URLSession
+    
+    init(baseUrlString: String, apiKey: String, session: URLSession = .shared) {
+        self.baseUrlString = baseUrlString
+        self.apiKey = apiKey
+        self.session = session
+    }
 
     func request(
         path: String,

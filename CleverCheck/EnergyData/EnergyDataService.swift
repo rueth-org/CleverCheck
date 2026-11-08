@@ -70,7 +70,7 @@ final class EnergyDataService {
     static let shared = EnergyDataService()
     
     // The API client
-    private let apiClient: EnergyDataAPIClient = EnergyDataAPIClient()
+    private var apiClient: APIClient
 
     private let mysqlDatetimeFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -84,7 +84,16 @@ final class EnergyDataService {
     let availableProviders: [PowerPriceAPIProtocol] = [Energinet()]
     
     // Prevent external instantiation
-    private init() {}
+    private init() {
+        do {
+            self.apiClient = try APIClient(
+                baseUrlString: "https://energydata.rueth.info/api.php/records",
+                apiKey: Secrets.energyDataApiKey
+            )
+        } catch {
+            fatalError("Failed to initialize EnergyDataService: \(error)")
+        }
+    }
 
     //
     // MARK: - PowerPrice
