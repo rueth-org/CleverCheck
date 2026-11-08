@@ -79,13 +79,13 @@ final class Energinet: PowerPriceAPIProtocol {
         if let url = components.url {
             debugPrint("Energinet request URL: \(url.absoluteString)")
             let data = try Data(contentsOf: url)
-            return try decode(data)
+            return try decode(data, includingVAT: includingVAT)
         }
 
         throw NSError(domain: "Energinet", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])
     }
     
-    private func decode(_ data: Data) throws -> [PowerPrice] {
+    private func decode(_ data: Data, includingVAT: Bool) throws -> [PowerPrice] {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601withoutTimeZoneSeparator
         let response = try decoder.decode(EnerginetResponse.self, from: data)
