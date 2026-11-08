@@ -17,6 +17,7 @@ final class SeasonalPrice: Identifiable, Equatable, Comparable {
     var group: SeasonalPriceGroup?
     var startDate: Date = Calendar.current.date(from: Calendar.current.dateComponents([.year], from: Date()))!
     var endDate: Date = Calendar.current.date(byAdding: DateComponents(year: 1, day: -1), to: Calendar.current.date(from: Calendar.current.dateComponents([.year], from: Date()))!)!
+    var includingVAT: Bool = false
     
     @Relationship(deleteRule: .nullify, inverse: \PriceElement.seasonalPrice)
     var priceElements: [PriceElement]?
@@ -24,11 +25,12 @@ final class SeasonalPrice: Identifiable, Equatable, Comparable {
     // The prices dictionary maps a double key (0.0-23.75) representing the hour of the day (in quarter hour steps) to a Cost object. The default price for hour 0 is set to 0.0.
     var prices: Dictionary<Double, Cost> = [0.0: Cost(amount: 0.0)]
     
-    init(name: String, group: SeasonalPriceGroup?, startDate: Date, endDate: Date) {
+    init(name: String, group: SeasonalPriceGroup?, startDate: Date, endDate: Date, includingVAT: Bool) {
         self.name = name
         self.group = group
         self.startDate = startDate
         self.endDate = endDate
+        self.includingVAT = includingVAT
     }
     
     /// Inserts a price for a given hour and minute.
@@ -46,17 +48,26 @@ final class SeasonalPrice: Identifiable, Equatable, Comparable {
     ///   - hour: The hour of the day (0-23).
     ///   - minute: The minute of the hour (0-59).
     /// - Returns: The price for the given time, converted to the user's selected currency.
-    func getConvertedPrice(hour: Int, minute: Int) -> Cost {
+    func getConvertedPrice(hour: Int, minute: Int, includingVAT: Bool = UserSettings.shared.displayGrossPrices) -> Cost {
         // Convert hour and minute into a double
         let hourDouble = Double(hour) + Double(minute) / 60.0
+        var price: Cost
         
         let sortedTimes = prices.keys.sorted()
         for time in sortedTimes.reversed() {
             if hourDouble >= time {
-                return prices[time]!.converted(to: UserSettings.shared.currencyIdentifier) ?? prices[time]!
+                price = prices[time]!.converted(to: UserSettings.shared.currencyIdentifier) ?? prices[time]!
             }
         }
-        return prices[0.0]!.converted(to: UserSettings.shared.currencyIdentifier) ?? prices[0.0]!
+        price = prices[0.0]!.converted(to: UserSettings.shared.currencyIdentifier) ?? prices[0.0]!
+        
+        if includingVAT && !self.includingVAT {
+            return Cost(amount: price.amount * (1 + UserSettings.shared.vatRate), currency: price.currency)
+        } else if !includingVAT && self.includingVAT {
+            return Cost(amount: price.amount / (1 + UserSettings.shared.vatRate), currency: price.currency)
+        } else {
+            return price
+        }
     }
     
     static func == (lhs: SeasonalPrice, rhs: SeasonalPrice) -> Bool {

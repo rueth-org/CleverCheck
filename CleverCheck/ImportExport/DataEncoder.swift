@@ -144,6 +144,7 @@ struct DataEncoder {
         var group: String?
         var startDate: Date
         var endDate: Date
+        var includingVAT: Bool
         var prices: Dictionary<Double, Cost>
     }
 
@@ -376,6 +377,7 @@ struct DataEncoder {
                 group: seasonalPrice.group?.name,
                 startDate: seasonalPrice.startDate,
                 endDate: seasonalPrice.endDate,
+                includingVAT: seasonalPrice.includingVAT,
                 prices: seasonalPrice.prices
             )
         }

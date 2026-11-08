@@ -17,6 +17,7 @@ struct SeasonalPriceEditor: View {
     @State var group: SeasonalPriceGroup? = nil
     @State var startDate: Date = Date()
     @State var endDate: Date = Date()
+    @State var includingVAT: Bool = false
     @State var prices: Dictionary<Double, Cost> = [0.0: Cost(amount: 0.0)]
     
     @State private var showingAlert: Bool = false
@@ -47,6 +48,8 @@ struct SeasonalPriceEditor: View {
             }
             DatePicker("Start date", selection: $startDate, displayedComponents: .date)
             DatePicker("End date", selection: $endDate, displayedComponents: .date)
+            
+            Toggle("Including VAT", isOn: $includingVAT)
             
             List {
                 ForEach(prices.keys.sorted(), id: \.self) { time in
@@ -177,6 +180,7 @@ struct SeasonalPriceEditor: View {
                 group = seasonalPrice.group
                 startDate = seasonalPrice.startDate
                 endDate = seasonalPrice.endDate
+                includingVAT = seasonalPrice.includingVAT
                 prices = seasonalPrice.prices
             }
         }
@@ -216,7 +220,8 @@ struct SeasonalPriceEditor: View {
                 name: name,
                 group: group,
                 startDate: startDate,
-                endDate: endDate
+                endDate: endDate,
+                includingVAT: includingVAT
             )
             
             newSeasonalPrice.prices = prices
@@ -229,6 +234,7 @@ struct SeasonalPriceEditor: View {
                 seasonalPrice.group = group
                 seasonalPrice.startDate = startDate
                 seasonalPrice.endDate = endDate
+                seasonalPrice.includingVAT = includingVAT
                 seasonalPrice.prices = prices
             } else {
                 activeAlert = SimpleAlert(type: .fatalError(message: "Could not find the seasonal price to edit."))

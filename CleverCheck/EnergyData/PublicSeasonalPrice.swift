@@ -16,16 +16,18 @@ struct PublicSeasonalPrice: Codable, Hashable {
     var groupCountryCode: String
     var startDate: Date
     var endDate: Date
+    var includingVAT: Bool
     
     // The prices dictionary maps a double key (0.0-23.75) representing the hour of the day (in quarter hour steps) to a Cost object. The default price for hour 0 is set to 0.0.
     var prices: Dictionary<Double, Cost> = [0.0: Cost(amount: 0.0)]
     
-    init(name: String, groupName: String, groupCountryCode: String, startDate: Date, endDate: Date, prices: Dictionary<Double, Cost>) {
+    init(name: String, groupName: String, groupCountryCode: String, startDate: Date, endDate: Date, includingVAT: Bool, prices: Dictionary<Double, Cost>) {
         self.name = name
         self.groupName = groupName
         self.groupCountryCode = groupCountryCode
         self.startDate = startDate
         self.endDate = endDate
+        self.includingVAT = includingVAT
         self.prices = prices
     }
     

@@ -188,7 +188,7 @@ final class EnergyDataService {
                         throw EnergyDataError.invalidData("Cannot determine start of next month")
                     }
                     
-                    let fetchedPrices = try await providerInstance!.fetchPowerPrices(from: startOfMonth, to: startOfNextMonth, for: region != nil ? [region!] : nil)
+                    let fetchedPrices = try await providerInstance!.fetchPowerPrices(from: startOfMonth, to: startOfNextMonth, for: region != nil ? [region!] : nil, includingVAT: UserSettings.shared.displayGrossPrices)
                     collected.append(contentsOf: fetchedPrices)
                     
                     // Try to write back to remote; if it fails, write local cache
@@ -424,6 +424,7 @@ final class EnergyDataService {
         let name: String
         let validFrom: String
         let validTo: String
+        let includingVAT: Int
         let dayPrices: [DayPriceDBEntry]
         
         enum CodingKeys: String, CodingKey {
@@ -432,6 +433,7 @@ final class EnergyDataService {
             case name
             case validFrom = "valid_from"
             case validTo = "valid_to"
+            case includingVAT = "including_vat"
             case dayPrices = "dayprice"
         }
     }
@@ -546,6 +548,7 @@ extension PublicSeasonalPrice {
         self.groupCountryCode = seasonalPrice.seasonalPriceGroup.countrycode
         self.startDate = validFrom
         self.endDate = validTo
+        self.includingVAT = seasonalPrice.includingVAT != 0
         self.prices = Dictionary(uniqueKeysWithValues: seasonalPrice.dayPrices.map { ($0.validFrom, Cost(amount: $0.amount, currency: $0.currency)) })
     }
 }

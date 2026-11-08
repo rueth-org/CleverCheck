@@ -41,6 +41,7 @@ final class Energinet: PowerPriceAPIProtocol {
     var regions: [String] {
         return ["DE", "DK1", "DK2", "NO2", "SE3", "SE4"]
     }
+    var includingVAT: Bool { false }
     
     private static let dateFormatter: DateFormatter = {
         let dateFormatter = DateFormatter()
@@ -48,7 +49,7 @@ final class Energinet: PowerPriceAPIProtocol {
         return dateFormatter
     }()
     
-    func fetchPowerPrices(from start: Date, to end: Date?, for regions: [String]?) async throws -> [PowerPrice] {
+    func fetchPowerPrices(from start: Date, to end: Date?, for regions: [String]?, includingVAT: Bool = false) async throws -> [PowerPrice] {
         // Request URL example: https://api.energidataservice.dk/dataset/DayAheadPrices?start=2025-11-01&end=2025-12-01&filter={"PriceArea":["DK1","DK2"]}
         var queryParts = [URLQueryItem]()
         let startValue = Energinet.dateFormatter.string(from: start)
@@ -89,12 +90,21 @@ final class Energinet: PowerPriceAPIProtocol {
         decoder.dateDecodingStrategy = .iso8601withoutTimeZoneSeparator
         let response = try decoder.decode(EnerginetResponse.self, from: data)
         return response.records.map { record in
-            PowerPrice(
+            var cost: Cost
+            if includingVAT && !self.includingVAT {
+                cost = Cost(amount: record.dayAheadPriceDKK / 1000 * (1 + UserSettings.shared.vatRate), currency: "DKK")
+            } else if !includingVAT && self.includingVAT {
+                cost = Cost(amount: record.dayAheadPriceDKK / 1000 / (1 + UserSettings.shared.vatRate), currency: "DKK")
+            } else {
+                cost = Cost(amount: record.dayAheadPriceDKK / 1000, currency: "DKK")
+            }
+            
+            return PowerPrice(
                 serviceName: self.name,
                 region: record.priceArea,
                 timeUTC: record.timeUTC,
                 resolutionMinutes: Energinet.resolutionMinutes,
-                pricePerKWh: Cost(amount: record.dayAheadPriceDKK / 1000, currency: "DKK")
+                pricePerKWh: cost
             )
         }
     }

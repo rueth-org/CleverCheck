@@ -255,7 +255,8 @@ public struct DataImporter {
                     name: dto.name,
                     group: seasonalPriceGroup,
                     startDate: dto.startDate,
-                    endDate: dto.endDate
+                    endDate: dto.endDate,
+                    includingVAT: dto.includingVAT
                 )
                 seasonalPrice.id = dto.id
                 seasonalPrice.prices = dto.prices

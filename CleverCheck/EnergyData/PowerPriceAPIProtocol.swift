@@ -23,7 +23,8 @@ protocol PowerPriceAPIProtocol {
     var latestAvailableDate: Date? { get }
     var requestURL: URL { get }
     var regions: [String] { get }
+    var includingVAT: Bool { get }
     /// Fetch power prices in the given time range for optional regions
-    func fetchPowerPrices(from start: Date, to end: Date?, for regions: [String]?) async throws -> [PowerPrice]
+    func fetchPowerPrices(from start: Date, to end: Date?, for regions: [String]?, includingVAT: Bool) async throws -> [PowerPrice]
     static func classString() -> String
 }
