@@ -467,7 +467,13 @@ final class HomeConsumption: Comparable {
         return .init(amount: simulatedCost)
     }
     
-    func costPerKWh(startTime: Date, endTime: Date, resolutionMinutes: Int) async throws -> [Date: [String: Cost]] {
+    /// Calculates the cost per kWh for the home consumption between start and end time, split into fixed and variable costs, with the given resolution.
+    /// - Parameters:
+    ///   - startTime: The start time of the  period.
+    ///   - endTime: The end time of the  period.
+    ///   - resolutionMinutes: The resolution in minutes for the cost calculation. The cost will be calculated for each interval of this length between start and end time.
+    /// - Returns: A dictionary with the start time of each interval as key, and a tuple with fixed and variable costs as value.
+    func costPerKWh(startTime: Date, endTime: Date, resolutionMinutes: Int) async throws -> [Date: (fixed: [String: Cost], variable: [String: Cost])] {
         // Check for location
         guard let location = associatedLocation else {
             throw EnergyDataService.EnergyDataError.noLocation
@@ -506,29 +512,31 @@ final class HomeConsumption: Comparable {
         
         let intervalSeconds = 60 * Double(resolutionMinutes)
         var currentTime = startTime
-        var outerDictEntry = [Date: [String: Cost]]()
+        var outerDictEntry = [Date: (fixed: [String: Cost], variable: [String: Cost])]()
         
         while currentTime < endTime {
             // Create time dictionary entry
-            var priceElementDictEntry = [String: Cost]()
+            var fixedEntries = [String: Cost]()
             
             // (1) One-time cost applied by resolution per totalDuration
             let proportion = intervalSeconds / totalDuration
             for priceElement in priceElementsOnce {
-                priceElementDictEntry[priceElement.label] = Cost(amount: priceElement.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices).amount * proportion, currency: UserSettings.shared.currencyIdentifier)
+                fixedEntries[priceElement.label] = Cost(amount: priceElement.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices).amount * proportion, currency: UserSettings.shared.currencyIdentifier)
             }
             
             // (2) Daily cost applied by resolution per duration of one day
             let dailyProportion = intervalSeconds / 86_400
             for priceElement in priceElementsDaily {
-                priceElementDictEntry[priceElement.label] = Cost(amount: priceElement.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices).amount * dailyProportion, currency: UserSettings.shared.currencyIdentifier)
+                fixedEntries[priceElement.label] = Cost(amount: priceElement.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices).amount * dailyProportion, currency: UserSettings.shared.currencyIdentifier)
             }
             
             // (3) by consumption (here: 1 kWh)
+            var variableEntries = [String: Cost]()
+            
             // (3a) Find the energy price for the current time
             if let price = energyPrices.first(where: { $0.timeUTC <= currentTime && currentTime < $0.timeUTC.addingTimeInterval(Double($0.resolutionMinutes) * 60) }) {
                 // Add the cost for this minute to the total cost
-                priceElementDictEntry[NSLocalizedString("Power Price", comment: "")] = price.pricePerKWh
+                variableEntries[NSLocalizedString("Power Price", comment: "")] = price.pricePerKWh
             } else {
                 throw EnergyDataService.EnergyDataError.notFound("No energy price found for time \(currentTime)")
             }
@@ -537,16 +545,16 @@ final class HomeConsumption: Comparable {
             let tempEndTime = currentTime.addingTimeInterval(intervalSeconds)
             for priceElement in priceElementsSpecific {
                 if priceElement.isSeasonal {
-                    if let seasonalCost = priceElement.getConvertedSeasonalCost(startTime: startTime, endTime: endTime, includingVAT: UserSettings.shared.displayGrossPrices) {
-                        priceElementDictEntry[priceElement.label] = seasonalCost
+                    if let seasonalCost = priceElement.getConvertedSeasonalCost(startTime: currentTime, endTime: tempEndTime, includingVAT: UserSettings.shared.displayGrossPrices) {
+                        variableEntries[priceElement.label] = seasonalCost
                     }
                 } else {
-                    priceElementDictEntry[priceElement.label] = priceElement.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices)
+                    variableEntries[priceElement.label] = priceElement.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices)
                 }
             }
             
             // Add the entry for this time interval to the outer dictionary
-            outerDictEntry[currentTime] = priceElementDictEntry
+            outerDictEntry[currentTime] = (fixed: fixedEntries, variable: variableEntries)
             
             // Move to the next time interval
             currentTime = currentTime.addingTimeInterval(intervalSeconds)
