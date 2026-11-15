@@ -215,7 +215,7 @@ final class EnergyDataService {
         let calendar = Calendar.current
         // Match using timeLocal. Match by hour granularity.
         for price in prices where (region == nil || price.region == region) {
-            if calendar.isDate(price.timeLocal, equalTo: time, toGranularity: price.granularity) {
+            if calendar.isDate(price.timeLocal, equalTo: time, toGranularity: price.granularity.granularity) {
                 return price
             }
         }
@@ -350,7 +350,7 @@ final class EnergyDataService {
             let firstPriceTime = firstPrice.timeUTC
             
             // We need to add the resolution in minutes to the last price depending on its granularity
-            let lastPriceTime = Calendar.current.date(byAdding: .minute, value: lastPrice.resolutionMinutes, to: lastPrice.timeUTC)!
+            let lastPriceTime = Calendar.current.date(byAdding: .minute, value: lastPrice.granularity.resolutionMinutes, to: lastPrice.timeUTC)!
             
             // The time of the last price needs to be later or equal than the current time
             if firstPriceTime <= from && to <= lastPriceTime {
@@ -512,7 +512,7 @@ extension EnergyDataService.PowerPriceDBEntry {
         self.serviceName = price.serviceName
         self.region = price.region
         self.timeUTC = EnergyDataService.shared.dateToMysqlDatetime(price.timeUTC)
-        self.resolutionMinutes = price.resolutionMinutes
+        self.resolutionMinutes = price.granularity.resolutionMinutes
         self.priceKwh = price.pricePerKWh.amount
         self.currency = price.pricePerKWh.currency
     }
@@ -527,7 +527,7 @@ extension PowerPrice {
         self.serviceName = dbEntry.serviceName
         self.region = dbEntry.region
         self.timeUTC = date
-        self.resolutionMinutes = dbEntry.resolutionMinutes
+        self.granularity = PowerPriceGranularity(resolutionMinutes: dbEntry.resolutionMinutes) ?? .hour
         self.pricePerKWh = Cost(amount: dbEntry.priceKwh, currency: dbEntry.currency)
         self.timeZone = .current
     }

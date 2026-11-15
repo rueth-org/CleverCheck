@@ -225,7 +225,7 @@ final class ChargingSession: Comparable {
         
         while currentTime < endTime {
             // Find the energy price for the current time
-            if let price = energyPrices.first(where: { $0.timeUTC <= currentTime && currentTime < $0.timeUTC.addingTimeInterval(Double($0.resolutionMinutes) * 60) }) {
+            if let price = energyPrices.first(where: { $0.timeUTC <= currentTime && currentTime < $0.timeUTC.addingTimeInterval(Double($0.granularity.resolutionMinutes) * 60) }) {
                 // Add the cost for this minute to the total cost
                 let cost = relatedHomeConsumption.simulateCost(of: energyPerMinute, with: price.pricePerKWh, startTime: currentTime, endTime: currentTime.addingTimeInterval(60))
                     

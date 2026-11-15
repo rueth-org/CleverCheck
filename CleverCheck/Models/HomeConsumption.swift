@@ -25,6 +25,207 @@ final class HomeConsumption: Comparable {
         }
     }
     
+    struct PowerPrices: Codable {
+        let currency: String
+        let includingVAT: Bool
+        let granularity: PowerPriceGranularity
+        var fixedPrices: [Date: [String: Double]]
+        var variablePrices: [Date: [String: Double]]
+        
+        /// Returns the fixed and variable prices for a given date, considering whether to include VAT or not. If no prices are found for the given date, it returns empty dictionaries and a sum of 0.0.
+        /// - Parameters:
+        ///   - date: The date for which to retrieve the prices.
+        ///   - includingVAT: A boolean indicating whether to include VAT in the returned prices.
+        /// - Returns: A tuple containing the fixed prices, variable prices, and their sum for the given date.
+        func getPrices(for date: Date, includingVAT: Bool) -> (fixed: [String: Double], variable: [String: Double], sum: Double) {
+            var fixed = [String: Double]()
+            let sortedFixedPrices = fixedPrices.sorted { $0.key < $1.key }
+            for (priceDate, prices) in sortedFixedPrices {
+                if date >= priceDate {
+                    // Convert prices if includingVAT is different from the stored prices
+                    fixed = prices.mapValues { priceConsideringVAT(for: $0, includingVAT: includingVAT) }
+                } else {
+                    break
+                }
+            }
+            
+            var variable = [String: Double]()
+            let sortedVariablePrices = variablePrices.sorted { $0.key < $1.key }
+            for (priceDate, prices) in sortedVariablePrices {
+                if date >= priceDate {
+                    // Convert prices if includingVAT is different from the stored prices
+                    variable = prices.mapValues { priceConsideringVAT(for: $0, includingVAT: includingVAT) }
+                } else {
+                    break
+                }
+            }
+            
+            let sum = fixed.values.reduce(0.0, +) + variable.values.reduce(0.0, +)
+            return (fixed: fixed, variable: variable, sum: sum)
+        }
+        
+        /// Returns all fixed and variable prices for all dates, considering whether to include VAT or not. If no prices are found for a given date, it returns empty dictionaries and a sum of 0.0.
+        /// - Parameter includingVAT: A boolean indicating whether to include VAT in the returned prices.
+        /// - Returns: A dictionary mapping dates to tuples containing the fixed prices, variable prices, and their sum.
+        func getAllPrices(includingVAT: Bool) -> [Date: (fixed: [String: Double], variable: [String: Double], sum: Double)] {
+            let sortedDates = Set(fixedPrices.keys).union(variablePrices.keys).sorted()
+            return sortedDates.reduce(into: [:]) { result, date in
+                result[date] = getPrices(for: date, includingVAT: includingVAT)
+            }
+        }
+
+        mutating func updatePrices(
+            for homeConsumption: HomeConsumption,
+            resolutionMinutes: Int,
+            validFrom: Date? = nil,
+            validTo: Date? = nil
+        ) async throws {
+            let rangeStart = validFrom ?? homeConsumption.validFrom
+            let rangeEnd = validTo ?? homeConsumption.validUntil
+
+            let updatedPriceBlocks = try await costPerKWh(
+                for: homeConsumption,
+                startTime: rangeStart,
+                endTime: rangeEnd,
+                resolutionMinutes: resolutionMinutes
+            )
+
+            fixedPrices = fixedPrices.filter { $0.key < rangeStart || $0.key > rangeEnd }
+            variablePrices = variablePrices.filter { $0.key < rangeStart || $0.key > rangeEnd }
+
+            for (timestamp, prices) in updatedPriceBlocks {
+                fixedPrices[timestamp] = prices.fixed.mapValues { convertedAmount(of: $0) }
+                variablePrices[timestamp] = prices.variable.mapValues { convertedAmount(of: $0) }
+            }
+        }
+
+        func costPerKWh(
+            for homeConsumption: HomeConsumption,
+            startTime: Date,
+            endTime: Date,
+            resolutionMinutes: Int
+        ) async throws -> [Date: (fixed: [String: Cost], variable: [String: Cost])] {
+            guard let location = homeConsumption.associatedLocation else {
+                throw EnergyDataService.EnergyDataError.noLocation
+            }
+
+            let totalDuration = homeConsumption.validUntil.timeIntervalSince(homeConsumption.validFrom)
+            guard totalDuration > 0 else {
+                throw EnergyDataService.EnergyDataError.cannotDetermineDuration
+            }
+
+            guard let priceElements = homeConsumption.priceElements else {
+                return [:]
+            }
+            let includedPriceElements = priceElements.filter { $0.excludeFromSimulation == false }
+
+            let priceElementsOnce = includedPriceElements.filter {
+                if case .once = $0.type { return true } else { return false }
+            }
+            let priceElementsDaily = includedPriceElements.filter {
+                if case .daily = $0.type { return true } else { return false }
+            }
+            let priceElementsSpecific = includedPriceElements.filter {
+                if case .byConsumption(_) = $0.type { return true } else { return false }
+            }
+
+            let energyDataService = EnergyDataService.shared
+            let energyPrices = try await energyDataService.dayAheadPrices(for: location, from: startTime, to: endTime)
+
+            let intervalSeconds = 60 * Double(resolutionMinutes)
+            var currentTime = startTime
+            var result = [Date: (fixed: [String: Cost], variable: [String: Cost])]()
+
+            while currentTime < endTime {
+                var fixedEntries = [String: Cost]()
+
+                let proportion = intervalSeconds / totalDuration
+                for priceElement in priceElementsOnce {
+                    fixedEntries[priceElement.label] = Cost(
+                        amount: priceElement.getConvertedCost(includingVAT: includingVAT).amount * proportion,
+                        currency: currency
+                    )
+                }
+
+                let dailyProportion = intervalSeconds / 86_400
+                for priceElement in priceElementsDaily {
+                    fixedEntries[priceElement.label] = Cost(
+                        amount: priceElement.getConvertedCost(includingVAT: includingVAT).amount * dailyProportion,
+                        currency: currency
+                    )
+                }
+
+                var variableEntries = [String: Cost]()
+
+                if let price = energyPrices.first(where: {
+                    $0.timeUTC <= currentTime &&
+                    currentTime < $0.timeUTC.addingTimeInterval(Double($0.granularity.resolutionMinutes) * 60)
+                }) {
+                    variableEntries[NSLocalizedString("Power Price", comment: "")] = price.pricePerKWh.converted(to: currency) ?? price.pricePerKWh
+                } else {
+                    throw EnergyDataService.EnergyDataError.notFound("No energy price found for time \(currentTime)")
+                }
+
+                let tempEndTime = currentTime.addingTimeInterval(intervalSeconds)
+                for priceElement in priceElementsSpecific {
+                    if priceElement.isSeasonal {
+                        if let seasonalCost = priceElement.getConvertedSeasonalCost(
+                            startTime: currentTime,
+                            endTime: tempEndTime,
+                            includingVAT: includingVAT
+                        ) {
+                            variableEntries[priceElement.label] = seasonalCost.converted(to: currency) ?? seasonalCost
+                        }
+                    } else {
+                        let fixedCost = priceElement.getConvertedCost(includingVAT: includingVAT)
+                        variableEntries[priceElement.label] = fixedCost.converted(to: currency) ?? fixedCost
+                    }
+                }
+
+                result[currentTime] = (fixed: fixedEntries, variable: variableEntries)
+                currentTime = currentTime.addingTimeInterval(intervalSeconds)
+            }
+
+            return result
+        }
+        
+        private func priceConsideringVAT(for price: Double, includingVAT: Bool) -> Double {
+            if includingVAT && !self.includingVAT {
+                return price * UserSettings.shared.vatRate
+            } else if !includingVAT && self.includingVAT {
+                return price / UserSettings.shared.vatRate
+            } else {
+                return price
+            }
+        }
+
+        private func convertedAmount(of cost: Cost) -> Double {
+            cost.converted(to: currency)?.amount ?? cost.amount
+        }
+    }
+    
+    struct PowerConsumptions: Codable {
+        let granularity: PowerPriceGranularity
+        var consumptionsKWh: [Date: Double]
+        
+        var consumptions: [Date: Measurement<UnitEnergy>] {
+            consumptionsKWh.mapValues { Measurement<UnitEnergy>(value: $0, unit: .kilowattHours) }
+        }
+        
+        func consumption(at date: Date) -> Measurement<UnitEnergy>? {
+            // Iterate through the sorted dates of consumptionsKWh and find the consumption where the given date is larger or equal
+            let sortedDates = consumptionsKWh.keys.sorted()
+            for consumptionDate in sortedDates {
+                if date >= consumptionDate {
+                    return .init(value: consumptionsKWh[consumptionDate] ?? 0.0, unit: .kilowattHours)
+                } else {
+                    break
+                }
+            }
+            return nil
+        }
+    }
+    
     var id: UUID = UUID()
     var name: String = ""
     var validFrom: Date = Date.now.startOfMonth
@@ -32,6 +233,7 @@ final class HomeConsumption: Comparable {
     var consumptionKWh: Double = 0.0
     var consumptionType: ConsumptionType = ConsumptionType.total
     var associatedLocation: Location?
+    var prices: PowerPrices? = nil
     var defaultToEnteredConsumption: Bool = true
     var comment: String = ""
     
@@ -467,100 +669,16 @@ final class HomeConsumption: Comparable {
         return .init(amount: simulatedCost)
     }
     
-    /// Calculates the cost per kWh for the home consumption between start and end time, split into fixed and variable costs, with the given resolution.
-    /// - Parameters:
-    ///   - startTime: The start time of the  period.
-    ///   - endTime: The end time of the  period.
-    ///   - resolutionMinutes: The resolution in minutes for the cost calculation. The cost will be calculated for each interval of this length between start and end time.
-    /// - Returns: A dictionary with the start time of each interval as key, and a tuple with fixed and variable costs as value.
     func costPerKWh(startTime: Date, endTime: Date, resolutionMinutes: Int) async throws -> [Date: (fixed: [String: Cost], variable: [String: Cost])] {
-        // Check for location
-        guard let location = associatedLocation else {
-            throw EnergyDataService.EnergyDataError.noLocation
-        }
-        
-        // Calculate the proportion of the time range (start to end) within the validFrom to validUntil range
-        let totalDuration = validUntil.timeIntervalSince(validFrom)
-        guard totalDuration > 0 else {
-            throw EnergyDataService.EnergyDataError.cannotDetermineDuration
-        }
-        
-        // Filter the price elements to be included in the simulation
-        guard let priceElements else {
+        guard let prices else {
             return [:]
         }
-        let includedPriceElements = priceElements.filter { $0.excludeFromSimulation == false }
-        
-        // Filter the included price elements by those with types .once and .daily
-        let priceElementsOnce = includedPriceElements.filter {
-            if case .once = $0.type { return true } else { return false }
-        }
-        let priceElementsDaily = includedPriceElements.filter {
-            if case .daily = $0.type { return true } else { return false }
-        }
-        let priceElementsSpecific = includedPriceElements.filter {
-            if case .byConsumption(_) = $0.type { return true } else { return false }
-        }
-        
-        // Use singleton energy data service and retrieve the power price for the time of the charging session
-        let energyDataService = EnergyDataService.shared
-        let energyPrices = try await energyDataService.dayAheadPrices(for: location, from: startTime, to: endTime)
-        
-        //
-        // Calculate the real cost
-        //
-        
-        let intervalSeconds = 60 * Double(resolutionMinutes)
-        var currentTime = startTime
-        var outerDictEntry = [Date: (fixed: [String: Cost], variable: [String: Cost])]()
-        
-        while currentTime < endTime {
-            // Create time dictionary entry
-            var fixedEntries = [String: Cost]()
-            
-            // (1) One-time cost applied by resolution per totalDuration
-            let proportion = intervalSeconds / totalDuration
-            for priceElement in priceElementsOnce {
-                fixedEntries[priceElement.label] = Cost(amount: priceElement.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices).amount * proportion, currency: UserSettings.shared.currencyIdentifier)
-            }
-            
-            // (2) Daily cost applied by resolution per duration of one day
-            let dailyProportion = intervalSeconds / 86_400
-            for priceElement in priceElementsDaily {
-                fixedEntries[priceElement.label] = Cost(amount: priceElement.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices).amount * dailyProportion, currency: UserSettings.shared.currencyIdentifier)
-            }
-            
-            // (3) by consumption (here: 1 kWh)
-            var variableEntries = [String: Cost]()
-            
-            // (3a) Find the energy price for the current time
-            if let price = energyPrices.first(where: { $0.timeUTC <= currentTime && currentTime < $0.timeUTC.addingTimeInterval(Double($0.resolutionMinutes) * 60) }) {
-                // Add the cost for this minute to the total cost
-                variableEntries[NSLocalizedString("Power Price", comment: "")] = price.pricePerKWh
-            } else {
-                throw EnergyDataService.EnergyDataError.notFound("No energy price found for time \(currentTime)")
-            }
-            
-            // (3b) Other price elements by consumption
-            let tempEndTime = currentTime.addingTimeInterval(intervalSeconds)
-            for priceElement in priceElementsSpecific {
-                if priceElement.isSeasonal {
-                    if let seasonalCost = priceElement.getConvertedSeasonalCost(startTime: currentTime, endTime: tempEndTime, includingVAT: UserSettings.shared.displayGrossPrices) {
-                        variableEntries[priceElement.label] = seasonalCost
-                    }
-                } else {
-                    variableEntries[priceElement.label] = priceElement.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices)
-                }
-            }
-            
-            // Add the entry for this time interval to the outer dictionary
-            outerDictEntry[currentTime] = (fixed: fixedEntries, variable: variableEntries)
-            
-            // Move to the next time interval
-            currentTime = currentTime.addingTimeInterval(intervalSeconds)
-        }
-        
-        return outerDictEntry
+        return try await prices.costPerKWh(
+            for: self,
+            startTime: startTime,
+            endTime: endTime,
+            resolutionMinutes: resolutionMinutes
+        )
     }
     
     private func sumOfPriceElements(_ priceElements: [PriceElement], startTime: Date? = nil, endTime: Date? = nil) -> Cost {

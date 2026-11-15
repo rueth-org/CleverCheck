@@ -28,7 +28,7 @@ final class Energinet: PowerPriceAPIProtocol {
     }
     
     static let currentDataModelVersion: String = "1"
-    static let resolutionMinutes: Int = 15
+    static let granularity: PowerPriceGranularity = .quarter
     
     var name: String { "Energinet" }
     var logoName: String { "energinet" }
@@ -103,7 +103,7 @@ final class Energinet: PowerPriceAPIProtocol {
                 serviceName: self.name,
                 region: record.priceArea,
                 timeUTC: record.timeUTC,
-                resolutionMinutes: Energinet.resolutionMinutes,
+                granularity: Energinet.granularity,
                 pricePerKWh: cost
             )
         }

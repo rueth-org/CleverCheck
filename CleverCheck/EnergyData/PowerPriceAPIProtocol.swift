@@ -11,7 +11,7 @@ import Foundation
 protocol PowerPriceAPIProtocol {
     /// Version of the data model used by the provider implementation
     static var currentDataModelVersion: String { get }
-    static var resolutionMinutes: Int { get }
+    static var granularity: PowerPriceGranularity { get }
     /// Default initializer requirement so implementations can be instantiated by name
     init()
     var name: String { get }
