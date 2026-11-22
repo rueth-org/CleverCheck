@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ChargingSessionTemplatePicker: View {
     @Environment(\.modelContext) private var modelContext

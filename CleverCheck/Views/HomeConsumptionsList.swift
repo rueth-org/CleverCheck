@@ -45,7 +45,8 @@ struct HomeConsumptionsList: View {
                             let cost = homeConsumption.totalCost(
                                 includingVAT: UserSettings.shared.displayGrossPrices,
                                 useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions,
-                                reduceTotalBy: nil
+                                reduceTotalBy: nil,
+                                valueSource: UserSettings.shared.useCalculatedValues ? .calculated : .invoice
                             )
                             NavigationLink(value: HomeConsumptionsView.NavigationDestination.EditConsumption(homeConsumption: homeConsumption)) {
                                 VStack(alignment: .leading) {
@@ -158,7 +159,8 @@ struct HomeConsumptionsList: View {
             let costPerMonth = homeConsumption.costPerMonth(
                 includingVAT: UserSettings.shared.displayGrossPrices,
                 useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions,
-                reduceTotalBy: nil
+                reduceTotalBy: nil,
+                valueSource: UserSettings.shared.useCalculatedValues ? .calculated : .invoice
             )[monthString] ?? (home: .init(amount: 0.0), charging: .init(amount: 0.0))
             home += costPerMonth.home
             charging += costPerMonth.charging

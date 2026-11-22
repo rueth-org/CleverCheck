@@ -66,7 +66,7 @@ final class Location: Identifiable {
     }
     
     @MainActor
-    func data(in timeBox: TimeBox, useRelatedConsumption: Bool, modelContext: ModelContext) -> [Data] {
+    func data(in timeBox: TimeBox, useRelatedConsumption: Bool, valueSource: HomeConsumption.ValueSource, modelContext: ModelContext) -> [Data] {
         // Build a cache key using essential inputs that influence the result
         let startTs = timeBox.timePeriod?.start.timeIntervalSince1970 ?? 0
         let endTs = timeBox.timePeriod?.end.timeIntervalSince1970 ?? 0
@@ -104,12 +104,17 @@ final class Location: Identifiable {
         var refundingOtherPlanCostPerMonth: [[String: Cost]] = []
 
         // Get the refunded sessions related to this location in the given time period
-        let refundedChargingPerMonth = refundedChargingPerMonth(in: timeBox, modelContext: modelContext)
+        let refundedChargingPerMonth = refundedChargingPerMonth(in: timeBox, valueSource: valueSource, modelContext: modelContext)
         
         for homeConsumption in homeConsumptions {
-            let refundedForConsumption = refunded(refundedChargingPerMonth, from: homeConsumption.validFrom, to: homeConsumption.validUntil)
-            let consumption = homeConsumption.consumptionPerMonth(useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions, reduceTotalBy: refundedForConsumption.consumption)
-            let cost = homeConsumption.costPerMonth(includingVAT: UserSettings.shared.displayGrossPrices, useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions, reduceTotalBy: refundedForConsumption)
+            let refundedForConsumption = refundedPerMonth(refundedChargingPerMonth, from: homeConsumption.validFrom, to: homeConsumption.validUntil)
+            
+            // Split the refundedForConsumption dictionary up into separate dictionaries for consumption and cost
+            let refundedConsumptionPerMonth = refundedForConsumption.mapValues { $0.consumption }
+            let refundedCostPerMonth = refundedForConsumption.mapValues { $0.cost }
+            
+            let consumption = homeConsumption.consumptionPerMonth(useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions, reduceHomeBy: refundedConsumptionPerMonth, valueSource: valueSource)
+            let cost = homeConsumption.costPerMonth(includingVAT: UserSettings.shared.displayGrossPrices, useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions, reduceTotalBy: refundedCostPerMonth, valueSource: valueSource)
             
             debugPrint("Processing home consumption \(homeConsumption.name) (\(homeConsumption.consumptionType.description)) - period: \(homeConsumption.validFrom) to \(homeConsumption.validUntil)")
             
@@ -427,16 +432,15 @@ final class Location: Identifiable {
         }
     }
     
-    /// Calculates the refunded consumption and cost for a given date range. Only considers the refunded charging sessions that are related to this location via their charger and that fall within the given date range. As we only have the refunded consumption and cost per month available, we need to prorate the values for the specific date range of the home consumption to get a more accurate estimate of the refunded consumption and cost related to this home consumption.
+    /// Calculates the refunded consumption and cost for a given date range, split up per month. Only considers the refunded charging sessions that are related to this location via their charger and that fall within the given date range. As we only have the refunded consumption and cost per month available, we need to prorate the values for the specific date range of the home consumption to get a more accurate estimate of the refunded consumption and cost related to this home consumption.
     /// - Parameters:
     ///   - refundedChargingPerMonth: A dictionary with the refunded consumption and cost per month for the charging sessions related to this location. The key is the month formatted as string, the value is a tuple with the refunded consumption and cost for this month.
     ///   - from: The start date of the date range to consider for the prorating. Should be the validFrom date of the home consumption.
     ///   - to: The end date of the date range to consider for the prorating. Should be the validUntil date of the home consumption.
-    /// - Returns: A tuple with the total refunded consumption and cost for the given date range.
-    private func refunded(_ refundedChargingPerMonth: [String: (consumption: Measurement<UnitEnergy>, cost: Cost)], from: Date, to: Date) -> (consumption: Measurement<UnitEnergy>, cost: Cost) {
+    /// - Returns: A dictionary with the refunded consumption and cost per month for the given date range. The key is the month formatted as string, the value is a tuple with the refunded consumption and cost for this month.
+    private func refundedPerMonth(_ refundedChargingPerMonth: [String: (consumption: Measurement<UnitEnergy>, cost: Cost)], from: Date, to: Date) -> [String: (consumption: Measurement<UnitEnergy>, cost: Cost)] {
         let calendar = Calendar.current
-        var totalRefundedConsumption: Measurement<UnitEnergy> = .init(value: 0.0, unit: UserSettings.shared.energyUnit)
-        var totalRefundedCost: Cost = .init(amount: 0.0)
+        var refundedPerMonth = [String: (consumption: Measurement<UnitEnergy>, cost: Cost)]()
 
         // Iterate over the refundedChargingPerMonth dictionary and sum up the values within the specified date range
         for (monthKey, data) in refundedChargingPerMonth {
@@ -450,22 +454,21 @@ final class Location: Identifiable {
                 let proratedRefundedConsumption = dailyRefundedConsumption * Double(daysInHomeConsumption)
                 let proratedRefundedCost = dailyRefundedCost * Double(daysInHomeConsumption)
                 
-                
-                totalRefundedConsumption = totalRefundedConsumption + Measurement(value: proratedRefundedConsumption, unit: UserSettings.shared.energyUnit)
-                totalRefundedCost += Cost(amount: proratedRefundedCost)
+                refundedPerMonth[monthKey] = (consumption: Measurement(value: proratedRefundedConsumption, unit: UserSettings.shared.energyUnit), cost: Cost(amount: proratedRefundedCost))
             }
         }
 
-        return (totalRefundedConsumption, totalRefundedCost)
+        return refundedPerMonth
     }
     
     /// Returns the refunded consumption and cost for the given time box. Only considers charging sessions of type .refunded that are related to this location via their charger.
     /// - Parameters:
     ///   - timeBox: The time box to limit the charging sessions to.
+    ///   - valueSource: The value source to use for calculating the refunded cost.
     ///   - modelContext: The model context to fetch data from.
     /// - Returns: A tuple containing the refunded consumption and refunded cost.
     @MainActor
-    private func refunded(in timeBox: TimeBox, modelContext: ModelContext) -> (consumption: Measurement<UnitEnergy>, cost: Cost) {
+    private func refunded(in timeBox: TimeBox, valueSource: HomeConsumption.ValueSource, modelContext: ModelContext) -> (consumption: Measurement<UnitEnergy>, cost: Cost) {
         // Load all charging cost plans
         let request = FetchDescriptor<ChargingCostPlan>(predicate: #Predicate<ChargingCostPlan> { _ in true })
         var allPlans: [ChargingCostPlan]
@@ -494,7 +497,7 @@ final class Location: Identifiable {
         
         // Multiply the session consumption with the specific price of the home consumption
         let totalRefunded = relatedSessionsInRange.reduce(0.0) { partialResult, session in
-            partialResult + session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value * (session.relatedHomeConsumption?.sumOfPriceElementsByConsumption.amount ?? 0.0)
+            partialResult + session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value * (session.relatedHomeConsumption?.sumOfPriceElementsByConsumption(valueSource: valueSource, startTime: session.estimatedStartTime, endTime: session.endTime).amount ?? 0.0)
         }
         
         return (Measurement<UnitEnergy>(value: relatedConsumption, unit: UserSettings.shared.energyUnit), .init(amount: totalRefunded))
@@ -503,10 +506,11 @@ final class Location: Identifiable {
     /// Returns the refunded consumption and cost per month for the given time box. Only considers charging sessions of type .refunded that are related to this location via their charger.
     /// - Parameters:
     ///   - timeBox: The time box to limit the charging sessions to.
+    ///   - valueSource: The value source to use for calculating the refunded cost.
     ///   - modelContext: The model context to fetch data from.
     /// - Returns: An set of tuples with the month as key (formatted as string) and refunded consumption and refunded cost for each month in the time box as values.
     @MainActor
-    private func refundedChargingPerMonth(in timeBox: TimeBox, modelContext: ModelContext) -> [String: (consumption: Measurement<UnitEnergy>, cost: Cost)] {
+    private func refundedChargingPerMonth(in timeBox: TimeBox, valueSource: HomeConsumption.ValueSource, modelContext: ModelContext) -> [String: (consumption: Measurement<UnitEnergy>, cost: Cost)] {
         // Load all charging cost plans
         let request = FetchDescriptor<ChargingCostPlan>(predicate: #Predicate<ChargingCostPlan> { _ in true })
         var allPlans: [ChargingCostPlan]
@@ -540,7 +544,7 @@ final class Location: Identifiable {
             monthlyData[monthKey, default: (consumption: 0.0, cost: 0.0)].consumption += session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value
             
             // Use the specific price of the home consumption for the cost calculation. Multiply the session consumption with the specific price of the home consumption to get the cost of the refunded session, which is a negative value, and add it to the monthly cost.
-            monthlyData[monthKey, default: (consumption: 0.0, cost: 0.0)].cost += session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value * (session.relatedHomeConsumption?.sumOfPriceElementsByConsumption.amount ?? 0.0)
+            monthlyData[monthKey, default: (consumption: 0.0, cost: 0.0)].cost += session.chargedEnergy.converted(to: UserSettings.shared.energyUnit).value * (session.relatedHomeConsumption?.sumOfPriceElementsByConsumption(valueSource: valueSource, startTime: session.estimatedStartTime, endTime: session.endTime).amount ?? 0.0)
         }
         
         // Convert to Measurement and Cost types

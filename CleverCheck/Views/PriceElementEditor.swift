@@ -139,7 +139,7 @@ struct PriceElementEditor: View {
             if let priceElement {
                 // Edit the incoming price element
                 label = priceElement.label
-                amount = priceElement.converted
+                amount = priceElement.getConvertedCost(valueSource: .invoice, includingVAT: UserSettings.shared.displayGrossPrices)
                 includesVAT = priceElement.isGross
                 elementType = priceElement.type
                 vatRate = priceElement.vatRate

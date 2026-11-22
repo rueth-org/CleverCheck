@@ -25,6 +25,13 @@ final class HomeConsumption: Comparable {
         }
     }
     
+    /// Switch between value sources. 'Invoice' always uses the values directly entered in the price elements, 'calculated' the seasonal or public values, 'automatic' the calculated ones when available, otherwise from invoice.
+    enum ValueSource: String, Codable, CaseIterable {
+        case invoice
+        case calculated
+        case automatic
+    }
+    
     struct PowerPrices: Codable {
         let currency: String
         let includingVAT: Bool
@@ -142,7 +149,7 @@ final class HomeConsumption: Comparable {
                 let proportion = intervalSeconds / totalDuration
                 for priceElement in priceElementsOnce {
                     fixedEntries[priceElement.label] = Cost(
-                        amount: priceElement.getConvertedCost(includingVAT: includingVAT).amount * proportion,
+                        amount: priceElement.getConvertedCost(valueSource: .calculated, includingVAT: includingVAT).amount * proportion,
                         currency: currency
                     )
                 }
@@ -150,7 +157,7 @@ final class HomeConsumption: Comparable {
                 let dailyProportion = intervalSeconds / 86_400
                 for priceElement in priceElementsDaily {
                     fixedEntries[priceElement.label] = Cost(
-                        amount: priceElement.getConvertedCost(includingVAT: includingVAT).amount * dailyProportion,
+                        amount: priceElement.getConvertedCost(valueSource: .calculated, includingVAT: includingVAT).amount * dailyProportion,
                         currency: currency
                     )
                 }
@@ -168,18 +175,13 @@ final class HomeConsumption: Comparable {
 
                 let tempEndTime = currentTime.addingTimeInterval(intervalSeconds)
                 for priceElement in priceElementsSpecific {
-                    if priceElement.isSeasonal {
-                        if let seasonalCost = priceElement.getConvertedSeasonalCost(
-                            startTime: currentTime,
-                            endTime: tempEndTime,
-                            includingVAT: includingVAT
-                        ) {
-                            variableEntries[priceElement.label] = seasonalCost.converted(to: currency) ?? seasonalCost
-                        }
-                    } else {
-                        let fixedCost = priceElement.getConvertedCost(includingVAT: includingVAT)
-                        variableEntries[priceElement.label] = fixedCost.converted(to: currency) ?? fixedCost
-                    }
+                    let seasonalCost = priceElement.getConvertedCost(
+                        valueSource: .calculated,
+                        includingVAT: includingVAT,
+                        startTime: currentTime,
+                        endTime: tempEndTime
+                    )
+                    variableEntries[priceElement.label] = seasonalCost.converted(to: currency) ?? seasonalCost
                 }
 
                 result[currentTime] = (fixed: fixedEntries, variable: variableEntries)
@@ -224,6 +226,24 @@ final class HomeConsumption: Comparable {
             }
             return nil
         }
+        
+        func consumption(from startDate: Date, to endDate: Date) -> Measurement<UnitEnergy> {
+            let sortedDates = consumptionsKWh.keys.sorted()
+            var totalConsumption: Double = 0.0
+            for consumptionDate in sortedDates {
+                if consumptionDate >= startDate && consumptionDate <= endDate {
+                    totalConsumption += consumptionsKWh[consumptionDate] ?? 0.0
+                }
+            }
+            return .init(value: totalConsumption, unit: .kilowattHours)
+        }
+        
+        func consumption(in monthString: String) -> Measurement<UnitEnergy> {
+            let totalConsumption = consumptionsKWh.filter {
+                monthString == UserSettings.shared.groupingDateFormatter.string(from: $0.key)
+            }.reduce(0.0) { $0 + $1.value }
+            return .init(value: totalConsumption, unit: .kilowattHours)
+        }
     }
     
     var id: UUID = UUID()
@@ -234,6 +254,7 @@ final class HomeConsumption: Comparable {
     var consumptionType: ConsumptionType = ConsumptionType.total
     var associatedLocation: Location?
     var prices: PowerPrices? = nil
+    var consumptions: PowerConsumptions? = nil
     var defaultToEnteredConsumption: Bool = true
     var comment: String = ""
     
@@ -295,36 +316,6 @@ final class HomeConsumption: Comparable {
         }
     }
     
-    var sumOfPriceElementsByConsumption: Cost {
-        if let priceElements {
-            let specificPriceElements = priceElements.filter {
-                if case .byConsumption(_) = $0.type { return true } else { return false }
-            }
-            return sumOfPriceElements(specificPriceElements)
-        }
-        return .init(amount: 0.0)
-    }
-    
-    var sumOfPriceElementsDaily: Cost {
-        if let priceElements {
-            let specificPriceElements = priceElements.filter {
-                if case .daily = $0.type { return true } else { return false }
-            }
-            return sumOfPriceElements(specificPriceElements)
-        }
-        return .init(amount: 0.0)
-    }
-    
-    var sumOfPriceElementsOnce: Cost {
-        if let priceElements {
-            let specificPriceElements = priceElements.filter {
-                if case .once = $0.type { return true } else { return false }
-            }
-            return sumOfPriceElements(specificPriceElements)
-        }
-        return .init(amount: 0.0)
-    }
-    
     var description: String {
         if associatedLocation != nil {
             return "\(name) (\(associatedLocation!.name))"
@@ -379,6 +370,11 @@ final class HomeConsumption: Comparable {
         return (components.day ?? 0) + 1
     }
     
+    var measuredVsContractualDifference: Measurement<UnitEnergy>? {
+        guard let measured = measuredConsumptionKWh() else { return nil }
+        return Measurement(value: measured - contractualConsumptionKWh(), unit: .kilowattHours)
+    }
+    
     init(
         name: String,
         validFrom: Date,
@@ -399,46 +395,130 @@ final class HomeConsumption: Comparable {
         }
     }
     
+    private func contractualConsumptionKWh() -> Double {
+        max(consumptionKWh, 0.0)
+    }
+
+    private func measuredConsumptionKWh() -> Double? {
+        guard let consumptions else { return nil }
+        // If `consumptionsKWh` are period amounts, sum is correct.
+        // If they are snapshots, adjust logic before enabling this in production.
+        let total = consumptions.consumptionsKWh.reduce(0.0) { $0 + $1.value }
+        return max(total, 0.0)
+    }
+
+    private func consumptionKWh(for source: ValueSource) -> Double {
+        switch source {
+        case .invoice:
+            return contractualConsumptionKWh()
+        case .calculated:
+            return measuredConsumptionKWh() ?? 0.0
+        case .automatic:
+            return measuredConsumptionKWh() ?? contractualConsumptionKWh()
+        }
+    }
+    
     /// Returns the consumption for the home consumption, either using the entered consumption or the consumption from related charging sessions.
     /// - Parameter useRelatedConsumptions: If true, the consumption from related charging sessions is used instead of the entered consumption. If no related charging sessions are available and defaultToEnteredConsumption is true, the entered consumption is returned, otherwise 0 is returned.
     /// - Returns: The consumption as a Measurement<UnitEnergy>.
-    private func consumption(useRelatedConsumptions: Bool, reduceTotalBy: Measurement<UnitEnergy>) -> Measurement<UnitEnergy> {
+    private func consumption(useRelatedConsumptions: Bool) -> Measurement<UnitEnergy> {
         if useRelatedConsumptions {
             if let dataFromRelatedChargingSessions {
-                return max(dataFromRelatedChargingSessions.consumption - reduceTotalBy, .init(value: 0.0, unit: .kilowattHours)) // Ensure consumption is not negative
+                return max(dataFromRelatedChargingSessions.consumption, .init(value: 0.0, unit: .kilowattHours)) // Ensure consumption is not negative
             } else {
-                return defaultToEnteredConsumption ? max(consumption - reduceTotalBy, .init(value: 0.0, unit: .kilowattHours)) : .init(value: 0.0, unit: .kilowattHours)
+                return defaultToEnteredConsumption ? max(consumption, .init(value: 0.0, unit: .kilowattHours)) : .init(value: 0.0, unit: .kilowattHours)
             }
         } else {
-            return max(consumption - reduceTotalBy, .init(value: 0.0, unit: .kilowattHours)) // Ensure consumption is not negative
+            return max(consumption, .init(value: 0.0, unit: .kilowattHours)) // Ensure consumption is not negative
         }
     }
     
-    func totalConsumption(useRelatedConsumptions: Bool, reduceTotalBy: Measurement<UnitEnergy>?) -> (home: Measurement<UnitEnergy>, charging: Measurement<UnitEnergy>) {
-        let reduceTotalBy = reduceTotalBy?.converted(to: .kilowattHours) ?? .init(value: 0.0, unit: .kilowattHours)
+    private func totalConsumption(
+        useRelatedConsumptions: Bool,
+        valueSource: ValueSource
+    ) -> (home: Measurement<UnitEnergy>, charging: Measurement<UnitEnergy>) {
         switch consumptionType {
         case .total:
             let chargingConsumptionKWh = dataFromRelatedChargingSessions?.consumption.converted(to: .kilowattHours).value ?? 0.0
-            let homeConsumptionKWh = max(consumptionKWh - reduceTotalBy.value - chargingConsumptionKWh, 0.0) // Ensure home consumption is not negative
+            var totalConsumptionKWh: Double
+            switch valueSource {
+            case .invoice:
+                totalConsumptionKWh = contractualConsumptionKWh()
+            case .calculated:
+                totalConsumptionKWh = measuredConsumptionKWh() ?? 0.0
+            case .automatic:
+                totalConsumptionKWh = measuredConsumptionKWh() ?? contractualConsumptionKWh()
+            }
+            let homeConsumptionKWh = max(totalConsumptionKWh - chargingConsumptionKWh, 0.0) // Ensure home consumption is not negative
             return (home: .init(value: homeConsumptionKWh, unit: .kilowattHours), charging: .init(value: chargingConsumptionKWh, unit: .kilowattHours))
         case .home, .homeDiscount, .homeRefunded:
-            return (home: consumption(useRelatedConsumptions: useRelatedConsumptions, reduceTotalBy: reduceTotalBy), charging: .init(value: 0.0, unit: .kilowattHours))
+            var totalConsumptionKWh: Double
+            switch valueSource {
+            case .invoice:
+                totalConsumptionKWh = consumption(useRelatedConsumptions: useRelatedConsumptions).converted(to: .kilowattHours).value
+            case .calculated:
+                totalConsumptionKWh = measuredConsumptionKWh() ?? 0.0
+            case .automatic:
+                totalConsumptionKWh = measuredConsumptionKWh() ?? consumption(useRelatedConsumptions: useRelatedConsumptions).converted(to: .kilowattHours).value
+            }
+            return (home: .init(value: totalConsumptionKWh, unit: .kilowattHours), charging: .init(value: 0.0, unit: .kilowattHours))
         case .charging, .chargingDiscount, .chargingRefunded, .refundingOtherPlan:
-            return (home: .init(value: 0.0, unit: .kilowattHours), charging: consumption(useRelatedConsumptions: useRelatedConsumptions, reduceTotalBy: reduceTotalBy))
+            var totalConsumptionKWh: Double
+            switch valueSource {
+            case .invoice:
+                totalConsumptionKWh = consumption(useRelatedConsumptions: useRelatedConsumptions).converted(to: .kilowattHours).value
+            case .calculated:
+                totalConsumptionKWh = measuredConsumptionKWh() ?? 0.0
+            case .automatic:
+                totalConsumptionKWh = measuredConsumptionKWh() ?? consumption(useRelatedConsumptions: useRelatedConsumptions).converted(to: .kilowattHours).value
+            }
+            return (home: .init(value: 0.0, unit: .kilowattHours), charging: .init(value: totalConsumptionKWh, unit: .kilowattHours))
         }
     }
     
-    func consumptionPerMonth(useRelatedConsumptions: Bool, reduceTotalBy: Measurement<UnitEnergy>?) -> [String: (home: Measurement<UnitEnergy>, charging: Measurement<UnitEnergy>)] {
-        let totalConsumption = totalConsumption(useRelatedConsumptions: useRelatedConsumptions, reduceTotalBy: reduceTotalBy)
-        return distributeConsumption(totalConsumption)
+    func consumptionPerMonth(
+        useRelatedConsumptions: Bool,
+        reduceHomeBy: [String: Measurement<UnitEnergy>]?,
+        valueSource: ValueSource
+    ) -> [String: (home: Measurement<UnitEnergy>, charging: Measurement<UnitEnergy>)] {
+        if valueSource == .invoice || (valueSource == .automatic && measuredConsumptionKWh() == nil) {
+            let totalConsumption = totalConsumption(useRelatedConsumptions: useRelatedConsumptions, valueSource: valueSource)
+            return distributeConsumption(totalConsumption, reduceHomeBy: reduceHomeBy)
+        } else {
+            // Sum up the consumptions for each month from the consumptionsKWh dictionary, considering the reduceTotalBy value.
+            guard let consumptions else { return [:] }
+            var monthlyConsumptions: [String: (home: Measurement<UnitEnergy>, charging: Measurement<UnitEnergy>)] = [:]
+            for (date, consumptionKWh) in consumptions.consumptionsKWh {
+                let monthKey = UserSettings.shared.groupingDateFormatter.string(from: date)
+                
+                // Get the reduced home consumption for this month if available
+                let reduceHomeByKWh = reduceHomeBy?[monthKey]?.converted(to: .kilowattHours).value ?? 0.0
+                
+                let adjustedConsumptionKWh = max(consumptionKWh - reduceHomeByKWh, 0.0) // Ensure consumption is not negative
+                if monthlyConsumptions[monthKey] != nil {
+                    monthlyConsumptions[monthKey]!.home.value += adjustedConsumptionKWh
+                } else {
+                    monthlyConsumptions[monthKey] = (home: .init(value: adjustedConsumptionKWh, unit: .kilowattHours), charging: .init(value: 0.0, unit: .kilowattHours))
+                }
+            }
+            return monthlyConsumptions
+        }
     }
     
-    private func distributeConsumption(_ totalConsumption: (home: Measurement<UnitEnergy>, charging: Measurement<UnitEnergy>)) -> [String: (home: Measurement<UnitEnergy>, charging: Measurement<UnitEnergy>)] {
+    private func distributeConsumption(
+        _ totalConsumption: (home: Measurement<UnitEnergy>, charging: Measurement<UnitEnergy>),
+        reduceHomeBy: [String: Measurement<UnitEnergy>]?
+    ) -> [String: (home: Measurement<UnitEnergy>, charging: Measurement<UnitEnergy>)] {
         let numberOfDays = self.numberOfDays
         guard numberOfDays > 0 else {
             // If no days, return the total consumption as is for the validUntil month
             let monthKey = UserSettings.shared.groupingDateFormatter.string(from: validUntil)
-            return [monthKey: totalConsumption]
+            
+            // Get the reduced home consumption for this month if available
+            let reducedHomeConsumption = reduceHomeBy?[monthKey] ?? .init(value: 0.0, unit: .kilowattHours)
+            let adjustedHomeConsumption = max(totalConsumption.home.value - reducedHomeConsumption.value, 0.0) // Ensure home consumption is not negative
+            
+            return [monthKey: (home: Measurement<UnitEnergy>(value: adjustedHomeConsumption, unit: .kilowattHours), charging: Measurement<UnitEnergy>(value: totalConsumption.charging.value, unit: .kilowattHours))]
         }
         
         let homeTotalKWh = totalConsumption.home.converted(to: .kilowattHours).value
@@ -449,15 +529,24 @@ final class HomeConsumption: Comparable {
         for (monthKey, daysInMonth) in daysPerMonth {
             // Determine the share in this month
             let monthShare = Double(daysInMonth) / Double(numberOfDays)
-            consumptionPerMonthKWh[monthKey] = (home: homeTotalKWh * monthShare, charging: chargingTotalKWh * monthShare)
+            
+            // Reduce the home consumption for this month if available
+            let reducedHomeConsumption = reduceHomeBy?[monthKey] ?? .init(value: 0.0, unit: .kilowattHours)
+            let adjustedHomeConsumption = max(homeTotalKWh * monthShare - reducedHomeConsumption.converted(to: .kilowattHours).value, 0.0) // Ensure home consumption is not negative
+            
+            consumptionPerMonthKWh[monthKey] = (home: adjustedHomeConsumption, charging: chargingTotalKWh * monthShare)
         }
         
         // Normalize the consumptions to ensure they sum up to the total consumption (to avoid rounding issues)
         let sumOfConsumptions = consumptionPerMonthKWh.values.reduce(0) { $0 + $1.home + $1.charging }
-        if sumOfConsumptions != homeTotalKWh + chargingTotalKWh {
-            let difference = (homeTotalKWh + chargingTotalKWh) - sumOfConsumptions
+        
+        // Get the total reduced home consumption across all months
+        let totalReducedHomeConsumption = reduceHomeBy?.values.reduce(0.0) { $0 + $1.converted(to: .kilowattHours).value } ?? 0.0
+        
+        if sumOfConsumptions != homeTotalKWh + chargingTotalKWh - totalReducedHomeConsumption {
+            let difference = (homeTotalKWh + chargingTotalKWh - totalReducedHomeConsumption) - sumOfConsumptions
             if let firstKey = consumptionPerMonthKWh.keys.first {
-                let homeShare = homeTotalKWh / (homeTotalKWh + chargingTotalKWh)
+                let homeShare = homeTotalKWh / (homeTotalKWh + chargingTotalKWh - totalReducedHomeConsumption)
                 consumptionPerMonthKWh[firstKey]!.home += difference * homeShare
                 consumptionPerMonthKWh[firstKey]!.charging += difference * (1 - homeShare)
             }
@@ -475,7 +564,14 @@ final class HomeConsumption: Comparable {
     /// - Parameter includingVAT: Indicates whether to calculate cost without VAT or with VAT. Default is true (including VAT).
     /// - Parameter useRelatedConsumptions: If true, the consumption from related charging sessions is used instead of the entered consumption. If no charging sessions are availale, the entered consumption is used.
     /// - Returns: The total cost as Cost.
-    private func cost(includingVAT: Bool = true, useRelatedConsumptions: Bool, reduceTotalBy: Cost) -> Cost {
+    private func cost(
+        includingVAT: Bool = true,
+        useRelatedConsumptions: Bool,
+        reduceTotalBy: [String: Cost],
+        valueSource: ValueSource,
+        startTime: Date? = nil,
+        endTime: Date? = nil
+    ) -> Cost {
         guard let priceElements else {
             return .init(amount: 0.0)
         }
@@ -483,32 +579,40 @@ final class HomeConsumption: Comparable {
         let value = priceElements.reduce(0.0) {
             switch $1.type {
             case .daily:
-                return $0 + ($1.getConvertedCost(includingVAT: includingVAT).amount * Double(numberOfDays))
+                return $0 + ($1.getConvertedCost(valueSource: valueSource, includingVAT: includingVAT, startTime: startTime, endTime: endTime).amount * Double(numberOfDays))
             case .once:
-                return $0 + $1.getConvertedCost(includingVAT: includingVAT).amount
+                return $0 + $1.getConvertedCost(valueSource: valueSource, includingVAT: includingVAT, startTime: startTime, endTime: endTime).amount
             case .byConsumption(let energyUnitSymbol):
                 guard let energyUnit = UserSettings.shared.energyUnit(for: energyUnitSymbol) else {
                     fatalError("Unknown energy unit symbol: \(energyUnitSymbol)")
                 }
-                let consumption = consumption(useRelatedConsumptions: useRelatedConsumptions, reduceTotalBy: .init(value: 0.0, unit: .kilowattHours)).converted(to: energyUnit).value // Don't reduce the total, we subtract reduceTotalBy at the end
-                return $0 + ($1.getConvertedCost(includingVAT: includingVAT).amount * consumption)
+                let consumption = consumption(useRelatedConsumptions: useRelatedConsumptions).converted(to: energyUnit).value
+                return $0 + ($1.getConvertedCost(valueSource: valueSource, includingVAT: includingVAT, startTime: startTime, endTime: endTime).amount * consumption)
             }
         }
         
-        return .init(amount: value) + reduceTotalBy // reduceTotalBy is added as it's a negative value, so we need to add it to subtract if from the total cost
+        // Add up all costs from reduceTotalBy dictionary
+        let totalReduction = reduceTotalBy.values.reduce(0.0) { $0 + ($1.converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? 0.0) }
+        
+        return .init(amount: value + totalReduction) // totalReduction is added as it's a negative value, so we need to add it to subtract if from the total cost
     }
     
-    func totalCost(includingVAT: Bool = true, useRelatedConsumptions: Bool, reduceTotalBy: (consumption: Measurement<UnitEnergy>, cost: Cost)?) -> (home: Cost, charging: Cost) {
-        let reduceTotalBy = reduceTotalBy ?? (consumption: .init(value: 0.0, unit: .kilowattHours), cost: .init(amount: 0.0))
+    func totalCost(
+        includingVAT: Bool = true,
+        useRelatedConsumptions: Bool,
+        reduceTotalBy: [String: Cost]?,
+        valueSource: ValueSource
+    ) -> (home: Cost, charging: Cost) {
+        let reduceTotalBy = reduceTotalBy ?? [:]
         switch consumptionType {
         case .total:
-            let totalCost = cost(includingVAT: includingVAT, useRelatedConsumptions: false, reduceTotalBy: reduceTotalBy.cost).converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? 0.0
+            let totalCost = cost(includingVAT: includingVAT, useRelatedConsumptions: false, reduceTotalBy: reduceTotalBy, valueSource: valueSource).converted(to: UserSettings.shared.currencyIdentifier)?.amount ?? 0.0
             guard totalCost > 0 else {
                 // If no total cost, there can't be any monthly cost
                 return (home: .init(amount: 0.0), charging: .init(amount: 0.0))
             }
             
-            let totalConsumption = totalConsumption(useRelatedConsumptions: useRelatedConsumptions, reduceTotalBy: reduceTotalBy.consumption)
+            let totalConsumption = totalConsumption(useRelatedConsumptions: useRelatedConsumptions, valueSource: valueSource)
             let fullConsumptionKWh = totalConsumption.home.converted(to: .kilowattHours).value + totalConsumption.charging.converted(to: .kilowattHours).value
             guard fullConsumptionKWh > 0 else {
                 // If no consumption, there can't be any related charging cost
@@ -519,11 +623,11 @@ final class HomeConsumption: Comparable {
             return (home: .init(amount: totalCost * homeShare), charging: .init(amount: totalCost * (1 - homeShare)))
         case .home, .homeDiscount, .homeRefunded:
             // These are home consumptions, so no charging costs should be included
-            let totalCost = cost(includingVAT: includingVAT, useRelatedConsumptions: useRelatedConsumptions, reduceTotalBy: reduceTotalBy.cost)
+            let totalCost = cost(includingVAT: includingVAT, useRelatedConsumptions: useRelatedConsumptions, reduceTotalBy: reduceTotalBy, valueSource: valueSource)
             return (home: totalCost, charging: .init(amount: 0.0))
         case .charging, .chargingDiscount, .chargingRefunded, .refundingOtherPlan:
             // These are charging consumptions, so the full cost should be included as charging cost
-            let totalCost = cost(includingVAT: includingVAT, useRelatedConsumptions: useRelatedConsumptions, reduceTotalBy: reduceTotalBy.cost)
+            let totalCost = cost(includingVAT: includingVAT, useRelatedConsumptions: useRelatedConsumptions, reduceTotalBy: reduceTotalBy, valueSource: valueSource)
             return (home: .init(amount: 0.0), charging: totalCost)
         }
     }
@@ -531,9 +635,10 @@ final class HomeConsumption: Comparable {
     func costPerMonth(
         includingVAT: Bool = true,
         useRelatedConsumptions: Bool,
-        reduceTotalBy: (consumption: Measurement<UnitEnergy>, cost: Cost)?
+        reduceTotalBy: [String: Cost]?,
+        valueSource: ValueSource
     ) -> [String: (home: Cost, charging: Cost)] {
-        let totalCost = totalCost(includingVAT: includingVAT, useRelatedConsumptions: useRelatedConsumptions, reduceTotalBy: reduceTotalBy)
+        let totalCost = totalCost(includingVAT: includingVAT, useRelatedConsumptions: useRelatedConsumptions, reduceTotalBy: reduceTotalBy, valueSource: valueSource)
         return distributeCost(totalCost)
     }
     
@@ -623,7 +728,7 @@ final class HomeConsumption: Comparable {
         }
     }
     
-    /// Simulates the cost of home consumption for a given time range and consumption and a given price per kWh. Only price elements not excluded from simulation are used.
+    /// Simulates the cost of home consumption for a given time range and consumption and a given price per kWh. Only price elements not excluded from simulation are used. ValueType for the simulation is always .calculated.
     /// - Parameters:
     ///   - consumptionKWh: The consumption in kWh to simulate the cost for. This allows to simulate the cost for different consumption values than the one entered in the home consumption, e.g. for a future month or to see how the cost would have changed with a different consumption.
     ///   - pricePerKWh: The price per kWh to use for the consumption.
@@ -648,10 +753,10 @@ final class HomeConsumption: Comparable {
         // Filter the included price elements by those with types .once and .daily
         let sumOfPriceElementsOnce = sumOfPriceElements(includedPriceElements.filter {
             if case .once = $0.type { return true } else { return false }
-        }, startTime: startTime, endTime: endTime)
+        }, valueSource: .calculated, startTime: startTime, endTime: endTime)
         let sumOfPriceElementsDaily = sumOfPriceElements(includedPriceElements.filter {
             if case .daily = $0.type { return true } else { return false }
-        }, startTime: startTime, endTime: endTime)
+        }, valueSource: .calculated, startTime: startTime, endTime: endTime)
         
         // Calculate the fixed costs (once + daily * number of days)
         let fixedCosts = sumOfPriceElementsOnce.amount + sumOfPriceElementsDaily.amount * Double(numberOfDays)
@@ -659,7 +764,7 @@ final class HomeConsumption: Comparable {
         // Calculate the variable cost
         let sumOfPriceElementsSpecific = sumOfPriceElements(includedPriceElements.filter {
             if case .byConsumption(_) = $0.type { return true } else { return false }
-        }, startTime: startTime, endTime: endTime)
+        }, valueSource: .calculated, startTime: startTime, endTime: endTime)
         
         // Add the given price per kWh
         let sumOfPriceElementsByConsumption = sumOfPriceElementsSpecific + pricePerKWh
@@ -669,6 +774,12 @@ final class HomeConsumption: Comparable {
         return .init(amount: simulatedCost)
     }
     
+    /// Calculates the cost per kWh for the home consumption over a given time range and resolution. This function uses the associated PowerPrices to calculate the cost per kWh for each time interval within the specified range.
+    /// - Parameters:
+    ///   - startTime: The start date of the time range for which to calculate the cost per kWh.
+    ///   - endTime: The end date of the time range for which to calculate the cost per kWh.
+    ///   - resolutionMinutes: The resolution in minutes for which to calculate the cost per kWh.
+    /// - Returns: A dictionary mapping each date to a tuple containing the fixed and variable costs.
     func costPerKWh(startTime: Date, endTime: Date, resolutionMinutes: Int) async throws -> [Date: (fixed: [String: Cost], variable: [String: Cost])] {
         guard let prices else {
             return [:]
@@ -681,16 +792,40 @@ final class HomeConsumption: Comparable {
         )
     }
     
-    private func sumOfPriceElements(_ priceElements: [PriceElement], startTime: Date? = nil, endTime: Date? = nil) -> Cost {
-        if let startTime, let endTime {
-            return .init(
-                amount: priceElements.reduce(0.0) { $0 + ($1.isSeasonal ? $1.getConvertedSeasonalCost(startTime: startTime, endTime: endTime, includingVAT: UserSettings.shared.displayGrossPrices)?.amount ?? 0.0 : $1.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices).amount) }
-            )
-        } else {
-            return .init(
-                amount: priceElements.reduce(0.0) { $0 + $1.getConvertedCost(includingVAT: UserSettings.shared.displayGrossPrices).amount }
-            )
+    func sumOfPriceElementsByConsumption(valueSource: ValueSource, startTime: Date? = nil, endTime: Date? = nil) -> Cost {
+        if let priceElements {
+            let specificPriceElements = priceElements.filter {
+                if case .byConsumption(_) = $0.type { return true } else { return false }
+            }
+            return sumOfPriceElements(specificPriceElements, valueSource: valueSource, startTime: startTime, endTime: endTime)
         }
+        return .init(amount: 0.0)
+    }
+    
+    func sumOfPriceElementsDaily(valueSource: ValueSource, startTime: Date? = nil, endTime: Date? = nil) -> Cost {
+        if let priceElements {
+            let specificPriceElements = priceElements.filter {
+                if case .daily = $0.type { return true } else { return false }
+            }
+            return sumOfPriceElements(specificPriceElements, valueSource: valueSource, startTime: startTime, endTime: endTime)
+        }
+        return .init(amount: 0.0)
+    }
+    
+    func sumOfPriceElementsOnce(valueSource: ValueSource, startTime: Date? = nil, endTime: Date? = nil) -> Cost {
+        if let priceElements {
+            let specificPriceElements = priceElements.filter {
+                if case .once = $0.type { return true } else { return false }
+            }
+            return sumOfPriceElements(specificPriceElements, valueSource: valueSource, startTime: startTime, endTime: endTime)
+        }
+        return .init(amount: 0.0)
+    }
+    
+    private func sumOfPriceElements(_ priceElements: [PriceElement], valueSource: ValueSource, startTime: Date? = nil, endTime: Date? = nil) -> Cost {
+        return .init(
+            amount: priceElements.reduce(0.0) { $0 + $1.getConvertedCost(valueSource: valueSource, includingVAT: UserSettings.shared.displayGrossPrices, startTime: startTime, endTime: endTime).amount }
+        )
     }
     
     static func < (lhs: HomeConsumption, rhs: HomeConsumption) -> Bool {

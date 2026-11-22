@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct CarEditor: View {
     private enum Field: Int, Hashable {

@@ -150,6 +150,23 @@ final class UserSettings: ObservableObject {
         }
     }
 
+    @AppStorage("useCalculatedValues") private var useCalculatedValuesRaw: Bool = true {
+        didSet {
+            // If AppStorage (UserDefaults) changed externally, reflect the change to the published property
+            if useCalculatedValues != useCalculatedValuesRaw {
+                useCalculatedValues = useCalculatedValuesRaw
+            }
+        }
+    }
+    @Published var useCalculatedValues: Bool = true {
+        didSet {
+            // Sync to AppStorage backing value when changed from code
+            if useCalculatedValuesRaw != useCalculatedValues {
+                useCalculatedValuesRaw = useCalculatedValues
+            }
+        }
+    }
+
     @AppStorage("selectedCarId") private var selectedCarIdRaw: String = ""
     var selectedCarId: String? {
         get { selectedCarIdRaw.isEmpty ? nil : selectedCarIdRaw }

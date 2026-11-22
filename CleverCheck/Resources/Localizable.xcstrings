@@ -6460,6 +6460,22 @@
         }
       }
     },
+    "Use calculated values" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brug beregnede værdier"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutze berechnete Werte"
+          }
+        }
+      }
+    },
     "Use related consumption" : {
       "localizations" : {
         "da" : {
@@ -6604,6 +6620,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Warnung"
+          }
+        }
+      }
+    },
+    "When using calculated values, the app will try to use consumption and cost from public sources, if configured in the home consumption and the individual price elements." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Når du bruger beregnede værdier, vil appen forsøge at bruge forbrug og omkostninger fra offentlige kilder, hvis det er konfigureret i hjemmeforbrug og de enkelte priselementer."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn berechnete Werte genutzt werden, versucht die App, Verbrauch und Kosten aus öffentlichen Quellen zu berechnen, sollte dies im Heimverbrauch und den einzelnen Preiselementen konfiguriert sein."
           }
         }
       }

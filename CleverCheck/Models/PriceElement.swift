@@ -53,17 +53,13 @@ final class PriceElement: Identifiable, Equatable {
     var vatRate: Double = 0.25
     var excludeFromSimulation: Bool = false
     
-    var isSeasonal: Bool {
-        seasonalPrice != nil
-    }
-    
     /// Returns the amount converted to the user's selected currency. If conversion fails, returns the original amount.
-    var converted: Cost {
+    private var converted: Cost {
         amount.converted(to: UserSettings.shared.currencyIdentifier) ?? amount
     }
     
     var unitDescription: String {
-        "\(converted.currency)\(type.unitExtension)"
+        "\(UserSettings.shared.currencyIdentifier)\(type.unitExtension)"
     }
     
     var amountDescription: String {
@@ -101,10 +97,19 @@ final class PriceElement: Identifiable, Equatable {
         }
     }
     
+    func getConvertedCost(valueSource: HomeConsumption.ValueSource, includingVAT: Bool, startTime: Date? = nil, endTime: Date? = nil) -> Cost {
+        // If valueSource is calculated or automatic, and a seasonal price, startTime and endTime are available, calculate the average seasonal cost for the given time period. Otherwise, return the entered cost.
+        if valueSource == .calculated || valueSource == .automatic, let startTime, let endTime {
+            return getConvertedSeasonalCost(startTime: startTime, endTime: endTime, includingVAT: includingVAT) ?? getConvertedCost(includingVAT: includingVAT)
+        } else {
+            return getConvertedCost(includingVAT: includingVAT)
+        }
+    }
+    
     /// Returns the converted cost in the user's selected currency, either gross or net based on the isGross parameter.
     /// - Parameter isGross: If true, returns the gross amount; if false, returns the net amount.
     /// - Returns: The converted cost. If conversion fails, returns the original cost.
-    func getConvertedCost(includingVAT: Bool) -> Cost {
+    private func getConvertedCost(includingVAT: Bool) -> Cost {
         if includingVAT {
             return inclVAT(converted)
         } else {
@@ -118,7 +123,7 @@ final class PriceElement: Identifiable, Equatable {
     ///   - endTime: The end time.
     ///   - includingVAT: If true, VAT is included.
     /// - Returns: The average seasonal cost.
-    func getConvertedSeasonalCost(startTime: Date, endTime: Date, includingVAT: Bool) -> Cost? {
+    private func getConvertedSeasonalCost(startTime: Date, endTime: Date, includingVAT: Bool) -> Cost? {
         guard let seasonalPrice else { return nil }
         let durationInMinutes = endTime.timeIntervalSince(startTime) / 60.0
         guard durationInMinutes > 0.0 else { return nil }

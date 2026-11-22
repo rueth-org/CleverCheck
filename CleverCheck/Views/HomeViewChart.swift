@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import Charts
 
 struct HomeViewChart: View {
@@ -41,7 +42,12 @@ struct HomeViewChart: View {
     var onBarTap: ((String) -> Void)? = nil
 
     private var data: [Location.Data] {
-        location.data(in: timeBox, useRelatedConsumption: settings.useRelatedConsumptions, modelContext: modelContext)
+        location.data(
+            in: timeBox,
+            useRelatedConsumption: settings.useRelatedConsumptions,
+            valueSource: settings.useCalculatedValues ? .calculated : .invoice,
+            modelContext: modelContext
+        )
     }
     
     var body: some View {

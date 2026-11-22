@@ -147,7 +147,8 @@ struct HomeConsumptionEditor: View {
                 let totalCost = homeConsumption?.totalCost(
                     includingVAT: UserSettings.shared.displayGrossPrices,
                     useRelatedConsumptions: UserSettings.shared.useRelatedConsumptions,
-                    reduceTotalBy: nil
+                    reduceTotalBy: nil,
+                    valueSource: UserSettings.shared.useCalculatedValues ? .calculated : .invoice
                 )
                 HStack {
                     Text("Home cost")

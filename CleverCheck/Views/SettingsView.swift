@@ -96,6 +96,15 @@ struct SettingsView: View {
                     }
                 }
                 
+                Section(header: Text("Home")) {
+                    VStack {
+                        Toggle("Use calculated values", isOn: $userSettings.useCalculatedValues)
+                        Text("When using calculated values, the app will try to use consumption and cost from public sources, if configured in the home consumption and the individual price elements.")
+                            .font(.footnote)
+                            .padding(.vertical)
+                    }
+                }
+                
                 Section(header: Text("Charging")) {
                     VStack {
                         HStack {

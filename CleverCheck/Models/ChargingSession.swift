@@ -66,6 +66,18 @@ final class ChargingSession: Comparable {
         }
     }
     
+    var estimatedStartTime: Date? {
+        // We need either a start time, or the charger's maxPowerKW
+        if let startTime { return startTime }
+        if let charger = chargingCostPlan?.charger, let maxPowerKW = charger.maxPowerKW {
+            // We can estimate the duration of the charging session by dividing the charged energy by the max power of the charger
+            let estimatedDurationHours = chargedEnergyKWh / maxPowerKW
+            let startTime = endTime.addingTimeInterval(-estimatedDurationHours * 3600)
+            return startTime
+        }
+        return nil
+    }
+    
     var description: String {
         "\(UserSettings.shared.shortDateFormatter.string(from: endTime)) - \(chargingCostPlan?.descriptionLong ?? "Unknown plan"): \(chargedEnergyFormatted)"
     }
@@ -238,7 +250,6 @@ final class ChargingSession: Comparable {
         
         return (cost: totalCost, refundingHomeConsumption: returnRefundingHomeConsumption)
     }
-
     
     func possibleHomeConsumptions(modelContext: ModelContext, ignoreDate: Bool = false) -> [HomeConsumption]? {
         if let homeConsumptions = try? modelContext.fetch(FetchDescriptor<HomeConsumption>()) {
